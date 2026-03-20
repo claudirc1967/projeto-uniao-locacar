@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.db
+*.db-journal
+.env
+backend/.env
+mobile/.env
+.expo/
+*.log

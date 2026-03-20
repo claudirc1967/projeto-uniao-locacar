@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  DRIVER
+}
+
+enum DriverStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RentalStatus {
+  PENDING_OWNER
+  APPROVED
+  REJECTED
+  ACTIVE
+  CANCELLED
+}
+
+enum ContractTime {
+  DIARIO
+  SEMANAL
+  MENSAL
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  ownerProfile  OwnerProfile?
+  driverProfile DriverProfile?
+  vehicles      Vehicle[]
+  rentals       Rental[]      @relation("DriverRentals")
+  vehicleDriverBlocks VehicleDriverBlock[]
+  resetTokens   PasswordResetToken[]
+}
+
+model OwnerProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  cpfCnpj     String @default("")
+  phone       String @default("")
+  cep         String @default("")
+  logradouro  String @default("")
+  numero      String @default("")
+  complemento String @default("")
+  bairro      String @default("")
+  cidade      String @default("")
+  uf          String @default("")
+}
+
+model DriverProfile {
+  id     String       @id @default(cuid())
+  userId String       @unique
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status DriverStatus @default(PENDING)
+
+  fullName    String?
+  phone       String?
+  cpf         String?
+  cnh         String?
+  cnhCategory String?
+  cnhValidity String?
+  cnhYears    Int?
+  cnhHasEar   Boolean?
+  criminalAttestation Boolean?
+  uberRegistered Boolean?
+  cep         String?
+  logradouro  String?
+  numero      String?
+  complemento String?
+  bairro      String?
+  cidade      String?
+  uf          String?
+}
+
+model Vehicle {
+  id               String   @id @default(cuid())
+  ownerUserId      String
+  owner            User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  title            String
+  description      String?
+  plate            String
+  brand            String?
+  model            String?
+  year             Int?
+  cor              String?
+  contractTime   ContractTime @default(DIARIO)
+  kmLivre        Boolean  @default(false)
+  kmPorContrato  Int      @default(0)
+  insuranceMaintenanceIncluded Boolean @default(true)
+  insurerPolicy  String?
+  dailyRateCents   Int
+  available        Boolean  @default(true)
+  requirementsJson String?
+  paymentNotes     String?
+  pickupCity       String?
+  pickupUf         String?
+
+  pickupCep         String?
+  pickupLogradouro  String?
+  pickupNumero      String?
+  pickupComplemento String?
+  pickupBairro      String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  photos  VehiclePhoto[]
+  rentals Rental[]
+  vehicleDriverBlocks VehicleDriverBlock[]
+}
+
+model VehicleDriverBlock {
+  id           String   @id @default(cuid())
+  vehicleId    String
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverUserId String
+  driver       User     @relation(fields: [driverUserId], references: [id], onDelete: Cascade)
+  /** true = proprietário recusou e ainda não desbloqueou */
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([vehicleId, driverUserId])
+}
+
+model VehiclePhoto {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  key         String   @unique
+  contentType String
+  byteSize    Int
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model Rental {
+  id                 String       @id @default(cuid())
+  vehicleId          String
+  vehicle            Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driverUserId       String
+  driver             User         @relation("DriverRentals", fields: [driverUserId], references: [id], onDelete: Cascade)
+  status             RentalStatus @default(PENDING_OWNER)
+  motivoRecusa       String?
+  pickupInstructions String?
+  contractText       String?
+  contractUrl        String?
+  requestedAt        DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+}

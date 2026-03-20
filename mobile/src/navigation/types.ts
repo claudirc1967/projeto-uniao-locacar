@@ -1,0 +1,24 @@
+export type RootStackParamList = {
+  Login: undefined;
+  Signup: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token?: string } | undefined;
+  OwnerHome: undefined;
+  OwnerProfile: undefined;
+  OwnerProfileEdit: undefined;
+  OwnerVehicles: undefined;
+  VehicleForm: { vehicleId?: string };
+  VehiclePhotos: { vehicleId: string };
+  OwnerPendingDrivers: undefined;
+  OwnerDriverProfile: { driverUserId: string };
+  OwnerRentals: undefined;
+  OwnerRentalDetail: { rentalId: string };
+  RentalInstructions: { rentalId: string };
+  DriverHome: undefined;
+  DriverPreRegister: undefined;
+  DriverStatus: undefined;
+  DriverRentals: undefined;
+  Marketplace: undefined;
+  VehicleDetail: { vehicleId: string };
+  RentalDetail: { rentalId: string };
+};

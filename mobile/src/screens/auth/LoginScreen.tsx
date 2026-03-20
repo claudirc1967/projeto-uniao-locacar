@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { trpc } from "../../api/trpc";
 import { AppButton } from "../../components/AppButton";
+import { PasswordInput } from "../../components/PasswordInput";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
@@ -47,12 +48,7 @@ export function LoginScreen({ navigation }: Props) {
           onChangeText={setEmail}
         />
         <Text style={styles.label}>Senha</Text>
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        <PasswordInput value={password} onChangeText={setPassword} />
         {err ? <Text style={styles.err}>{err}</Text> : null}
         <AppButton
           title="Entrar"

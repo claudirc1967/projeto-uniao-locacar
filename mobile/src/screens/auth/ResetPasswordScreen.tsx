@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { trpc } from "../../api/trpc";
 import { AppButton } from "../../components/AppButton";
+import { PasswordInput } from "../../components/PasswordInput";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
@@ -47,12 +48,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
           autoCapitalize="none"
         />
         <Text style={styles.label}>Nova senha</Text>
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        <PasswordInput value={password} onChangeText={setPassword} />
         {err ? <Text style={styles.err}>{err}</Text> : null}
         <AppButton
           title="Redefinir"

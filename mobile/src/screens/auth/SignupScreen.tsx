@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { trpc } from "../../api/trpc";
 import { AppButton } from "../../components/AppButton";
+import { PasswordInput } from "../../components/PasswordInput";
 import {
   CepAddressForm,
   type CepAddressValue,
@@ -149,12 +150,7 @@ export function SignupScreen({ navigation }: Props) {
           onChangeText={setEmail}
         />
         <Text style={styles.label}>Senha (mín. 6)</Text>
-        <TextInput
-          style={styles.input}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+        <PasswordInput value={password} onChangeText={setPassword} />
 
         {role === "OWNER" ? (
           <>

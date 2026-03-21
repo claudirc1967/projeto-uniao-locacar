@@ -597,6 +597,27 @@ export const ownerRouter = router({
       return { ok: true as const };
     }),
 
+  /** Exclui uma solicitação recusada. */
+  deleteRejectedRental: ownerProcedure
+    .input(z.object({ rentalId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const r = await prisma.rental.findFirst({
+        where: {
+          id: input.rentalId,
+          vehicle: { ownerUserId: (ctx as AuthedContext).user.id },
+          status: "REJECTED",
+        },
+      });
+      if (!r) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Solicitação recusada não encontrada",
+        });
+      }
+      await prisma.rental.delete({ where: { id: r.id } });
+      return { ok: true as const };
+    }),
+
   getIncomingRentalDetail: ownerProcedure
     .input(z.object({ rentalId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -614,6 +635,7 @@ export const ownerRouter = router({
               brand: true,
               model: true,
               year: true,
+              cor: true,
               dailyRateCents: true,
             },
           },
@@ -658,6 +680,7 @@ export const ownerRouter = router({
         rentalId: r.id,
         status: r.status,
         requestedAt: r.requestedAt,
+        updatedAt: r.updatedAt,
         motivoRecusa: r.motivoRecusa,
         driverRequestBlocked:
           r.status === "REJECTED"

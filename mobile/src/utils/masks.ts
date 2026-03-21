@@ -75,6 +75,22 @@ export function maskPhone(raw: string) {
   return `(${dd}) ${p1}-${p2}`;
 }
 
+/** Formata Date ou string ISO para exibição DD/MM/AAAA. */
+export function formatDateDisplay(date: Date | string): string {
+  return new Date(date).toLocaleDateString("pt-BR");
+}
+
+/** Data e hora (minutos) em pt-BR, ex.: 19/03/2025, 14:30 */
+export function formatDateTimeDisplay(date: Date | string): string {
+  return new Date(date).toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 /** Máscara para data DD/MM/AAAA (aceita digitar apenas números). */
 export function maskDate(raw: string) {
   const d = onlyDigits(raw).slice(0, 8);

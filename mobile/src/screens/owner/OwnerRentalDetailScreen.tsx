@@ -4,7 +4,12 @@ import { trpc } from "../../api/trpc";
 import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
-import { maskCpf, maskDate, maskPhone } from "../../utils/masks";
+import {
+  formatDateTimeDisplay,
+  maskCpf,
+  maskDate,
+  maskPhone,
+} from "../../utils/masks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerRentalDetail">;
 
@@ -47,16 +52,24 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
   const r = q.data!;
   const driverProfile = r.driver.driverProfile;
 
+  const showApprovalOrRejection =
+    r.status === "APPROVED" || r.status === "ACTIVE" || r.status === "REJECTED";
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Detalhes da solicitação</Text>
 
       <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Veículo</Text>
-        <Text style={styles.vehicleTitle}>{r.vehicle.title}</Text>
+        <Text style={styles.sectionTitle}>Solicitação</Text>
         <Text style={styles.meta}>
-          Placa: {r.vehicle.plate}
+          Data solicitação: {formatDateTimeDisplay(r.requestedAt)}
         </Text>
+        {showApprovalOrRejection ? (
+          <Text style={styles.meta}>
+            {r.status === "REJECTED" ? "Data recusa: " : "Data aprovação: "}
+            {formatDateTimeDisplay(r.updatedAt)}
+          </Text>
+        ) : null}
         <Text style={styles.meta}>
           Status: {statusLabel[r.status] ?? r.status}
         </Text>
@@ -65,6 +78,16 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
             Motivo da recusa: {r.motivoRecusa}
           </Text>
         ) : null}
+      </View>
+
+      <View style={styles.divider} />
+
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Veículo</Text>
+        <Text style={styles.vehicleTitle}>{r.vehicle.title}</Text>
+        <Text style={styles.meta}>
+          Placa: {r.vehicle.plate}
+        </Text>
         {r.vehicle.brand || r.vehicle.model || r.vehicle.year ? (
           <Text style={styles.meta}>
             {r.vehicle.brand ? r.vehicle.brand : ""}
@@ -73,6 +96,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
             {r.vehicle.year ? ` (${r.vehicle.year})` : ""}
           </Text>
         ) : null}
+        <Text style={styles.meta}>Cor: {r.vehicle.cor?.trim() || "—"}</Text>
       </View>
 
       <View style={styles.divider} />

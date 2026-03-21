@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -55,6 +56,14 @@ export function OwnerRentalsScreen({ navigation }: Props) {
   });
   const unblock = trpc.owner.unblockDriverAfterRejection.useMutation({
     onSuccess: () => void utils.owner.listIncomingRentals.invalidate(),
+  });
+  const [deletingRentalId, setDeletingRentalId] = useState<string | null>(null);
+  const deleteRejected = trpc.owner.deleteRejectedRental.useMutation({
+    onSuccess: () => {
+      setDeletingRentalId(null);
+      void utils.owner.listIncomingRentals.invalidate();
+    },
+    onError: () => setDeletingRentalId(null),
   });
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -147,19 +156,45 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                 }
               />
             ) : null}
-            {item.status === "REJECTED" && item.driverRequestBlocked ? (
-              <AppButton
-                title="Permitir nova solicitação"
-                variant="ghost"
-                onPress={() =>
-                  unblock.mutate({ rentalId: item.id })
-                }
-                loading={unblock.isPending}
-              />
-            ) : item.status === "REJECTED" ? (
-              <Text style={styles.unlockedHint}>
-                O motorista já pode solicitar novamente este veículo.
-              </Text>
+            {item.status === "REJECTED" ? (
+              <View style={styles.row}>
+                {item.driverRequestBlocked ? (
+                  <AppButton
+                    title="Permitir nova solicitação"
+                    variant="ghost"
+                    onPress={() => unblock.mutate({ rentalId: item.id })}
+                    loading={unblock.isPending}
+                  />
+                ) : (
+                  <View style={styles.hintWrap}>
+                    <Text style={styles.unlockedHint}>
+                      O motorista já pode solicitar novamente este veículo.
+                    </Text>
+                  </View>
+                )}
+                <AppButton
+                  title="Excluir"
+                  variant="danger"
+                  onPress={() => {
+                    Alert.alert(
+                      "Tem certeza?",
+                      "Deseja excluir esta solicitação recusada?",
+                      [
+                        { text: "Cancelar", style: "cancel" },
+                        {
+                          text: "Excluir",
+                          style: "destructive",
+                          onPress: () => {
+                            setDeletingRentalId(item.id);
+                            deleteRejected.mutate({ rentalId: item.id });
+                          },
+                        },
+                      ]
+                    );
+                  }}
+                  loading={deleteRejected.isPending && deletingRentalId === item.id}
+                />
+              </View>
             ) : null}
           </View>
         )}
@@ -268,8 +303,8 @@ const styles = StyleSheet.create({
   unlockedHint: {
     fontSize: 13,
     color: "#64748b",
-    marginTop: 4,
   },
+  hintWrap: { flex: 1, justifyContent: "center" },
   modalRoot: {
     flex: 1,
     justifyContent: "center",

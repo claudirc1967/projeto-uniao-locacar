@@ -23,33 +23,33 @@ export const marketplaceRouter = router({
           const coverUrl = thumb
             ? await presignGetRead(thumb.key, 3600)
             : null;
-            const u = ctx as AuthedContext;
-            let driverRequestBlocked: boolean | undefined;
-            if (u.user.role === "DRIVER") {
-              driverRequestBlocked = await isDriverBlockedFromVehicleRequest(
-                v.id,
-                u.user.id
-              );
-            }
-            return {
-              id: v.id,
-              title: v.title,
-              description: v.description,
-              plate: v.plate,
-              brand: v.brand,
-              model: v.model,
-              year: v.year,
-              cor: v.cor,
-              contractTime: v.contractTime,
-              dailyRateCents: v.dailyRateCents,
-              pickupCity: v.pickupCity,
-              pickupUf: v.pickupUf,
-              ownerEmail: v.owner.email,
-              coverPhotoUrl: coverUrl,
-              driverRequestBlocked,
-            };
-          })
-        );
+          const u = ctx as AuthedContext;
+          let driverRequestBlocked: boolean | undefined;
+          if (u.user.role === "DRIVER") {
+            driverRequestBlocked = await isDriverBlockedFromVehicleRequest(
+              v.id,
+              u.user.id
+            );
+          }
+          return {
+            id: v.id,
+            title: v.title,
+            description: v.description,
+            plate: v.plate,
+            brand: v.brand,
+            model: v.model,
+            year: v.year,
+            cor: v.cor,
+            contractTime: v.contractTime,
+            dailyRateCents: v.dailyRateCents,
+            pickupCity: v.pickupCity,
+            pickupUf: v.pickupUf,
+            ownerEmail: v.owner.email,
+            coverPhotoUrl: coverUrl,
+            driverRequestBlocked,
+          };
+        })
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro no storage";
       throw new TRPCError({

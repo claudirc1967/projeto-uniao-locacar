@@ -25,6 +25,7 @@ const statusLabel: Record<string, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   ACTIVE: "Ativa",
+  COMPLETED: "Concluída",
   CANCELLED: "Cancelada",
 };
 

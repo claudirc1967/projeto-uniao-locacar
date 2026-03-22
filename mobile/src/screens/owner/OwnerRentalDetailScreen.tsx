@@ -1,14 +1,29 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import {
+  formatDateDisplay,
   formatDateTimeDisplay,
   maskCpf,
   maskDate,
   maskPhone,
+  onlyDigits,
 } from "../../utils/masks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerRentalDetail">;
@@ -18,10 +33,42 @@ const statusLabel: Record<string, string> = {
   APPROVED: "Aprovada",
   REJECTED: "Recusada",
   ACTIVE: "Ativa",
+  COMPLETED: "Concluída",
   CANCELLED: "Cancelada",
 };
 
+const situationLabel: Record<string, string> = {
+  ATIVA: "Ativa",
+  LIBERADA: "Liberada",
+  PENDENTE: "Pendente",
+};
+
+/** DD/MM/AAAA a partir de Date (valor exibido no formulário). */
+function dateToDdMmYyyy(d: Date): string {
+  return formatDateDisplay(d);
+}
+
+/** Interpreta string com máscara DD/MM/AAAA (8 dígitos). */
+function parseDdMmYyyy(s: string): Date | null {
+  const d = onlyDigits(s).slice(0, 8);
+  if (d.length !== 8) return null;
+  const day = Number(d.slice(0, 2));
+  const mo = Number(d.slice(2, 4));
+  const y = Number(d.slice(4, 8));
+  if (mo < 1 || mo > 12 || day < 1 || day > 31 || y < 1900) return null;
+  const dt = new Date(y, mo - 1, day, 12, 0, 0, 0);
+  if (
+    dt.getFullYear() !== y ||
+    dt.getMonth() !== mo - 1 ||
+    dt.getDate() !== day
+  ) {
+    return null;
+  }
+  return dt;
+}
+
 export function OwnerRentalDetailScreen({ navigation, route }: Props) {
+  const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
   const q = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
   const utils = trpc.useUtils();
@@ -31,6 +78,76 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       await utils.owner.listIncomingRentals.invalidate();
     },
   });
+
+  const submitReturn = trpc.owner.submitRentalReturn.useMutation({
+    onSuccess: async () => {
+      setReturnModalOpen(false);
+      setReturnModalErr(null);
+      await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
+      await utils.owner.listIncomingRentals.invalidate();
+    },
+    onError: (e) => setReturnModalErr(trpcErrorMessage(e)),
+  });
+
+  const [returnModalOpen, setReturnModalOpen] = useState(false);
+  const [returnDateStr, setReturnDateStr] = useState(() =>
+    dateToDdMmYyyy(new Date())
+  );
+  const [returnSituation, setReturnSituation] = useState<"LIBERADA" | "PENDENTE">(
+    "LIBERADA"
+  );
+  const [pendingReason, setPendingReason] = useState("");
+  const [pendingPrevisaoStr, setPendingPrevisaoStr] = useState(() =>
+    dateToDdMmYyyy(new Date())
+  );
+  const [returnModalErr, setReturnModalErr] = useState<string | null>(null);
+
+  const r = q.data;
+
+  const openReturnModal = () => {
+    setReturnModalErr(null);
+    if (r) {
+      setReturnDateStr(
+        r.returnDate
+          ? dateToDdMmYyyy(new Date(r.returnDate))
+          : dateToDdMmYyyy(new Date())
+      );
+      setPendingReason(r.pendingReason ?? "");
+      setPendingPrevisaoStr(
+        r.pendingResolutionExpectedAt
+          ? dateToDdMmYyyy(new Date(r.pendingResolutionExpectedAt))
+          : dateToDdMmYyyy(new Date())
+      );
+      setReturnSituation(r.situation === "PENDENTE" ? "PENDENTE" : "LIBERADA");
+    }
+    setReturnModalOpen(true);
+  };
+
+  const confirmReturn = () => {
+    setReturnModalErr(null);
+    const rd = parseDdMmYyyy(returnDateStr);
+    if (!rd) {
+      setReturnModalErr("Data de devolução inválida. Use DD/MM/AAAA.");
+      return;
+    }
+    let previsao: Date | undefined;
+    if (returnSituation === "PENDENTE") {
+      const p = parseDdMmYyyy(pendingPrevisaoStr);
+      if (!p) {
+        setReturnModalErr("Previsão da solução inválida. Use DD/MM/AAAA.");
+        return;
+      }
+      previsao = p;
+    }
+    submitReturn.mutate({
+      rentalId,
+      returnDate: rd,
+      situation: returnSituation,
+      pendingReason:
+        returnSituation === "PENDENTE" ? pendingReason.trim() : undefined,
+      pendingResolutionExpectedAt: previsao,
+    });
+  };
 
   if (q.isLoading) {
     return (
@@ -49,11 +166,17 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
     );
   }
 
-  const r = q.data!;
-  const driverProfile = r.driver.driverProfile;
+  const row = r!;
+  const driverProfile = row.driver.driverProfile;
 
   const showApprovalOrRejection =
-    r.status === "APPROVED" || r.status === "ACTIVE" || r.status === "REJECTED";
+    row.status === "APPROVED" ||
+    row.status === "ACTIVE" ||
+    row.status === "REJECTED" ||
+    row.status === "COMPLETED";
+
+  const showSituationBlock =
+    row.status === "ACTIVE" || row.status === "COMPLETED";
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -62,20 +185,48 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Solicitação</Text>
         <Text style={styles.meta}>
-          Data solicitação: {formatDateTimeDisplay(r.requestedAt)}
+          Data solicitação: {formatDateTimeDisplay(row.requestedAt)}
         </Text>
         {showApprovalOrRejection ? (
           <Text style={styles.meta}>
-            {r.status === "REJECTED" ? "Data recusa: " : "Data aprovação: "}
-            {formatDateTimeDisplay(r.updatedAt)}
+            {row.status === "REJECTED"
+              ? "Data recusa: "
+              : row.status === "COMPLETED"
+                ? "Data conclusão: "
+                : "Data aprovação: "}
+            {formatDateTimeDisplay(row.updatedAt)}
           </Text>
         ) : null}
         <Text style={styles.meta}>
-          Status: {statusLabel[r.status] ?? r.status}
+          Status: {statusLabel[row.status] ?? row.status}
         </Text>
-        {r.status === "REJECTED" && r.motivoRecusa ? (
+        {showSituationBlock ? (
+          <>
+            <Text style={styles.meta}>
+              Situação:{" "}
+              {situationLabel[row.situation] ?? row.situation}
+            </Text>
+            {row.returnDate ? (
+              <Text style={styles.meta}>
+                Data devolução: {formatDateDisplay(row.returnDate)}
+              </Text>
+            ) : null}
+            {row.situation === "PENDENTE" && row.pendingReason ? (
+              <Text style={styles.meta}>
+                Motivo da pendência: {row.pendingReason}
+              </Text>
+            ) : null}
+            {row.situation === "PENDENTE" && row.pendingResolutionExpectedAt ? (
+              <Text style={styles.meta}>
+                Previsão da solução:{" "}
+                {formatDateDisplay(row.pendingResolutionExpectedAt)}
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+        {row.status === "REJECTED" && row.motivoRecusa ? (
           <Text style={styles.rejectionNote}>
-            Motivo da recusa: {r.motivoRecusa}
+            Motivo da recusa: {row.motivoRecusa}
           </Text>
         ) : null}
       </View>
@@ -84,19 +235,19 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Veículo</Text>
-        <Text style={styles.vehicleTitle}>{r.vehicle.title}</Text>
+        <Text style={styles.vehicleTitle}>{row.vehicle.title}</Text>
         <Text style={styles.meta}>
-          Placa: {r.vehicle.plate}
+          Placa: {row.vehicle.plate}
         </Text>
-        {r.vehicle.brand || r.vehicle.model || r.vehicle.year ? (
+        {row.vehicle.brand || row.vehicle.model || row.vehicle.year ? (
           <Text style={styles.meta}>
-            {r.vehicle.brand ? r.vehicle.brand : ""}
-            {r.vehicle.brand && r.vehicle.model ? " · " : ""}
-            {r.vehicle.model ? r.vehicle.model : ""}
-            {r.vehicle.year ? ` (${r.vehicle.year})` : ""}
+            {row.vehicle.brand ? row.vehicle.brand : ""}
+            {row.vehicle.brand && row.vehicle.model ? " · " : ""}
+            {row.vehicle.model ? row.vehicle.model : ""}
+            {row.vehicle.year ? ` (${row.vehicle.year})` : ""}
           </Text>
         ) : null}
-        <Text style={styles.meta}>Cor: {r.vehicle.cor?.trim() || "—"}</Text>
+        <Text style={styles.meta}>Cor: {row.vehicle.cor?.trim() || "—"}</Text>
       </View>
 
       <View style={styles.divider} />
@@ -104,7 +255,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Motorista</Text>
         <Text style={styles.valueTitle}>{driverProfile?.fullName ?? "—"}</Text>
-        <Text style={styles.meta}>E-mail: {r.driver.email}</Text>
+        <Text style={styles.meta}>E-mail: {row.driver.email}</Text>
         <Text style={styles.meta}>
           Telefone: {driverProfile?.phone ? maskPhone(driverProfile.phone) : "—"}
         </Text>
@@ -154,14 +305,21 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      {r.status === "REJECTED" && r.driverRequestBlocked ? (
+      {row.status === "ACTIVE" ? (
+        <AppButton
+          title="Efetuar devolução"
+          onPress={openReturnModal}
+        />
+      ) : null}
+
+      {row.status === "REJECTED" && row.driverRequestBlocked ? (
         <AppButton
           title="Permitir nova solicitação"
           variant="ghost"
           loading={unblock.isPending}
           onPress={() => unblock.mutate({ rentalId })}
         />
-      ) : r.status === "REJECTED" && !r.driverRequestBlocked ? (
+      ) : row.status === "REJECTED" && !row.driverRequestBlocked ? (
         <Text style={styles.unlockedHint}>
           O motorista já pode enviar uma nova solicitação para este veículo.
         </Text>
@@ -172,6 +330,117 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         variant="ghost"
         onPress={() => navigation.goBack()}
       />
+
+      <Modal
+        visible={returnModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setReturnModalOpen(false)}
+      >
+        <View style={styles.modalRoot}>
+          <KeyboardAvoidingView
+            style={styles.modalKeyboardRoot}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+          >
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+              contentContainerStyle={[
+                styles.modalScrollContent,
+                { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+              ]}
+            >
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Registrar devolução</Text>
+                <Text style={styles.modalHint}>Data devolução (DD/MM/AAAA)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={returnDateStr}
+                  onChangeText={(t) => setReturnDateStr(maskDate(t))}
+                  placeholder="21/03/2025"
+                  keyboardType="number-pad"
+                  maxLength={10}
+                />
+                <Text style={styles.modalHint}>Situação</Text>
+                <View style={styles.sitRow}>
+                  <Pressable
+                    style={[
+                      styles.sitChip,
+                      returnSituation === "LIBERADA" && styles.sitChipOn,
+                    ]}
+                    onPress={() => setReturnSituation("LIBERADA")}
+                  >
+                    <Text
+                      style={[
+                        styles.sitChipText,
+                        returnSituation === "LIBERADA" && styles.sitChipTextOn,
+                      ]}
+                    >
+                      Liberada
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={[
+                      styles.sitChip,
+                      returnSituation === "PENDENTE" && styles.sitChipOn,
+                    ]}
+                    onPress={() => setReturnSituation("PENDENTE")}
+                  >
+                    <Text
+                      style={[
+                        styles.sitChipText,
+                        returnSituation === "PENDENTE" && styles.sitChipTextOn,
+                      ]}
+                    >
+                      Pendente
+                    </Text>
+                  </Pressable>
+                </View>
+                {returnSituation === "PENDENTE" ? (
+                  <>
+                    <Text style={styles.modalHint}>Motivo da pendência</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={pendingReason}
+                      onChangeText={setPendingReason}
+                      placeholder="Descreva o motivo"
+                      multiline
+                    />
+                    <Text style={styles.modalHint}>
+                      Previsão da solução (DD/MM/AAAA)
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      value={pendingPrevisaoStr}
+                      onChangeText={(t) => setPendingPrevisaoStr(maskDate(t))}
+                      placeholder="28/03/2025"
+                      keyboardType="number-pad"
+                      maxLength={10}
+                    />
+                  </>
+                ) : null}
+                {returnModalErr ? (
+                  <Text style={styles.err}>{returnModalErr}</Text>
+                ) : null}
+                <View style={styles.modalActions}>
+                  <AppButton
+                    title="Cancelar"
+                    variant="ghost"
+                    onPress={() => setReturnModalOpen(false)}
+                  />
+                  <AppButton
+                    title="Confirmar"
+                    loading={submitReturn.isPending}
+                    onPress={confirmReturn}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -183,7 +452,6 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 12, padding: 14, gap: 6 },
   sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 6 },
   vehicleTitle: { fontSize: 18, fontWeight: "700" },
-  sectionMeta: { color: "#64748b" },
   divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 2 },
   meta: { fontSize: 13, color: "#64748b" },
   unlockedHint: {
@@ -207,5 +475,52 @@ const styles = StyleSheet.create({
   },
   subTitle: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
   err: { color: "#dc2626", marginBottom: 12 },
+  modalRoot: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.45)",
+    justifyContent: "center",
+  },
+  modalKeyboardRoot: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  modalScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  modalCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    gap: 8,
+    maxHeight: "92%",
+  },
+  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
+  modalHint: { fontSize: 13, color: "#64748b", marginTop: 4 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  textArea: { minHeight: 88, textAlignVertical: "top" },
+  sitRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  sitChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+  },
+  sitChipOn: {
+    borderColor: "#2563eb",
+    backgroundColor: "#eff6ff",
+  },
+  sitChipText: { fontSize: 15, color: "#64748b", fontWeight: "600" },
+  sitChipTextOn: { color: "#1d4ed8" },
+  modalActions: { flexDirection: "row", gap: 8, marginTop: 12, justifyContent: "flex-end" },
 });
-

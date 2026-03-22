@@ -1,4 +1,5 @@
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -79,4 +80,9 @@ export async function presignGetMany(keys: string[], expiresIn = 3600) {
     })
   );
   return out;
+}
+
+export async function deleteObject(key: string): Promise<void> {
+  const bucket = requireBucket();
+  await client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }

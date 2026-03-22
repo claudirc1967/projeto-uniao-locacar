@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,9 +15,11 @@ import {
 } from "react-native";
 import { trpc } from "../../api/trpc";
 import { AppButton } from "../../components/AppButton";
+import { useAuth } from "../../hooks/AuthContext";
 import {
   contractTimeSuffix,
   formatMoneyWithContractPeriod,
+  maskCep,
 } from "../../utils/masks";
 import {
   CepAddressForm,
@@ -34,6 +37,8 @@ const CONTRACT_OPTIONS = [
 ];
 
 export function VehicleFormScreen({ navigation, route }: Props) {
+  const { user } = useAuth();
+  const ownerProfile = user?.role === "OWNER" ? user.ownerProfile : null;
   const vehicleId = route.params?.vehicleId;
   const existing = trpc.owner.getMyVehicle.useQuery(
     { vehicleId: vehicleId! },
@@ -70,6 +75,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     numero: "",
     complemento: "",
   });
+  const [sameAsOwner, setSameAsOwner] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,7 +112,70 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       numero: v.pickupNumero ?? "",
       complemento: v.pickupComplemento ?? "",
     });
+    setSameAsOwner(!!v.pickupSameAsOwner);
   }, [existing.data]);
+
+  const onSameAsOwnerChange = (next: boolean) => {
+    if (next) {
+      if (!ownerProfile) {
+        Alert.alert(
+          "Endereço do proprietário",
+          "Cadastre seu endereço em Perfil do proprietário antes de usar esta opção."
+        );
+        return;
+      }
+      const cepDigits = ownerProfile.cep.replace(/\D/g, "");
+      if (cepDigits.length !== 8) {
+        Alert.alert(
+          "CEP inválido",
+          "Informe um CEP válido (8 dígitos) no perfil do proprietário."
+        );
+        return;
+      }
+      if (!ownerProfile.logradouro.trim() || !ownerProfile.bairro.trim()) {
+        Alert.alert(
+          "Endereço incompleto",
+          "Complete logradouro e bairro no perfil do proprietário."
+        );
+        return;
+      }
+      if (!ownerProfile.cidade.trim() || ownerProfile.uf.trim().length !== 2) {
+        Alert.alert(
+          "Endereço incompleto",
+          "Complete cidade e UF no perfil do proprietário."
+        );
+        return;
+      }
+      if (!ownerProfile.numero.trim()) {
+        Alert.alert(
+          "Número obrigatório",
+          "Informe o número do endereço no perfil do proprietário."
+        );
+        return;
+      }
+      setPickupAddr({
+        cep: maskCep(ownerProfile.cep),
+        logradouro: ownerProfile.logradouro,
+        bairro: ownerProfile.bairro,
+        cidade: ownerProfile.cidade,
+        uf: ownerProfile.uf,
+        numero: ownerProfile.numero,
+        complemento: ownerProfile.complemento.trim() || "-",
+      });
+      setSameAsOwner(true);
+    } else {
+      setPickupAddr({
+        cep: "",
+        logradouro: "",
+        bairro: "",
+        cidade: "",
+        uf: "",
+        numero: "",
+        complemento: "",
+      });
+      setSameAsOwner(false);
+    }
+  };
 
   const utils = trpc.useUtils();
 
@@ -194,6 +263,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         pickupBairro: pickupAddr.bairro || undefined,
         pickupNumero: pickupAddr.numero || undefined,
         pickupComplemento: pickupAddr.complemento || undefined,
+        pickupSameAsOwner: sameAsOwner,
       });
     } else {
       create.mutate({
@@ -222,6 +292,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         pickupBairro: pickupAddr.bairro || undefined,
         pickupNumero: pickupAddr.numero || undefined,
         pickupComplemento: pickupAddr.complemento || undefined,
+        pickupSameAsOwner: sameAsOwner,
       });
     }
   };
@@ -357,7 +428,19 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           onChangeText={setPaymentNotes}
           multiline
         />
-        <CepAddressForm value={pickupAddr} onChange={setPickupAddr} />
+
+        <Text style={[styles.label, { marginTop: 18 }]}>Local de retirada</Text>
+        <View style={styles.rowBetween}>
+          <Text style={{ flex: 1, paddingRight: 8 }}>
+            O mesmo do proprietário?
+          </Text>
+          <Switch value={sameAsOwner} onValueChange={onSameAsOwnerChange} />
+        </View>
+        <CepAddressForm
+          locked={sameAsOwner}
+          value={pickupAddr}
+          onChange={setPickupAddr}
+        />
 
         {err ? <Text style={styles.err}>{err}</Text> : null}
 

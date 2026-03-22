@@ -6,6 +6,7 @@ import {
   MAX_UPLOAD_BYTES,
   type AllowedContentType,
   buildVehiclePhotoKey,
+  deleteObject,
   presignGetRead,
   presignPutUpload,
 } from "../storage/s3.js";
@@ -100,6 +101,7 @@ export const ownerRouter = router({
         pickupNumero: z.string().optional(),
         pickupComplemento: z.string().optional(),
         pickupBairro: z.string().optional(),
+        pickupSameAsOwner: z.boolean().optional().default(false),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -133,6 +135,7 @@ export const ownerRouter = router({
           pickupNumero: input.pickupNumero,
           pickupComplemento: input.pickupComplemento,
           pickupBairro: input.pickupBairro,
+          pickupSameAsOwner: input.pickupSameAsOwner ?? false,
         },
       });
       return { vehicleId: v.id };
@@ -166,6 +169,7 @@ export const ownerRouter = router({
         pickupNumero: z.string().optional().nullable(),
         pickupComplemento: z.string().optional().nullable(),
         pickupBairro: z.string().optional().nullable(),
+        pickupSameAsOwner: z.boolean().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -336,6 +340,37 @@ export const ownerRouter = router({
           })
         )
       );
+      return { ok: true as const };
+    }),
+
+  deleteVehiclePhoto: ownerProcedure
+    .input(
+      z.object({
+        vehicleId: z.string(),
+        photoId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await assertOwnsVehicle((ctx as AuthedContext).user.id, input.vehicleId);
+      const row = await prisma.vehiclePhoto.findFirst({
+        where: { id: input.photoId, vehicleId: input.vehicleId },
+      });
+      if (!row) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Foto não encontrada",
+        });
+      }
+      try {
+        await deleteObject(row.key);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Falha ao remover arquivo no storage";
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: msg,
+        });
+      }
+      await prisma.vehiclePhoto.delete({ where: { id: row.id } });
       return { ok: true as const };
     }),
 
@@ -692,6 +727,10 @@ export const ownerRouter = router({
         pickupInstructions: r.pickupInstructions,
         contractText: r.contractText,
         contractUrl: r.contractUrl,
+        returnDate: r.returnDate,
+        situation: r.situation,
+        pendingReason: r.pendingReason,
+        pendingResolutionExpectedAt: r.pendingResolutionExpectedAt,
         vehicle: r.vehicle,
         driver: r.driver,
       };
@@ -730,6 +769,86 @@ export const ownerRouter = router({
           contractText: input.contractText ?? undefined,
           contractUrl: input.contractUrl ?? undefined,
           status: "ACTIVE",
+          situation: "ATIVA",
+        },
+      });
+      return { ok: true as const };
+    }),
+
+  submitRentalReturn: ownerProcedure
+    .input(
+      z
+        .object({
+          rentalId: z.string(),
+          returnDate: z.coerce.date(),
+          situation: z.enum(["LIBERADA", "PENDENTE"]),
+          pendingReason: z.string().max(2000).optional(),
+          pendingResolutionExpectedAt: z.coerce.date().optional(),
+        })
+        .superRefine((data, ctx) => {
+          if (data.situation === "PENDENTE") {
+            const pr = data.pendingReason?.trim() ?? "";
+            if (pr.length < 3) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Informe o motivo da pendência (mínimo 3 caracteres).",
+                path: ["pendingReason"],
+              });
+            }
+            if (!data.pendingResolutionExpectedAt) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Informe a previsão da solução.",
+                path: ["pendingResolutionExpectedAt"],
+              });
+            }
+          }
+        })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const r = await prisma.rental.findFirst({
+        where: {
+          id: input.rentalId,
+          vehicle: { ownerUserId: (ctx as AuthedContext).user.id },
+          status: "ACTIVE",
+        },
+      });
+      if (!r) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Locação ativa não encontrada",
+        });
+      }
+
+      const returnDate = input.returnDate;
+
+      if (input.situation === "LIBERADA") {
+        await prisma.$transaction([
+          prisma.rental.update({
+            where: { id: r.id },
+            data: {
+              status: "COMPLETED",
+              situation: "LIBERADA",
+              returnDate,
+              pendingReason: null,
+              pendingResolutionExpectedAt: null,
+            },
+          }),
+          prisma.vehicle.update({
+            where: { id: r.vehicleId },
+            data: { available: true },
+          }),
+        ]);
+        return { ok: true as const };
+      }
+
+      await prisma.rental.update({
+        where: { id: r.id },
+        data: {
+          situation: "PENDENTE",
+          returnDate,
+          pendingReason: input.pendingReason!.trim(),
+          pendingResolutionExpectedAt: input.pendingResolutionExpectedAt!,
         },
       });
       return { ok: true as const };

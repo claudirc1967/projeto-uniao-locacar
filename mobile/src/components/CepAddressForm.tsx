@@ -26,6 +26,8 @@ type Props = {
   onChange: (v: CepAddressValue) => void;
   onNumeroFocus?: () => void;
   onComplementoFocus?: () => void;
+  /** Quando true, todos os campos ficam somente leitura (ex.: endereço igual ao do proprietário). */
+  locked?: boolean;
 };
 
 export function CepAddressForm({
@@ -33,6 +35,7 @@ export function CepAddressForm({
   onChange,
   onNumeroFocus,
   onComplementoFocus,
+  locked = false,
 }: Props) {
   const [cepError, setCepError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +59,12 @@ export function CepAddressForm({
     };
   }, []);
 
+  useEffect(() => {
+    if (locked) setCepError(null);
+  }, [locked]);
+
   const buscarCep = async () => {
+    if (locked) return;
     setCepError(null);
     if (digits.length !== 8) {
       setCepError("Informe um CEP com 8 dígitos.");
@@ -80,14 +88,17 @@ export function CepAddressForm({
     }
   };
 
+  const readStyle = locked ? [styles.input, styles.readonly] : styles.input;
+
   return (
     <View style={[styles.block, { paddingBottom: 8 + keyboardPad }]}>
       <Text style={styles.label}>CEP</Text>
       <TextInput
-        style={styles.input}
+        style={readStyle}
         placeholder="00000-000"
         keyboardType="number-pad"
         value={value.cep}
+        editable={!locked}
         onChangeText={(t) => onChange({ ...value, cep: maskCep(t) })}
       />
       {cepError ? <Text style={styles.err}>{cepError}</Text> : null}
@@ -95,7 +106,7 @@ export function CepAddressForm({
         title={loading ? "Buscando…" : "Buscar CEP"}
         variant="ghost"
         onPress={buscarCep}
-        disabled={loading}
+        disabled={locked || loading}
         loading={loading}
       />
 
@@ -127,16 +138,18 @@ export function CepAddressForm({
       </View>
       <Text style={styles.label}>Número</Text>
       <TextInput
-        style={styles.input}
+        style={readStyle}
         value={value.numero}
+        editable={!locked}
         onChangeText={(numero) => onChange({ ...value, numero })}
         onFocus={() => onNumeroFocus?.()}
         placeholder="Número"
       />
       <Text style={styles.label}>Complemento</Text>
       <TextInput
-        style={styles.input}
+        style={readStyle}
         value={value.complemento}
+        editable={!locked}
         onChangeText={(complemento) => onChange({ ...value, complemento })}
         onFocus={() => onComplementoFocus?.()}
         placeholder="Opcional"

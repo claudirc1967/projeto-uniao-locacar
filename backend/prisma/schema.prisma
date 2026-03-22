@@ -23,7 +23,14 @@ enum RentalStatus {
   APPROVED
   REJECTED
   ACTIVE
+  COMPLETED
   CANCELLED
+}
+
+enum RentalSituation {
+  ATIVA
+  LIBERADA
+  PENDENTE
 }
 
 enum ContractTime {
@@ -116,6 +123,7 @@ model Vehicle {
   pickupNumero      String?
   pickupComplemento String?
   pickupBairro      String?
+  pickupSameAsOwner Boolean  @default(false)
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -161,6 +169,10 @@ model Rental {
   pickupInstructions String?
   contractText       String?
   contractUrl        String?
+  returnDate                    DateTime?
+  situation                     RentalSituation @default(ATIVA)
+  pendingReason                 String?
+  pendingResolutionExpectedAt DateTime?
   requestedAt        DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 }

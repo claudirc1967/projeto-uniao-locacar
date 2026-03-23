@@ -109,6 +109,9 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
         {v.paymentNotes ? (
           <Text style={styles.req}>Pagamento: {v.paymentNotes}</Text>
         ) : null}
+        {v.caucao?.trim() ? (
+          <Text style={styles.req}>Caução: {v.caucao.trim()}</Text>
+        ) : null}
         {request.isError ? (
           <Text style={styles.err}>{trpcErrorMessage(request.error)}</Text>
         ) : null}

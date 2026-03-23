@@ -93,6 +93,7 @@ export const ownerRouter = router({
         available: z.boolean().default(true),
         requirementsJson: z.string().optional(),
         paymentNotes: z.string().optional(),
+        caucao: z.string().optional().nullable(),
         pickupCity: z.string().optional(),
         pickupUf: z.string().max(2).optional(),
 
@@ -127,6 +128,7 @@ export const ownerRouter = router({
           available: input.available,
           requirementsJson: input.requirementsJson,
           paymentNotes: input.paymentNotes,
+          caucao: input.caucao,
           pickupCity: input.pickupCity,
           pickupUf: input.pickupUf,
 
@@ -161,6 +163,7 @@ export const ownerRouter = router({
         available: z.boolean().optional(),
         requirementsJson: z.string().optional().nullable(),
         paymentNotes: z.string().optional().nullable(),
+        caucao: z.string().optional().nullable(),
         pickupCity: z.string().optional().nullable(),
         pickupUf: z.string().max(2).optional().nullable(),
 

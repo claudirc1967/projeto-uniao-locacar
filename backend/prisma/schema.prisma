@@ -115,6 +115,7 @@ model Vehicle {
   available        Boolean  @default(true)
   requirementsJson String?
   paymentNotes     String?
+  caucao           String?
   pickupCity       String?
   pickupUf         String?
 

@@ -36,6 +36,35 @@ const CONTRACT_OPTIONS = [
   { value: "MENSAL" as const, label: "Mensal" },
 ];
 
+const plateLegacyNormalizedRegex = /^[A-Z]{3}[0-9]{4}$/; // ABC1234
+const plateMercosulNormalizedRegex = /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/; // ABC1D23
+
+function normalizePlate(raw: string) {
+  // Remove tudo que não seja letra/número e limita no tamanho interno (7 sem hífen).
+  return raw
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 7);
+}
+
+function formatPlate(raw: string) {
+  const n = normalizePlate(raw);
+  const letters = n.replace(/[^A-Z]/g, "").slice(0, 3);
+  const restSource = n.slice(letters.length);
+  const rest = restSource.replace(/[^A-Z0-9]/g, "").slice(0, 4);
+  if (rest.length === 0) return letters;
+  return `${letters}-${rest}`;
+}
+
+function isValidPlate(raw: string) {
+  const n = normalizePlate(raw);
+  if (n.length !== 7) return false;
+  return (
+    plateLegacyNormalizedRegex.test(n) ||
+    plateMercosulNormalizedRegex.test(n)
+  );
+}
+
 export function VehicleFormScreen({ navigation, route }: Props) {
   const { user } = useAuth();
   const ownerProfile = user?.role === "OWNER" ? user.ownerProfile : null;
@@ -62,10 +91,13 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     useState(true);
   const [insurerPolicy, setInsurerPolicy] = useState("");
   const [available, setAvailable] = useState(true);
-  const [requirementsJson, setRequirementsJson] = useState(
-    '{"idadeMinima":21,"cnh":"B"}'
+  const [requirementsJson, setRequirementsJson] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState(
+    "Dinheiro, PIX, Débito, Crédito, Boleto"
   );
-  const [paymentNotes, setPaymentNotes] = useState("");
+  const [caucao, setCaucao] = useState(
+    "A combinar com o locatário"
+  );
   const [pickupAddr, setPickupAddr] = useState<CepAddressValue>({
     cep: "",
     logradouro: "",
@@ -83,7 +115,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     const v = existing.data as any; // Evita divergência pontual de tipagem no editor.
     setTitle(v.title);
     setDescription(v.description ?? "");
-    setPlate(v.plate);
+    setPlate(formatPlate(v.plate ?? ""));
     setBrand(v.brand ?? "");
     setModel(v.model ?? "");
     setYear(v.year != null ? String(v.year) : "");
@@ -99,10 +131,11 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     setInsurerPolicy(v.insurerPolicy ?? "");
     setDailyReais((v.dailyRateCents / 100).toFixed(2));
     setAvailable(v.available);
-    setRequirementsJson(
-      v.requirementsJson ?? '{"idadeMinima":21,"cnh":"B"}'
+    setRequirementsJson(v.requirementsJson ?? "");
+    setPaymentNotes(
+      v.paymentNotes ?? "Dinheiro, PIX, Débito, Crédito, Boleto"
     );
-    setPaymentNotes(v.paymentNotes ?? "");
+    setCaucao(v.caucao ?? "A combinar com o locatário");
     setPickupAddr({
       cep: v.pickupCep ?? "",
       logradouro: v.pickupLogradouro ?? "",
@@ -210,6 +243,10 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       setErr("Informe um valor válido.");
       return;
     }
+    if (!isValidPlate(plate)) {
+      setErr("Placa inválida. Use `ABC-1234` (antiga) ou `ABC-1D23` (Mercosul).");
+      return;
+    }
     if (!pickupAddr.cep || pickupAddr.cep.replace(/\D/g, "").length !== 8) {
       setErr("Informe o CEP de retirada (8 dígitos).");
       return;
@@ -256,6 +293,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         available,
         requirementsJson: requirementsJson || undefined,
         paymentNotes: paymentNotes || undefined,
+        caucao: caucao.trim() || null,
         pickupCity: pickupAddr.cidade || undefined,
         pickupUf: pickupAddr.uf || undefined,
         pickupCep: pickupAddr.cep || undefined,
@@ -285,6 +323,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         available,
         requirementsJson: requirementsJson || undefined,
         paymentNotes: paymentNotes || undefined,
+        caucao: caucao.trim() || null,
         pickupCity: pickupAddr.cidade || undefined,
         pickupUf: pickupAddr.uf || undefined,
         pickupCep: pickupAddr.cep || undefined,
@@ -343,7 +382,14 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           onChangeText={setDescription}
           multiline
         />
-        <Field label="Placa" value={plate} onChangeText={setPlate} />
+        <Field
+          label="Placa"
+          value={plate}
+          onChangeText={(t) => setPlate(formatPlate(t))}
+          maxLength={8}
+          autoCorrect={false}
+          autoCapitalize="characters"
+        />
         <Field label="Marca" value={brand} onChangeText={setBrand} />
         <Field label="Modelo" value={model} onChangeText={setModel} />
         <Field
@@ -420,12 +466,19 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           label="Requisitos para locação"
           value={requirementsJson}
           onChangeText={setRequirementsJson}
+          placeholder="CNH B (não pode ser provisória), etc"
           multiline
         />
         <Field
           label="Pagamento / observações"
           value={paymentNotes}
           onChangeText={setPaymentNotes}
+          multiline
+        />
+        <Field
+          label="Caução"
+          value={caucao}
+          onChangeText={setCaucao}
           multiline
         />
 
@@ -451,7 +504,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         />
         {vehicleId ? (
           <AppButton
-            title="Gerenciar fotos (presigned)"
+            title="Gerenciar fotos"
             variant="ghost"
             onPress={() =>
               navigation.navigate("VehiclePhotos", { vehicleId })
@@ -475,6 +528,9 @@ function Field({
   keyboardType?: "default" | "number-pad" | "decimal-pad";
   maxLength?: number;
   editable?: boolean;
+  autoCorrect?: boolean;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
+  placeholder?: string;
 }) {
   return (
     <View style={{ marginTop: 10 }}>

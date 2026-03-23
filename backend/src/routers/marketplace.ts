@@ -103,6 +103,7 @@ export const marketplaceRouter = router({
           dailyRateCents: v.dailyRateCents,
           requirementsJson: v.requirementsJson,
           paymentNotes: v.paymentNotes,
+          caucao: v.caucao,
           pickupCity: v.pickupCity,
           pickupUf: v.pickupUf,
           photos,

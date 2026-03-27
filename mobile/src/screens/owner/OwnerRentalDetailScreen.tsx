@@ -1,8 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -42,6 +46,18 @@ const situationLabel: Record<string, string> = {
   LIBERADA: "Liberada",
   PENDENTE: "Pendente",
 };
+
+async function sharePdfFromUrl(url: string, rentalId: string) {
+  const base =
+    (FileSystem as any).cacheDirectory ?? (FileSystem as any).documentDirectory;
+  if (!base) throw new Error("Diretório do app indisponível.");
+  const localUri = `${base}contract-${rentalId}.pdf`;
+  await FileSystem.downloadAsync(url, localUri);
+  await Sharing.shareAsync(localUri, {
+    mimeType: "application/pdf",
+    dialogTitle: "Contrato de locação",
+  });
+}
 
 /** DD/MM/AAAA a partir de Date (valor exibido no formulário). */
 function dateToDdMmYyyy(d: Date): string {
@@ -230,6 +246,45 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           </Text>
         ) : null}
       </View>
+
+      <View style={styles.divider} />
+
+      {(row.status === "ACTIVE" || row.status === "APPROVED") &&
+      (row.pickupInstructions || row.contractUrl) ? (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Retirada e contrato</Text>
+          {row.pickupInstructions ? (
+            <>
+              <Text style={styles.meta}>Instruções de retirada</Text>
+              <Text style={styles.longText}>{row.pickupInstructions}</Text>
+            </>
+          ) : null}
+          {row.contractUrl ? (
+            <AppButton
+              title="Contrato (PDF)"
+              onPress={() =>
+                Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Compartilhar PDF",
+                    onPress: () =>
+                      void sharePdfFromUrl(row.contractUrl!, row.rentalId).catch((e) =>
+                        Alert.alert(
+                          "Falha",
+                          `Não foi possível baixar/compartilhar (${e instanceof Error ? e.message : "erro desconhecido"}).`
+                        )
+                      ),
+                  },
+                  {
+                    text: "Abrir link",
+                    onPress: () => void Linking.openURL(row.contractUrl!),
+                  },
+                ])
+              }
+            />
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.divider} />
 
@@ -454,6 +509,7 @@ const styles = StyleSheet.create({
   vehicleTitle: { fontSize: 18, fontWeight: "700" },
   divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 2 },
   meta: { fontSize: 13, color: "#64748b" },
+  longText: { fontSize: 14, lineHeight: 22, color: "#334155" },
   unlockedHint: {
     fontSize: 14,
     color: "#64748b",

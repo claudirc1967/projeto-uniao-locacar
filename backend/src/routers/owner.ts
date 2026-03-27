@@ -13,6 +13,11 @@ import {
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { ownerProcedure, router } from "../trpc.js";
+import { sendEmail } from "../email/consoleEmail.js";
+import { fillRentalContract } from "../contracts/fillRentalContract.js";
+import { rentalContractTemplate } from "../contracts/rentalContractTemplate.js";
+import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
+import { putObjectBuffer } from "../storage/s3.js";
 
 const contentTypeSchema = z.enum(
   ALLOWED_CONTENT_TYPES as unknown as [string, ...string[]]
@@ -28,6 +33,9 @@ const contractTimeSchema = z.enum(["DIARIO", "SEMANAL", "MENSAL"]);
 
 const ownerProfileInput = z
   .object({
+    nomeRazaoSocial: z.string().min(1),
+    emailLocador: z.string().email(),
+    contractTemplateText: z.string().optional().nullable(),
     cpfCnpj: z.string().min(11).max(18),
     phone: z.string().min(8).max(20),
     cep: z.string().min(8).max(9),
@@ -233,6 +241,11 @@ export const ownerRouter = router({
         where: { userId: user.id },
         create: {
           userId: user.id,
+          nomeRazaoSocial: input.nomeRazaoSocial,
+          emailLocador: input.emailLocador.trim().toLowerCase(),
+          contractTemplateText: input.contractTemplateText?.trim()
+            ? input.contractTemplateText
+            : null,
           cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
           phone: input.phone,
           cep: input.cep.replace(/\D/g, ""),
@@ -244,6 +257,11 @@ export const ownerRouter = router({
           complemento: input.complemento,
         },
         update: {
+          nomeRazaoSocial: input.nomeRazaoSocial,
+          emailLocador: input.emailLocador.trim().toLowerCase(),
+          contractTemplateText: input.contractTemplateText?.trim()
+            ? input.contractTemplateText
+            : null,
           cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
           phone: input.phone,
           cep: input.cep.replace(/\D/g, ""),
@@ -531,6 +549,10 @@ export const ownerRouter = router({
           vehicle: { ownerUserId: (ctx as AuthedContext).user.id },
           status: "PENDING_OWNER",
         },
+        include: {
+          driver: { select: { email: true, driverProfile: true } },
+          vehicle: true,
+        },
       });
       if (!r) {
         throw new TRPCError({
@@ -539,10 +561,37 @@ export const ownerRouter = router({
         });
       }
 
+      const owner = (ctx as AuthedContext).user;
+      const baseTemplate =
+        owner.ownerProfile?.contractTemplateText?.trim() || rentalContractTemplate;
+      const contractText = fillRentalContract(baseTemplate, {
+        rental: { id: r.id },
+        vehicle: {
+          title: r.vehicle.title,
+          plate: r.vehicle.plate,
+          brand: r.vehicle.brand,
+          model: r.vehicle.model,
+          year: r.vehicle.year,
+          cor: r.vehicle.cor,
+          paymentNotes: r.vehicle.paymentNotes,
+          caucao: r.vehicle.caucao,
+          contractTime: r.vehicle.contractTime,
+          dailyRateCents: r.vehicle.dailyRateCents,
+        },
+        owner: {
+          email: owner.email,
+          ownerProfile: owner.ownerProfile,
+        },
+        driver: {
+          email: r.driver.email,
+          driverProfile: r.driver.driverProfile,
+        },
+      });
+
       await prisma.$transaction([
         prisma.rental.update({
           where: { id: r.id },
-          data: { status: "APPROVED" },
+          data: { status: "APPROVED", contractText },
         }),
         // Ao aprovar a locação, impedimos que o motorista solicite novamente
         // o mesmo veículo enquanto essa locação estiver em andamento.
@@ -551,6 +600,22 @@ export const ownerRouter = router({
           data: { available: false },
         }),
       ]);
+
+      const to = r.driver.email?.trim();
+      if (to) {
+        void sendEmail({
+          to,
+          subject: "Solicitação de locação aprovada",
+          text: [
+            "Sua solicitação de locação foi aprovada.",
+            "",
+            `Veículo: ${r.vehicle.title ?? "—"} (${r.vehicle.plate})`,
+            `Rental ID: ${r.id}`,
+          ].join("\n"),
+        }).catch(() => {
+          /* não falha a aprovação por e-mail */
+        });
+      }
       return { ok: true as const };
     }),
 
@@ -567,6 +632,10 @@ export const ownerRouter = router({
           id: input.rentalId,
           vehicle: { ownerUserId: (ctx as AuthedContext).user.id },
           status: "PENDING_OWNER",
+        },
+        include: {
+          driver: { select: { email: true } },
+          vehicle: { select: { title: true, plate: true } },
         },
       });
       if (!r) {
@@ -598,6 +667,23 @@ export const ownerRouter = router({
           update: { active: true },
         }),
       ]);
+
+      const to = r.driver.email?.trim();
+      if (to) {
+        void sendEmail({
+          to,
+          subject: "Solicitação de locação recusada",
+          text: [
+            "Sua solicitação de locação foi recusada.",
+            "",
+            `Veículo: ${r.vehicle.title ?? "—"} (${r.vehicle.plate})`,
+            `Motivo: ${input.motivoRecusa.trim()}`,
+            `Rental ID: ${r.id}`,
+          ].join("\n"),
+        }).catch(() => {
+          /* não falha a recusa por e-mail */
+        });
+      }
       return { ok: true as const };
     }),
 
@@ -729,7 +815,9 @@ export const ownerRouter = router({
             : false,
         pickupInstructions: r.pickupInstructions,
         contractText: r.contractText,
-        contractUrl: r.contractUrl,
+        contractUrl:
+          r.contractUrl ??
+          (r.contractS3Key ? await presignGetRead(r.contractS3Key, 3600) : null),
         returnDate: r.returnDate,
         situation: r.situation,
         pendingReason: r.pendingReason,
@@ -765,17 +853,42 @@ export const ownerRouter = router({
           message: "Locação não encontrada ou ainda não aprovada",
         });
       }
+
+      const contractText = input.contractText?.trim() || null;
+
+      // Se o usuário já informou uma URL manual, preservamos e não geramos PDF automático.
+      // Se não informou URL e existe texto, geramos PDF, fazemos upload no S3 e salvamos a key.
+      let contractS3Key: string | null = null;
+      if (!input.contractUrl && contractText) {
+        const pdfBytes = await contractTextToPdfBytes({
+          title: `Contrato de locação (Rental ${r.id})`,
+          text: contractText,
+        });
+        contractS3Key = `rentals/${r.id}/contract.pdf`;
+        await putObjectBuffer({
+          key: contractS3Key,
+          contentType: "application/pdf",
+          body: pdfBytes,
+        });
+      }
+
       await prisma.rental.update({
         where: { id: r.id },
         data: {
           pickupInstructions: input.pickupInstructions,
-          contractText: input.contractText ?? undefined,
+          contractText: contractText ?? undefined,
           contractUrl: input.contractUrl ?? undefined,
+          contractS3Key: contractS3Key ?? undefined,
           status: "ACTIVE",
           situation: "ATIVA",
         },
       });
-      return { ok: true as const };
+      return {
+        ok: true as const,
+        contractUrl:
+          (input.contractUrl ?? null) ||
+          (contractS3Key ? await presignGetRead(contractS3Key, 3600) : null),
+      };
     }),
 
   submitRentalReturn: ownerProcedure

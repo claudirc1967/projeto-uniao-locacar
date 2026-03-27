@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
+import { sendEmail } from "../email/consoleEmail.js";
 import { driverProcedure, router } from "../trpc.js";
 
 export const driverRouter = router({
@@ -130,6 +131,12 @@ export const driverRouter = router({
             "O proprietário recusou sua solicitação para este veículo. Ele precisa permitir uma nova solicitação.",
         });
       }
+      const owner = await prisma.user.findUnique({
+        where: { id: vehicle.ownerUserId },
+        select: {
+          ownerProfile: { select: { emailLocador: true, nomeRazaoSocial: true } },
+        },
+      });
       const rental = await prisma.rental.create({
         data: {
           vehicleId: input.vehicleId,
@@ -137,6 +144,24 @@ export const driverRouter = router({
           status: "PENDING_OWNER",
         },
       });
+
+      const to = owner?.ownerProfile?.emailLocador?.trim();
+      if (to) {
+        void sendEmail({
+          to,
+          subject: "Nova solicitação de locação",
+          text: [
+            "Você recebeu uma nova solicitação de locação.",
+            "",
+            `Veículo: ${vehicle.title ?? "—"} (${vehicle.plate})`,
+            `Motorista: ${profile.fullName ?? "—"} (${(ctx as AuthedContext).user.email})`,
+            "",
+            `Rental ID: ${rental.id}`,
+          ].join("\n"),
+        }).catch(() => {
+          /* não falha a solicitação por e-mail */
+        });
+      }
       return { rentalId: rental.id };
     }),
 

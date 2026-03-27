@@ -25,6 +25,9 @@ export type SessionUser = {
   } | null;
   ownerProfile: {
     id: string;
+    nomeRazaoSocial: string;
+    emailLocador: string;
+    contractTemplateText: string | null;
     cpfCnpj: string;
     phone: string;
     cep: string;

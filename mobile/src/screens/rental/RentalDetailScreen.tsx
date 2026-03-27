@@ -1,5 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import {
   ActionSheetIOS,
   ActivityIndicator,
@@ -39,6 +41,18 @@ const situationLabel: Record<string, string> = {
   LIBERADA: "Liberada",
   PENDENTE: "Pendente",
 };
+
+async function sharePdfFromUrl(url: string, rentalId: string) {
+  const base =
+    (FileSystem as any).cacheDirectory ?? (FileSystem as any).documentDirectory;
+  if (!base) throw new Error("Diretório do app indisponível.");
+  const localUri = `${base}contract-${rentalId}.pdf`;
+  await FileSystem.downloadAsync(url, localUri);
+  await Sharing.shareAsync(localUri, {
+    mimeType: "application/pdf",
+    dialogTitle: "Contrato de locação",
+  });
+}
 
 function VehicleLocationActions({ vehicle }: { vehicle: VehiclePickupFields }) {
   const query = buildVehiclePickupSearchQuery(vehicle);
@@ -174,16 +188,25 @@ export function RentalDetailScreen({ route }: Props) {
           <Text style={styles.boxBody}>{r.pickupInstructions}</Text>
         </View>
       ) : null}
-      {r.contractText ? (
-        <View style={styles.box}>
-          <Text style={styles.boxTitle}>Contrato</Text>
-          <Text style={styles.boxBody}>{r.contractText}</Text>
-        </View>
-      ) : null}
       {r.contractUrl ? (
         <AppButton
-          title="Abrir link do contrato"
-          onPress={() => void Linking.openURL(r.contractUrl!)}
+          title="Contrato (PDF)"
+          onPress={() =>
+            Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Compartilhar PDF",
+                onPress: () =>
+                  void sharePdfFromUrl(r.contractUrl!, rentalId).catch((e) =>
+                    Alert.alert(
+                      "Falha",
+                      `Não foi possível baixar/compartilhar (${e instanceof Error ? e.message : "erro desconhecido"}).`
+                    )
+                  ),
+              },
+              { text: "Abrir link", onPress: () => void Linking.openURL(r.contractUrl!) },
+            ])
+          }
         />
       ) : null}
       <VehicleLocationActions vehicle={r.vehicle} />

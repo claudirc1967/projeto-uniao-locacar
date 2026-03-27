@@ -22,7 +22,7 @@ function requireBucket() {
   const bucket = process.env.AWS_S3_BUCKET;
   if (bucket && bucket.trim().length > 0) return bucket;
   throw new Error(
-    "Storage S3 não configurado para uploads de fotos. Defina no backend (.env) a variável AWS_S3_BUCKET."
+    "Storage S3 não configurado. Defina no backend (.env) a variável AWS_S3_BUCKET."
   );
 }
 
@@ -85,4 +85,21 @@ export async function presignGetMany(keys: string[], expiresIn = 3600) {
 export async function deleteObject(key: string): Promise<void> {
   const bucket = requireBucket();
   await client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+export async function putObjectBuffer(params: {
+  key: string;
+  contentType: string;
+  body: Uint8Array | Buffer;
+}): Promise<{ bucket: string; key: string }> {
+  const bucket = requireBucket();
+  await client().send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: params.key,
+      ContentType: params.contentType,
+      Body: params.body,
+    })
+  );
+  return { bucket, key: params.key };
 }

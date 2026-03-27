@@ -13,6 +13,7 @@ const emailPassword = z.object({
 });
 
 const ownerSignupFields = {
+  nomeRazaoSocial: z.string().min(1),
   cpfCnpj: z.string().min(11).max(18),
   phone: z.string().min(8).max(20),
   cep: z.string().min(8).max(9),
@@ -66,6 +67,9 @@ export const authRouter = router({
             ? {
                 ownerProfile: {
                   create: {
+                    nomeRazaoSocial: input.nomeRazaoSocial.trim(),
+                    emailLocador: input.email.toLowerCase(),
+                    contractTemplateText: null,
                     cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
                     phone: input.phone,
                     cep: input.cep.replace(/\D/g, ""),

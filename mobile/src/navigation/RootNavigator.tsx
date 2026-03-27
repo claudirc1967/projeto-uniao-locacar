@@ -16,6 +16,7 @@ import { OwnerHomeScreen } from "../screens/owner/OwnerHomeScreen";
 import { OwnerPendingDriversScreen } from "../screens/owner/OwnerPendingDriversScreen";
 import { OwnerDriverProfileScreen } from "../screens/owner/OwnerDriverProfileScreen";
 import { OwnerProfileScreen } from "../screens/owner/OwnerProfileScreen";
+import { OwnerContractTemplateScreen } from "../screens/owner/OwnerContractTemplateScreen";
 import { OwnerProfileEditScreen } from "../screens/owner/OwnerProfileEditScreen";
 import { OwnerRentalsScreen } from "../screens/owner/OwnerRentalsScreen";
 import { OwnerRentalDetailScreen } from "../screens/owner/OwnerRentalDetailScreen";
@@ -65,6 +66,11 @@ export function RootNavigator() {
         <Stack.Screen
           name="OwnerProfileEdit"
           component={OwnerProfileEditScreen}
+        />
+        <Stack.Screen
+          name="OwnerContractTemplate"
+          component={OwnerContractTemplateScreen}
+          options={{ title: "Template de contrato" }}
         />
         <Stack.Screen name="OwnerVehicles" component={OwnerVehiclesScreen} />
         <Stack.Screen name="VehicleForm" component={VehicleFormScreen} />

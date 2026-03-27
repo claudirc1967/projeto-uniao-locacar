@@ -1,7 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -18,19 +23,80 @@ type Props = NativeStackScreenProps<RootStackParamList, "RentalInstructions">;
 
 export function RentalInstructionsScreen({ navigation, route }: Props) {
   const { rentalId } = route.params;
+  const detail = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
   const [pickupInstructions, setPickup] = useState("");
   const [contractText, setContractText] = useState("");
   const [contractUrl, setContractUrl] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!detail.data) return;
+    setPickup(detail.data.pickupInstructions ?? "");
+    setContractText(detail.data.contractText ?? "");
+    setContractUrl(detail.data.contractUrl ?? "");
+  }, [detail.data]);
+
   const utils = trpc.useUtils();
   const save = trpc.owner.setRentalPickupAndContract.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await utils.owner.listIncomingRentals.invalidate();
-      navigation.goBack();
+
+      const url = data?.contractUrl?.trim?.() ? data.contractUrl : null;
+      if (!url) {
+        navigation.goBack();
+        return;
+      }
+
+      setContractUrl(url);
+      Alert.alert(
+        "Locação ativada",
+        "Contrato em PDF gerado. O que deseja fazer?",
+        [
+          {
+            text: "Compartilhar PDF",
+            onPress: () =>
+              void (async () => {
+                try {
+                  const base =
+                    (FileSystem as any).cacheDirectory ??
+                    (FileSystem as any).documentDirectory;
+                  if (!base) throw new Error("Diretório do app indisponível.");
+                  const localUri = `${base}contract-${rentalId}.pdf`;
+                  await FileSystem.downloadAsync(url, localUri);
+                  await Sharing.shareAsync(localUri, {
+                    mimeType: "application/pdf",
+                    dialogTitle: "Contrato de locação",
+                  });
+                } catch (e) {
+                  setErr(
+                    `Falha ao baixar/compartilhar o PDF (${e instanceof Error ? e.message : "erro desconhecido"}).`
+                  );
+                }
+              })(),
+          },
+          { text: "Abrir link", onPress: () => void Linking.openURL(url) },
+          { text: "Fechar", style: "cancel", onPress: () => navigation.goBack() },
+        ]
+      );
     },
     onError: (e) => setErr(trpcErrorMessage(e)),
   });
+
+  if (detail.isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (detail.isError) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.err}>{trpcErrorMessage(detail.error)}</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -84,6 +150,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: "#fff" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
   container: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
   label: { fontSize: 13, color: "#64748b", marginTop: 12 },

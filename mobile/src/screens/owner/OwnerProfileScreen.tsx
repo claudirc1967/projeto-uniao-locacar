@@ -19,6 +19,16 @@ export function OwnerProfileScreen({ navigation }: Props) {
       <Text style={styles.row}>Papel: proprietário</Text>
       {o ? (
         <>
+          <Text style={styles.row}>
+            Nome/Razão Social: {o.nomeRazaoSocial?.trim() || "—"}
+          </Text>
+          <Text style={styles.row}>
+            E-mail locador: {o.emailLocador?.trim() || "—"}
+          </Text>
+          <Text style={styles.row}>
+            Template de contrato:{" "}
+            {o.contractTemplateText?.trim() ? "configurado" : "não configurado"}
+          </Text>
           <Text style={styles.row}>CPF/CNPJ: {maskCpfCnpj(o.cpfCnpj)}</Text>
           <Text style={styles.row}>
             Telefone / WhatsApp: {maskPhone(o.phone)}

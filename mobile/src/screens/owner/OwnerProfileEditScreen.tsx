@@ -39,6 +39,8 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
 
   const current = user?.ownerProfile;
 
+  const [nomeRazaoSocial, setNomeRazaoSocial] = useState("");
+  const [emailLocador, setEmailLocador] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
   const [addr, setAddr] = useState<CepAddressValue>(emptyAddr);
@@ -46,6 +48,8 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
 
   useEffect(() => {
     if (!current) return;
+    setNomeRazaoSocial(current.nomeRazaoSocial ?? "");
+    setEmailLocador(current.emailLocador ?? user?.email ?? "");
     setCpfCnpj(maskCpfCnpj(current.cpfCnpj ?? ""));
     setPhone(maskPhone(current.phone ?? ""));
     setAddr({
@@ -70,7 +74,14 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
 
   const submit = () => {
     setErr(null);
+    if (!current) return setErr("Perfil do proprietário não encontrado.");
 
+    if (!nomeRazaoSocial.trim())
+      return setErr("Nome/Razão Social é obrigatório.");
+    if (!emailLocador.trim())
+      return setErr("E-mail locador é obrigatório.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLocador.trim()))
+      return setErr("Informe um e-mail locador válido.");
     if (!onlyDigits(cpfCnpj).trim()) return setErr("CPF/CNPJ é obrigatório.");
     if (!onlyDigits(phone) || onlyDigits(phone).length < 8)
       return setErr("Telefone/WhatsApp é obrigatório.");
@@ -82,6 +93,12 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
       return setErr("Complemento é obrigatório (use - se necessário).");
 
     update.mutate({
+      nomeRazaoSocial: nomeRazaoSocial.trim(),
+      emailLocador: emailLocador.trim().toLowerCase(),
+      // O template é editado em uma tela separada; aqui preservamos o valor atual.
+      contractTemplateText: current.contractTemplateText?.trim()
+        ? current.contractTemplateText
+        : null,
       cpfCnpj: onlyDigits(cpfCnpj),
       phone: onlyDigits(phone),
       cep: addr.cep,
@@ -110,6 +127,14 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Editar dados do proprietário</Text>
 
+        <Text style={styles.label}>Nome/Razão Social *</Text>
+        <TextInput
+          style={styles.input}
+          value={nomeRazaoSocial}
+          onChangeText={setNomeRazaoSocial}
+          placeholder="Nome completo ou razão social"
+        />
+
         <Text style={styles.label}>CPF/CNPJ *</Text>
         <TextInput
           style={styles.input}
@@ -117,6 +142,28 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
           onChangeText={(t) => setCpfCnpj(maskCpfCnpj(t))}
           keyboardType="number-pad"
           placeholder="Somente números"
+        />
+
+        <Text style={styles.label}>E-mail locador *</Text>
+        <TextInput
+          style={styles.input}
+          value={emailLocador}
+          onChangeText={setEmailLocador}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholder="email@empresa.com"
+        />
+
+        <Text style={styles.label}>Template de contrato</Text>
+        <Text style={styles.hint}>
+          {current.contractTemplateText?.trim()
+            ? `Configurado (${current.contractTemplateText.trim().length} caracteres)`
+            : "Não configurado"}
+        </Text>
+        <AppButton
+          title="Editar template"
+          variant="ghost"
+          onPress={() => navigation.navigate("OwnerContractTemplate")}
         />
 
         <Text style={styles.label}>Telefone/WhatsApp *</Text>
@@ -153,6 +200,13 @@ const styles = StyleSheet.create({
   container: { padding: 20, paddingBottom: 40 },
   title: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
   label: { fontSize: 13, color: "#64748b", marginTop: 10 },
+  hint: {
+    fontSize: 12,
+    color: "#94a3b8",
+    marginTop: 4,
+    marginBottom: 6,
+    lineHeight: 18,
+  },
   input: {
     borderWidth: 1,
     borderColor: "#e2e8f0",

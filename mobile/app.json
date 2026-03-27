@@ -22,7 +22,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.claudirc.uniaolocacar"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +37,13 @@
         {
           "photosPermission": "Permitir acesso às fotos para cadastrar imagens do veículo."
         }
-      ]
-    ]
+      ],
+      "expo-sharing"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "460e4de3-8080-485f-9199-51b656a187cc"
+      }
+    }
   }
 }

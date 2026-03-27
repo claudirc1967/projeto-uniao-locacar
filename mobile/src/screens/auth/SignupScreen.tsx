@@ -39,6 +39,7 @@ export function SignupScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"OWNER" | "DRIVER">("DRIVER");
+  const [nomeRazaoSocial, setNomeRazaoSocial] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
   const [addr, setAddr] = useState<CepAddressValue>(emptyAddr);
@@ -53,6 +54,10 @@ export function SignupScreen({ navigation }: Props) {
   });
 
   const validateOwner = (): boolean => {
+    if (!nomeRazaoSocial.trim()) {
+      setErr("Nome / Razão Social é obrigatório.");
+      return false;
+    }
     const doc = onlyDigits(cpfCnpj);
     if (doc.length !== 11 && doc.length !== 14) {
       setErr("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
@@ -103,6 +108,7 @@ export function SignupScreen({ navigation }: Props) {
       email: email.trim(),
       password,
       role: "OWNER",
+      nomeRazaoSocial: nomeRazaoSocial.trim(),
       cpfCnpj,
       phone: onlyDigits(phone),
       cep: addr.cep,
@@ -155,6 +161,13 @@ export function SignupScreen({ navigation }: Props) {
         {role === "OWNER" ? (
           <>
             <Text style={styles.section}>Dados do proprietário</Text>
+            <Text style={styles.label}>Nome / Razão Social *</Text>
+            <TextInput
+              style={styles.input}
+              value={nomeRazaoSocial}
+              onChangeText={setNomeRazaoSocial}
+              placeholder="Nome completo ou razão social"
+            />
             <Text style={styles.label}>CPF ou CNPJ *</Text>
             <TextInput
               style={styles.input}

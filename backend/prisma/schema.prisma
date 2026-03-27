@@ -59,6 +59,9 @@ model OwnerProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  nomeRazaoSocial String @default("")
+  emailLocador   String @default("")
+  contractTemplateText String?
   cpfCnpj     String @default("")
   phone       String @default("")
   cep         String @default("")
@@ -169,6 +172,7 @@ model Rental {
   motivoRecusa       String?
   pickupInstructions String?
   contractText       String?
+  contractS3Key      String?
   contractUrl        String?
   returnDate                    DateTime?
   situation                     RentalSituation @default(ATIVA)

@@ -9,12 +9,10 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from "react-native";
+import { Button, Card, HelperText, Text, TextInput, useTheme } from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -40,6 +38,7 @@ function driverDisplayName(item: {
 }
 
 export function OwnerRentalsScreen({ navigation }: Props) {
+  const theme = useTheme();
   const q = trpc.owner.listIncomingRentals.useQuery();
   const utils = trpc.useUtils();
   const approve = trpc.owner.approveRental.useMutation({
@@ -92,119 +91,141 @@ export function OwnerRentalsScreen({ navigation }: Props) {
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>{trpcErrorMessage(q.error)}</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.flex}>
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <FlatList
         data={q.data ?? []}
         keyExtractor={(i) => i.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          <Text style={styles.title}>Solicitações de locação</Text>
+          <Text variant="headlineSmall" style={styles.listTitle}>
+            Solicitações de locação
+          </Text>
         }
         ListEmptyComponent={
-          <Text style={styles.empty}>Nenhuma solicitação.</Text>
+          <Text variant="bodyMedium" style={styles.empty}>
+            Nenhuma solicitação.
+          </Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Pressable
-              onPress={() =>
-                navigation.navigate("OwnerRentalDetail", { rentalId: item.id })
-              }
-            >
-              <Text style={styles.veh}>{item.vehicle.title}</Text>
-              <Text style={styles.meta}>
-                Motorista: {driverDisplayName(item)} ·{" "}
-                {statusLabel[item.status] ?? item.status}
-              </Text>
-            </Pressable>
-            {item.status === "PENDING_OWNER" ? (
-              <View style={styles.row}>
-                <AppButton
-                  title="Aprovar"
-                  onPress={() => approve.mutate({ rentalId: item.id })}
-                  loading={approve.isPending}
-                />
-                <AppButton
-                  title="Recusar"
-                  variant="danger"
-                  onPress={() => openRejectModal(item.id)}
-                  loading={reject.isPending && rejectRentalId === item.id}
-                />
-              </View>
-            ) : null}
-            {item.status === "APPROVED" ? (
-              <AppButton
-                title="Definir retirada e contrato"
-                variant="ghost"
+          <Card mode="elevated" style={styles.card}>
+            <Card.Content style={styles.cardGap}>
+              <Pressable
                 onPress={() =>
-                  navigation.navigate("RentalInstructions", {
-                    rentalId: item.id,
-                  })
+                  navigation.navigate("OwnerRentalDetail", { rentalId: item.id })
                 }
-              />
-            ) : null}
-            {item.status === "REJECTED" ? (
-              <View style={styles.row}>
-                {item.driverRequestBlocked ? (
-                  <AppButton
-                    title="Permitir nova solicitação"
-                    variant="ghost"
-                    onPress={() => unblock.mutate({ rentalId: item.id })}
-                    loading={unblock.isPending}
-                  />
-                ) : (
-                  <View style={styles.hintWrap}>
-                    <Text style={styles.unlockedHint}>
-                      O motorista já pode solicitar novamente este veículo.
-                    </Text>
-                  </View>
-                )}
-                <AppButton
-                  title="Excluir"
-                  variant="danger"
-                  onPress={() => {
-                    Alert.alert(
-                      "Tem certeza?",
-                      "Deseja excluir esta solicitação recusada?",
-                      [
-                        { text: "Cancelar", style: "cancel" },
-                        {
-                          text: "Excluir",
-                          style: "destructive",
-                          onPress: () => {
-                            setDeletingRentalId(item.id);
-                            deleteRejected.mutate({ rentalId: item.id });
+              >
+                <Text variant="titleMedium">{item.vehicle.title}</Text>
+                <Text variant="bodySmall" style={styles.meta}>
+                  Motorista: {driverDisplayName(item)} ·{" "}
+                  {statusLabel[item.status] ?? item.status}
+                </Text>
+              </Pressable>
+              {item.status === "PENDING_OWNER" ? (
+                <View style={styles.row}>
+                  <Button
+                    mode="contained"
+                    compact
+                    onPress={() => approve.mutate({ rentalId: item.id })}
+                    loading={approve.isPending}
+                  >
+                    Aprovar
+                  </Button>
+                  <Button
+                    mode="contained"
+                    buttonColor={theme.colors.error}
+                    textColor={theme.colors.onError}
+                    compact
+                    onPress={() => openRejectModal(item.id)}
+                    loading={reject.isPending && rejectRentalId === item.id}
+                  >
+                    Recusar
+                  </Button>
+                </View>
+              ) : null}
+              {item.status === "APPROVED" ? (
+                <Button
+                  mode="outlined"
+                  onPress={() =>
+                    navigation.navigate("RentalInstructions", {
+                      rentalId: item.id,
+                    })
+                  }
+                >
+                  Definir retirada e contrato
+                </Button>
+              ) : null}
+              {item.status === "REJECTED" ? (
+                <View style={styles.row}>
+                  {item.driverRequestBlocked ? (
+                    <Button
+                      mode="text"
+                      compact
+                      onPress={() => unblock.mutate({ rentalId: item.id })}
+                      loading={unblock.isPending}
+                    >
+                      Permitir nova solicitação
+                    </Button>
+                  ) : (
+                    <View style={styles.hintWrap}>
+                      <Text variant="bodySmall" style={styles.unlockedHint}>
+                        O motorista já pode solicitar novamente este veículo.
+                      </Text>
+                    </View>
+                  )}
+                  <Button
+                    mode="contained"
+                    buttonColor={theme.colors.error}
+                    textColor={theme.colors.onError}
+                    compact
+                    onPress={() => {
+                      Alert.alert(
+                        "Tem certeza?",
+                        "Deseja excluir esta solicitação recusada?",
+                        [
+                          { text: "Cancelar", style: "cancel" },
+                          {
+                            text: "Excluir",
+                            style: "destructive",
+                            onPress: () => {
+                              setDeletingRentalId(item.id);
+                              deleteRejected.mutate({ rentalId: item.id });
+                            },
                           },
-                        },
-                      ]
-                    );
-                  }}
-                  loading={deleteRejected.isPending && deletingRentalId === item.id}
-                />
-              </View>
-            ) : null}
-          </View>
+                        ]
+                      );
+                    }}
+                    loading={
+                      deleteRejected.isPending && deletingRentalId === item.id
+                    }
+                  >
+                    Excluir
+                  </Button>
+                </View>
+              ) : null}
+            </Card.Content>
+          </Card>
         )}
       />
-      <AppButton
-        title="Voltar"
-        variant="ghost"
-        onPress={() => navigation.goBack()}
-      />
+      <View style={styles.footer}>
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
 
       <Modal
         visible={rejectModalOpen}
@@ -235,15 +256,14 @@ export function OwnerRentalsScreen({ navigation }: Props) {
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             style={styles.modalKeyboard}
           >
-            <View style={styles.modalBox}>
-              <Text style={styles.modalTitle}>Motivo da recusa</Text>
-              <Text style={styles.modalHint}>
+            <View style={[styles.modalBox, { backgroundColor: theme.colors.surface }]}>
+              <Text variant="titleLarge">Motivo da recusa</Text>
+              <Text variant="bodySmall" style={styles.modalHint}>
                 Descreva o motivo para o motorista (obrigatório).
               </Text>
               <TextInput
-                style={styles.modalInput}
+                mode="outlined"
                 placeholder="Ex.: Veículo indisponível no período..."
-                placeholderTextColor="#94a3b8"
                 value={motivoRecusa}
                 onChangeText={(t) => {
                   setMotivoRecusa(t);
@@ -251,14 +271,14 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                 }}
                 multiline
                 editable={!reject.isPending}
+                style={styles.modalInput}
               />
-              {modalErr ? (
-                <Text style={styles.modalErr}>{modalErr}</Text>
-              ) : null}
+              <HelperText type="error" visible={!!modalErr}>
+                {modalErr ?? ""}
+              </HelperText>
               <View style={styles.modalRow}>
-                <AppButton
-                  title="Cancelar"
-                  variant="ghost"
+                <Button
+                  mode="text"
                   onPress={() => {
                     if (!reject.isPending) {
                       setRejectModalOpen(false);
@@ -267,13 +287,18 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                       setModalErr(null);
                     }
                   }}
-                />
-                <AppButton
-                  title="Confirmar recusa"
-                  variant="danger"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  mode="contained"
+                  buttonColor={theme.colors.error}
+                  textColor={theme.colors.onError}
                   loading={reject.isPending}
                   onPress={confirmReject}
-                />
+                >
+                  Confirmar recusa
+                </Button>
               </View>
             </View>
           </KeyboardAvoidingView>
@@ -284,28 +309,18 @@ export function OwnerRentalsScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  flex: { flex: 1, paddingHorizontal: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   list: { paddingBottom: 24 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 16 },
-  card: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    gap: 8,
-  },
-  veh: { fontWeight: "600", fontSize: 16 },
-  meta: { color: "#64748b" },
-  row: { flexDirection: "row", gap: 8, marginTop: 4 },
-  empty: { color: "#94a3b8", marginTop: 24 },
-  err: { color: "#dc2626" },
-  unlockedHint: {
-    fontSize: 13,
-    color: "#64748b",
-  },
+  listTitle: { marginBottom: 16 },
+  card: { marginBottom: 12, borderRadius: 16 },
+  cardGap: { gap: 8 },
+  meta: { marginTop: 4, opacity: 0.85 },
+  row: { flexDirection: "row", gap: 8, marginTop: 4, flexWrap: "wrap", alignItems: "center" },
+  empty: { marginTop: 24, opacity: 0.7 },
+  unlockedHint: { color: "#64748b" },
   hintWrap: { flex: 1, justifyContent: "center" },
+  footer: { padding: 16, paddingBottom: 24 },
   modalRoot: {
     flex: 1,
     justifyContent: "center",
@@ -316,22 +331,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   modalBox: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     gap: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: "700" },
-  modalHint: { fontSize: 13, color: "#64748b" },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 100,
-    textAlignVertical: "top",
-    fontSize: 16,
-  },
-  modalErr: { color: "#dc2626", fontSize: 13 },
-  modalRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  modalHint: { opacity: 0.85 },
+  modalInput: { minHeight: 100, backgroundColor: "#fff" },
+  modalRow: { flexDirection: "row", gap: 8, marginTop: 8, justifyContent: "flex-end", flexWrap: "wrap" },
 });

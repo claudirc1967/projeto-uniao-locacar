@@ -10,11 +10,10 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatDateDisplay } from "../../utils/masks";
@@ -105,30 +104,34 @@ function VehicleLocationActions({ vehicle }: { vehicle: VehiclePickupFields }) {
   };
 
   return (
-    <AppButton
-      title="Localização do veículo"
+    <Button
+      mode="outlined"
+      icon="map-marker-radius"
       onPress={onPress}
       style={{ marginTop: 12 }}
-    />
+    >
+      Localização do veículo
+    </Button>
   );
 }
 
-export function RentalDetailScreen({ route }: Props) {
+export function RentalDetailScreen({ navigation, route }: Props) {
+  const theme = useTheme();
   const { rentalId } = route.params;
   const q = trpc.driver.getRentalDetail.useQuery({ rentalId });
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>{trpcErrorMessage(q.error)}</Text>
       </View>
     );
   }
@@ -141,56 +144,78 @@ export function RentalDetailScreen({ route }: Props) {
     r.status === "ACTIVE" || r.status === "COMPLETED";
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>{r.vehicle.title}</Text>
-      <Text style={styles.badge}>
+    <ScrollView
+      style={{ backgroundColor: theme.colors.background }}
+      contentContainerStyle={styles.container}
+    >
+      <Text variant="headlineSmall">{r.vehicle.title}</Text>
+      <Text variant="titleMedium" style={{ color: theme.colors.primary, marginVertical: 8 }}>
         {statusLabel[r.status] ?? r.status}
       </Text>
-      <Text style={styles.meta}>Marca: {r.vehicle.brand ?? "—"}</Text>
-      <Text style={styles.meta}>Modelo: {r.vehicle.model ?? "—"}</Text>
-      <Text style={styles.meta}>Cor: {r.vehicle.cor ?? "—"}</Text>
-      <Text style={styles.meta}>Placa: {r.vehicle.plate}</Text>
+      <Text variant="bodyMedium" style={styles.meta}>
+        Marca: {r.vehicle.brand ?? "—"}
+      </Text>
+      <Text variant="bodyMedium" style={styles.meta}>
+        Modelo: {r.vehicle.model ?? "—"}
+      </Text>
+      <Text variant="bodyMedium" style={styles.meta}>
+        Cor: {r.vehicle.cor ?? "—"}
+      </Text>
+      <Text variant="bodyMedium" style={styles.meta}>
+        Placa: {r.vehicle.plate}
+      </Text>
 
       {showReturnInfo ? (
-        <View style={[styles.box, styles.infoBox]}>
-          <Text style={styles.boxTitle}>Situação da locação</Text>
-          <Text style={styles.boxBody}>
-            {situationLabel[r.situation] ?? r.situation}
-          </Text>
-          {r.returnDate ? (
-            <Text style={styles.boxBody}>
-              Data devolução: {formatDateDisplay(r.returnDate)}
+        <Card mode="elevated" style={[styles.card, styles.infoCard]}>
+          <Card.Content>
+            <Text variant="titleSmall">Situação da locação</Text>
+            <Text variant="bodyMedium" style={styles.cardBody}>
+              {situationLabel[r.situation] ?? r.situation}
             </Text>
-          ) : null}
-          {r.situation === "PENDENTE" && r.pendingReason ? (
-            <Text style={styles.boxBody}>
-              Motivo da pendência: {r.pendingReason}
-            </Text>
-          ) : null}
-          {r.situation === "PENDENTE" && r.pendingResolutionExpectedAt ? (
-            <Text style={styles.boxBody}>
-              Previsão da solução:{" "}
-              {formatDateDisplay(r.pendingResolutionExpectedAt)}
-            </Text>
-          ) : null}
-        </View>
+            {r.returnDate ? (
+              <Text variant="bodyMedium" style={styles.cardBody}>
+                Data devolução: {formatDateDisplay(r.returnDate)}
+              </Text>
+            ) : null}
+            {r.situation === "PENDENTE" && r.pendingReason ? (
+              <Text variant="bodyMedium" style={styles.cardBody}>
+                Motivo da pendência: {r.pendingReason}
+              </Text>
+            ) : null}
+            {r.situation === "PENDENTE" && r.pendingResolutionExpectedAt ? (
+              <Text variant="bodyMedium" style={styles.cardBody}>
+                Previsão da solução:{" "}
+                {formatDateDisplay(r.pendingResolutionExpectedAt)}
+              </Text>
+            ) : null}
+          </Card.Content>
+        </Card>
       ) : null}
 
       {r.status === "REJECTED" && r.motivoRecusa ? (
-        <View style={[styles.box, styles.rejectionBox]}>
-          <Text style={styles.boxTitle}>Motivo da recusa</Text>
-          <Text style={styles.boxBody}>{r.motivoRecusa}</Text>
-        </View>
+        <Card mode="elevated" style={[styles.card, styles.warnCard]}>
+          <Card.Content>
+            <Text variant="titleSmall">Motivo da recusa</Text>
+            <Text variant="bodyMedium" style={styles.cardBody}>
+              {r.motivoRecusa}
+            </Text>
+          </Card.Content>
+        </Card>
       ) : null}
       {showPickup ? (
-        <View style={styles.box}>
-          <Text style={styles.boxTitle}>Como / onde / quando retirar</Text>
-          <Text style={styles.boxBody}>{r.pickupInstructions}</Text>
-        </View>
+        <Card mode="elevated" style={styles.card}>
+          <Card.Content>
+            <Text variant="titleSmall">Como / onde / quando retirar</Text>
+            <Text variant="bodyMedium" style={styles.cardBody}>
+              {r.pickupInstructions}
+            </Text>
+          </Card.Content>
+        </Card>
       ) : null}
       {r.contractUrl ? (
-        <AppButton
-          title="Contrato (PDF)"
+        <Button
+          mode="contained-tonal"
+          icon="file-pdf-box"
           onPress={() =>
             Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
               { text: "Cancelar", style: "cancel" },
@@ -207,9 +232,14 @@ export function RentalDetailScreen({ route }: Props) {
               { text: "Abrir link", onPress: () => void Linking.openURL(r.contractUrl!) },
             ])
           }
-        />
+        >
+          Contrato (PDF)
+        </Button>
       ) : null}
       <VehicleLocationActions vehicle={r.vehicle} />
+      <Button mode="text" onPress={() => navigation.goBack()}>
+        Voltar
+      </Button>
     </ScrollView>
   );
 }
@@ -217,26 +247,13 @@ export function RentalDetailScreen({ route }: Props) {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: "700" },
-  badge: { fontSize: 16, color: "#2563eb", marginVertical: 8 },
-  meta: { color: "#64748b" },
-  box: {
-    marginTop: 16,
-    padding: 14,
-    backgroundColor: "#f8fafc",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  infoBox: {
+  meta: { marginTop: 4, opacity: 0.85 },
+  card: { marginTop: 16, borderRadius: 16 },
+  infoCard: {
     backgroundColor: "#f0fdf4",
-    borderColor: "#bbf7d0",
   },
-  boxTitle: { fontWeight: "600", marginBottom: 8 },
-  boxBody: { fontSize: 15, lineHeight: 22, color: "#334155" },
-  rejectionBox: {
+  warnCard: {
     backgroundColor: "#fffbeb",
-    borderColor: "#fcd34d",
   },
-  err: { color: "#dc2626" },
+  cardBody: { marginTop: 8, lineHeight: 22 },
 });

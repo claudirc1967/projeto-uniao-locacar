@@ -5,16 +5,20 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
-  TextInput,
   View,
 } from "react-native";
+import {
+  Button,
+  HelperText,
+  SegmentedButtons,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { useAuth } from "../../hooks/AuthContext";
 import {
   contractTimeSuffix,
@@ -66,6 +70,7 @@ function isValidPlate(raw: string) {
 }
 
 export function VehicleFormScreen({ navigation, route }: Props) {
+  const theme = useTheme();
   const { user } = useAuth();
   const ownerProfile = user?.role === "OWNER" ? user.ownerProfile : null;
   const vehicleId = route.params?.vehicleId;
@@ -338,16 +343,18 @@ export function VehicleFormScreen({ navigation, route }: Props) {
 
   if (vehicleId && existing.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (vehicleId && existing.isError) {
     return (
-      <View style={styles.center}>
-        <Text>{trpcErrorMessage(existing.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>
+          {trpcErrorMessage(existing.error)}
+        </Text>
       </View>
     );
   }
@@ -356,15 +363,15 @@ export function VehicleFormScreen({ navigation, route }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>
+        <Text variant="headlineSmall">
           {vehicleId ? "Editar veículo" : "Novo veículo"}
         </Text>
         {vehicleId ? (
-          <Text style={styles.hint}>
+          <Text variant="bodyMedium" style={styles.hint}>
             Valor atual:{" "}
             {existing.data
               ? formatMoneyWithContractPeriod(
@@ -406,31 +413,23 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           keyboardType="decimal-pad"
         />
 
-        <Text style={[styles.label, { marginTop: 14 }]}>Tempo de contrato</Text>
-        <View style={styles.contractRow}>
-          {CONTRACT_OPTIONS.map((opt) => (
-            <Pressable
-              key={opt.value}
-              style={[
-                styles.contractChip,
-                contractTime === opt.value && styles.contractChipOn,
-              ]}
-              onPress={() => setContractTime(opt.value)}
-            >
-              <Text
-                style={[
-                  styles.contractChipText,
-                  contractTime === opt.value && styles.contractChipTextOn,
-                ]}
-              >
-                {opt.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text variant="labelLarge" style={{ marginTop: 14 }}>
+          Tempo de contrato
+        </Text>
+        <SegmentedButtons
+          value={contractTime}
+          onValueChange={(v) =>
+            setContractTime(v as "DIARIO" | "SEMANAL" | "MENSAL")
+          }
+          buttons={CONTRACT_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          style={{ marginTop: 8 }}
+        />
 
         <View style={styles.rowBetween}>
-          <Text>Km livre</Text>
+          <Text variant="bodyMedium">Km livre</Text>
           <Switch value={kmLivre} onValueChange={setKmLivre} />
         </View>
         <Field
@@ -440,7 +439,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           keyboardType="number-pad"
         />
         <View style={styles.rowBetween}>
-          <Text style={{ flex: 1, paddingRight: 8 }}>
+          <Text variant="bodyMedium" style={{ flex: 1, paddingRight: 8 }}>
             Seguro e manutenção inclusos
           </Text>
           <Switch
@@ -459,7 +458,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         />
 
         <View style={styles.rowBetween}>
-          <Text>Disponível para locação</Text>
+          <Text variant="bodyMedium">Disponível para locação</Text>
           <Switch value={available} onValueChange={setAvailable} />
         </View>
         <Field
@@ -482,9 +481,11 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           multiline
         />
 
-        <Text style={[styles.label, { marginTop: 18 }]}>Local de retirada</Text>
+        <Text variant="labelLarge" style={{ marginTop: 18 }}>
+          Local de retirada
+        </Text>
         <View style={styles.rowBetween}>
-          <Text style={{ flex: 1, paddingRight: 8 }}>
+          <Text variant="bodyMedium" style={{ flex: 1, paddingRight: 8 }}>
             O mesmo do proprietário?
           </Text>
           <Switch value={sameAsOwner} onValueChange={onSameAsOwnerChange} />
@@ -495,22 +496,32 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           onChange={setPickupAddr}
         />
 
-        {err ? <Text style={styles.err}>{err}</Text> : null}
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
 
-        <AppButton
-          title={vehicleId ? "Salvar" : "Criar e enviar fotos"}
+        <Button
+          mode="contained"
           loading={busy}
+          disabled={busy}
           onPress={onSubmit}
-        />
+          style={{ marginTop: 8 }}
+        >
+          {vehicleId ? "Salvar" : "Criar e enviar fotos"}
+        </Button>
         {vehicleId ? (
-          <AppButton
-            title="Gerenciar fotos"
-            variant="ghost"
+          <Button
+            mode="outlined"
             onPress={() =>
               navigation.navigate("VehiclePhotos", { vehicleId })
             }
-          />
+          >
+            Gerenciar fotos
+          </Button>
         ) : null}
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -519,6 +530,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
 function Field({
   label,
   editable = true,
+  multiline,
   ...props
 }: {
   label: string;
@@ -532,63 +544,30 @@ function Field({
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   placeholder?: string;
 }) {
+  const theme = useTheme();
   return (
-    <View style={{ marginTop: 10 }}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={[styles.input, !editable && styles.inputDisabled]}
-        placeholderTextColor="#94a3b8"
-        {...props}
-        editable={editable}
-      />
-    </View>
+    <TextInput
+      mode="outlined"
+      label={label}
+      placeholderTextColor="#94a3b8"
+      style={{ marginTop: 8, backgroundColor: theme.colors.surface }}
+      disabled={!editable}
+      multiline={multiline}
+      contentStyle={multiline ? { minHeight: 88 } : undefined}
+      {...props}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { padding: 20, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: "700" },
-  hint: { color: "#64748b", marginTop: 4 },
-  label: { fontSize: 13, color: "#64748b", marginBottom: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 44,
-  },
-  inputDisabled: {
-    backgroundColor: "#f1f5f9",
-    color: "#94a3b8",
-  },
-  contractRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  },
-  contractChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#fff",
-  },
-  contractChipOn: {
-    borderColor: "#2563eb",
-    backgroundColor: "#eff6ff",
-  },
-  contractChipText: { fontSize: 14, color: "#64748b" },
-  contractChipTextOn: { color: "#1d4ed8", fontWeight: "600" },
+  hint: { marginTop: 4, opacity: 0.85 },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 16,
   },
-  err: { color: "#dc2626", marginTop: 12 },
 });

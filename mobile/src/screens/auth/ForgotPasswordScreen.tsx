@@ -6,18 +6,23 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from "react-native";
+import {
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ForgotPassword">;
 
 export function ForgotPasswordScreen({ navigation }: Props) {
+  const theme = useTheme();
   const [email, setEmail] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
@@ -50,51 +55,53 @@ export function ForgotPasswordScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Esqueci a senha</Text>
-        <Text style={styles.hint}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text variant="headlineSmall">Esqueci a senha</Text>
+        <Text variant="bodyMedium" style={styles.hint}>
           Informe seu e-mail. Em ambiente de desenvolvimento o token pode ser
           exibido na tela seguinte.
         </Text>
-        <Text style={styles.label}>E-mail</Text>
         <TextInput
-          style={styles.input}
+          mode="outlined"
+          label="E-mail"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          style={styles.field}
         />
-        {err ? <Text style={styles.err}>{err}</Text> : null}
-        <AppButton
-          title="Enviar"
-          loading={forgot.isPending}
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
+        <Button
+          mode="contained"
           onPress={() => forgot.mutate({ email: email.trim() })}
-        />
-        <AppButton
-          title="Voltar ao login"
-          variant="ghost"
-          onPress={() => navigation.navigate("Login")}
-        />
+          loading={forgot.isPending}
+          disabled={forgot.isPending}
+          style={styles.btn}
+        >
+          Enviar
+        </Button>
+        <Button mode="text" onPress={() => navigation.navigate("Login")}>
+          Voltar ao login
+        </Button>
+        <View style={styles.spacer} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
-  container: { padding: 24, paddingTop: 48, gap: 8 },
-  title: { fontSize: 24, fontWeight: "700" },
-  hint: { color: "#64748b", marginVertical: 8 },
-  label: { fontSize: 14, color: "#64748b", marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  err: { color: "#dc2626" },
+  flex: { flex: 1 },
+  container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 8 },
+  hint: { marginVertical: 8, opacity: 0.9 },
+  field: { backgroundColor: "#fff" },
+  btn: { marginTop: 8 },
+  spacer: { height: 24 },
 });

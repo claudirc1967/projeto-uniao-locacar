@@ -9,12 +9,16 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from "react-native";
+import {
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
@@ -22,6 +26,7 @@ import { trpcErrorMessage } from "../../utils/trpcError";
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerContractTemplate">;
 
 export function OwnerContractTemplateScreen({ navigation }: Props) {
+  const theme = useTheme();
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
@@ -105,8 +110,6 @@ export function OwnerContractTemplateScreen({ navigation }: Props) {
     setErr(null);
     if (!current) return setErr("Perfil do proprietário não encontrado.");
 
-    // O backend exige todos os campos do perfil. Aqui preservamos os valores atuais
-    // e atualizamos apenas `contractTemplateText`.
     update.mutate({
       nomeRazaoSocial: current.nomeRazaoSocial,
       emailLocador: current.emailLocador,
@@ -125,71 +128,80 @@ export function OwnerContractTemplateScreen({ navigation }: Props) {
 
   if (!current) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Template de contrato</Text>
-        <Text style={styles.hint}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text variant="headlineSmall" style={styles.title}>
+          Template de contrato
+        </Text>
+        <Text variant="bodySmall" style={styles.hint}>
           {`Use placeholders no formato {{CHAVE}}. Ex.: {{LOCADOR_NOME_RAZAO}}, {{VEICULO_PLACA}}, {{LOCATARIO_CPF}}.`}
         </Text>
 
         <TextInput
-          style={[styles.input, styles.area]}
+          mode="outlined"
           value={text}
           onChangeText={setText}
           multiline
           placeholder="Cole o texto ou importe .txt com placeholders, ex.: Nome: {{LOCADOR_NOME_RAZAO}}"
+          style={styles.area}
         />
 
-        {err ? <Text style={styles.err}>{err}</Text> : null}
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
 
-        <AppButton
-          title="Importar template (.txt)"
-          variant="ghost"
+        <Button
+          mode="outlined"
+          icon="file-import-outline"
           onPress={() => void importFromTxt()}
-        />
-        <AppButton
-          title={update.isPending ? "Salvando..." : "Salvar"}
+          style={styles.btn}
+        >
+          Importar template (.txt)
+        </Button>
+        <Button
+          mode="contained"
           loading={update.isPending}
+          disabled={update.isPending}
           onPress={submit}
-        />
-        <AppButton
-          title="Cancelar"
-          variant="ghost"
+          style={styles.btn}
+        >
+          {update.isPending ? "Salvando..." : "Salvar"}
+        </Button>
+        <Button
+          mode="text"
           disabled={update.isPending}
           onPress={() => navigation.goBack()}
-        />
+        >
+          Cancelar
+        </Button>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
-  hint: { fontSize: 12, color: "#94a3b8", marginBottom: 10, lineHeight: 18 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
+  title: { marginBottom: 8 },
+  hint: { marginBottom: 10, lineHeight: 18, opacity: 0.85 },
   area: {
     minHeight: 220,
     textAlignVertical: "top",
+    backgroundColor: "#fff",
   },
-  err: { color: "#dc2626", marginTop: 10, marginBottom: 6 },
+  btn: { marginTop: 8 },
 });
-

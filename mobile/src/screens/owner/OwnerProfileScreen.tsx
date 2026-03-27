@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { StyleSheet, Text, View } from "react-native";
-import { AppButton } from "../../components/AppButton";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { maskCpfCnpj, maskPhone } from "../../utils/masks";
@@ -8,57 +8,82 @@ import { maskCpfCnpj, maskPhone } from "../../utils/masks";
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerProfile">;
 
 export function OwnerProfileScreen({ navigation }: Props) {
+  const theme = useTheme();
   const { user, logout } = useAuth();
 
   const o = user?.ownerProfile;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Perfil</Text>
-      <Text style={styles.row}>E-mail: {user?.email}</Text>
-      <Text style={styles.row}>Papel: proprietário</Text>
-      {o ? (
-        <>
-          <Text style={styles.row}>
-            Nome/Razão Social: {o.nomeRazaoSocial?.trim() || "—"}
-          </Text>
-          <Text style={styles.row}>
-            E-mail locador: {o.emailLocador?.trim() || "—"}
-          </Text>
-          <Text style={styles.row}>
-            Template de contrato:{" "}
-            {o.contractTemplateText?.trim() ? "configurado" : "não configurado"}
-          </Text>
-          <Text style={styles.row}>CPF/CNPJ: {maskCpfCnpj(o.cpfCnpj)}</Text>
-          <Text style={styles.row}>
-            Telefone / WhatsApp: {maskPhone(o.phone)}
-          </Text>
-          <Text style={styles.row}>
-            Endereço: {o.logradouro}, {o.numero}
-            {o.complemento ? ` — ${o.complemento}` : ""}
-          </Text>
-          <Text style={styles.row}>
-            {o.bairro} — {o.cidade}/{o.uf} — CEP {o.cep}
-          </Text>
-        </>
-      ) : null}
-      <AppButton
-        title="Editar meus dados"
-        variant="ghost"
+    <ScrollView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.container}
+    >
+      <Text variant="headlineSmall" style={styles.title}>
+        Perfil
+      </Text>
+
+      <Card mode="elevated" style={styles.card}>
+        <Card.Content style={styles.gap}>
+          <Text variant="bodyMedium">E-mail: {user?.email}</Text>
+          <Text variant="bodyMedium">Papel: proprietário</Text>
+          {o ? (
+            <>
+              <Text variant="bodyMedium">
+                Nome/Razão Social: {o.nomeRazaoSocial?.trim() || "—"}
+              </Text>
+              <Text variant="bodyMedium">
+                E-mail locador: {o.emailLocador?.trim() || "—"}
+              </Text>
+              <Text variant="bodyMedium">
+                Template de contrato:{" "}
+                {o.contractTemplateText?.trim() ? "configurado" : "não configurado"}
+              </Text>
+              <Text variant="bodyMedium">CPF/CNPJ: {maskCpfCnpj(o.cpfCnpj)}</Text>
+              <Text variant="bodyMedium">
+                Telefone / WhatsApp: {maskPhone(o.phone)}
+              </Text>
+              <Text variant="bodyMedium">
+                Endereço: {o.logradouro}, {o.numero}
+                {o.complemento ? ` — ${o.complemento}` : ""}
+              </Text>
+              <Text variant="bodyMedium">
+                {o.bairro} — {o.cidade}/{o.uf} — CEP {o.cep}
+              </Text>
+            </>
+          ) : null}
+        </Card.Content>
+      </Card>
+
+      <Button
+        mode="outlined"
+        icon="pencil-outline"
         onPress={() => navigation.navigate("OwnerProfileEdit")}
-      />
-      <AppButton title="Sair" variant="danger" onPress={() => void logout()} />
-      <AppButton
-        title="Voltar"
-        variant="ghost"
-        onPress={() => navigation.goBack()}
-      />
-    </View>
+        style={styles.btn}
+      >
+        Editar meus dados
+      </Button>
+      <Button
+        mode="contained"
+        buttonColor={theme.colors.error}
+        textColor={theme.colors.onError}
+        icon="logout"
+        onPress={() => void logout()}
+        style={styles.btn}
+      >
+        Sair
+      </Button>
+      <Button mode="text" onPress={() => navigation.goBack()}>
+        Voltar
+      </Button>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, paddingTop: 48, gap: 12 },
-  title: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  row: { fontSize: 16, color: "#334155" },
+  flex: { flex: 1 },
+  container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 12 },
+  title: { marginBottom: 8 },
+  card: { borderRadius: 16 },
+  gap: { gap: 8 },
+  btn: { borderRadius: 12 },
 });

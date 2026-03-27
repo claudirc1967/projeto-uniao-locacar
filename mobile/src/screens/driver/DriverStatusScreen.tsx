@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { maskCpf, maskDate, maskPhone } from "../../utils/masks";
@@ -15,20 +15,21 @@ const map: Record<string, string> = {
 };
 
 export function DriverStatusScreen({ navigation }: Props) {
+  const theme = useTheme();
   const q = trpc.driver.myStatus.useQuery();
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>{trpcErrorMessage(q.error)}</Text>
       </View>
     );
   }
@@ -36,41 +37,57 @@ export function DriverStatusScreen({ navigation }: Props) {
   const p = q.data!.profile;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Status</Text>
-      <Text style={styles.badge}>{map[q.data!.status] ?? q.data!.status}</Text>
-      <Text style={styles.row}>Nome: {p.fullName ?? "—"}</Text>
-      <Text style={styles.row}>Telefone: {p.phone ? maskPhone(p.phone) : "—"}</Text>
-      <Text style={styles.row}>CPF: {p.cpf ? maskCpf(p.cpf) : "—"}</Text>
-      <Text style={styles.row}>CNH: {p.cnh ?? "—"}</Text>
-      <Text style={styles.row}>Categoria CNH: {p.cnhCategory ?? "—"}</Text>
-      <Text style={styles.row}>
-        Validade CNH: {p.cnhValidity ? maskDate(p.cnhValidity) : "—"}
+    <ScrollView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.container}
+    >
+      <Text variant="headlineSmall" style={styles.title}>
+        Status
       </Text>
-      <Text style={styles.row}>Anos de habilitação: {p.cnhYears ?? "—"}</Text>
-      <Text style={styles.row}>
-        CNH com EAR: {p.cnhHasEar ? "Sim" : "Não"}
+      <Text variant="titleMedium" style={[styles.badge, { color: theme.colors.primary }]}>
+        {map[q.data!.status] ?? q.data!.status}
       </Text>
-      <Text style={styles.row}>
-        Atestado antecedentes: {p.criminalAttestation ? "Sim" : "Não"}
-      </Text>
-      <Text style={styles.row}>
-        Cadastrado na Uber: {p.uberRegistered ? "Sim" : "Não"}
-      </Text>
-      <AppButton
-        title="Voltar"
-        variant="ghost"
-        onPress={() => navigation.goBack()}
-      />
-    </View>
+
+      <Card mode="elevated" style={styles.card}>
+        <Card.Content style={styles.gap}>
+          <Text variant="bodyMedium">Nome: {p.fullName ?? "—"}</Text>
+          <Text variant="bodyMedium">
+            Telefone: {p.phone ? maskPhone(p.phone) : "—"}
+          </Text>
+          <Text variant="bodyMedium">CPF: {p.cpf ? maskCpf(p.cpf) : "—"}</Text>
+          <Text variant="bodyMedium">CNH: {p.cnh ?? "—"}</Text>
+          <Text variant="bodyMedium">Categoria CNH: {p.cnhCategory ?? "—"}</Text>
+          <Text variant="bodyMedium">
+            Validade CNH: {p.cnhValidity ? maskDate(p.cnhValidity) : "—"}
+          </Text>
+          <Text variant="bodyMedium">
+            Anos de habilitação: {p.cnhYears ?? "—"}
+          </Text>
+          <Text variant="bodyMedium">
+            CNH com EAR: {p.cnhHasEar ? "Sim" : "Não"}
+          </Text>
+          <Text variant="bodyMedium">
+            Atestado antecedentes: {p.criminalAttestation ? "Sim" : "Não"}
+          </Text>
+          <Text variant="bodyMedium">
+            Cadastrado no Aplicativo (Uber,99,etc): {p.uberRegistered ? "Sim" : "Não"}
+          </Text>
+        </Card.Content>
+      </Card>
+
+      <Button mode="text" onPress={() => navigation.goBack()}>
+        Voltar
+      </Button>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { flex: 1, padding: 24, paddingTop: 48, gap: 8 },
-  title: { fontSize: 24, fontWeight: "700" },
-  badge: { fontSize: 18, color: "#2563eb", marginVertical: 8 },
-  row: { fontSize: 16, color: "#334155" },
-  err: { color: "#dc2626" },
+  flex: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
+  container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 12 },
+  title: { marginBottom: 4 },
+  badge: { marginVertical: 8 },
+  card: { borderRadius: 16 },
+  gap: { gap: 8 },
 });

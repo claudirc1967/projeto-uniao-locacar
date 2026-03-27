@@ -5,14 +5,18 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
+import {
+  Button,
+  Card,
+  HelperText,
+  SegmentedButtons,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
-import { PasswordInput } from "../../components/PasswordInput";
 import {
   CepAddressForm,
   type CepAddressValue,
@@ -35,9 +39,11 @@ const emptyAddr: CepAddressValue = {
 };
 
 export function SignupScreen({ navigation }: Props) {
+  const theme = useTheme();
   const { loginWithToken } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [secure, setSecure] = useState(true);
   const [role, setRole] = useState<"OWNER" | "DRIVER">("DRIVER");
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
@@ -123,117 +129,130 @@ export function SignupScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Cadastro</Text>
-        <Text style={styles.label}>Perfil</Text>
-        <View style={styles.row}>
-          <TouchableOpacity
-            style={[styles.chip, role === "DRIVER" && styles.chipOn]}
-            onPress={() => setRole("DRIVER")}
-          >
-            <Text style={role === "DRIVER" ? styles.chipTextOn : styles.chipText}>
-              Motorista
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.chip, role === "OWNER" && styles.chipOn]}
-            onPress={() => setRole("OWNER")}
-          >
-            <Text style={role === "OWNER" ? styles.chipTextOn : styles.chipText}>
-              Proprietário
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.label}>E-mail</Text>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text variant="headlineMedium" style={styles.title}>
+          Cadastro
+        </Text>
+
+        <Text variant="labelLarge" style={styles.labelAbove}>
+          Perfil
+        </Text>
+        <SegmentedButtons
+          value={role}
+          onValueChange={(v) => setRole(v as "OWNER" | "DRIVER")}
+          buttons={[
+            { value: "DRIVER", label: "Motorista" },
+            { value: "OWNER", label: "Proprietário" },
+          ]}
+          style={styles.segment}
+        />
+
         <TextInput
-          style={styles.input}
+          mode="outlined"
+          label="E-mail"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
+          style={styles.field}
         />
-        <Text style={styles.label}>Senha (mín. 6)</Text>
-        <PasswordInput value={password} onChangeText={setPassword} />
+        <TextInput
+          mode="outlined"
+          label="Senha (mín. 6)"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={secure}
+          autoComplete="password"
+          textContentType="password"
+          style={styles.field}
+          right={
+            <TextInput.Icon
+              icon={secure ? "eye-outline" : "eye-off-outline"}
+              onPress={() => setSecure((s) => !s)}
+            />
+          }
+        />
 
         {role === "OWNER" ? (
-          <>
-            <Text style={styles.section}>Dados do proprietário</Text>
-            <Text style={styles.label}>Nome / Razão Social *</Text>
-            <TextInput
-              style={styles.input}
-              value={nomeRazaoSocial}
-              onChangeText={setNomeRazaoSocial}
-              placeholder="Nome completo ou razão social"
-            />
-            <Text style={styles.label}>CPF ou CNPJ *</Text>
-            <TextInput
-              style={styles.input}
-              value={cpfCnpj}
-              onChangeText={(t) => setCpfCnpj(maskCpfCnpj(t))}
-              keyboardType="number-pad"
-              placeholder="Somente números ou com máscara"
-            />
-            <Text style={styles.label}>Telefone / WhatsApp *</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={(t) => setPhone(maskPhone(t))}
-              keyboardType="phone-pad"
-              placeholder="Com DDD"
-            />
-            <Text style={styles.section}>Endereço *</Text>
-            <Text style={styles.hint}>
-              Informe o CEP e toque em Buscar CEP. Depois preencha número e
-              complemento.
-            </Text>
-            <CepAddressForm value={addr} onChange={setAddr} />
-          </>
+          <Card mode="elevated" style={styles.card}>
+            <Card.Title title="Dados do proprietário" />
+            <Card.Content style={styles.cardBody}>
+              <TextInput
+                mode="outlined"
+                label="Nome / Razão Social *"
+                value={nomeRazaoSocial}
+                onChangeText={setNomeRazaoSocial}
+                placeholder="Nome completo ou razão social"
+                style={styles.field}
+              />
+              <TextInput
+                mode="outlined"
+                label="CPF ou CNPJ *"
+                value={cpfCnpj}
+                onChangeText={(t) => setCpfCnpj(maskCpfCnpj(t))}
+                keyboardType="number-pad"
+                placeholder="Somente números ou com máscara"
+                style={styles.field}
+              />
+              <TextInput
+                mode="outlined"
+                label="Telefone / WhatsApp *"
+                value={phone}
+                onChangeText={(t) => setPhone(maskPhone(t))}
+                keyboardType="phone-pad"
+                placeholder="Com DDD"
+                style={styles.field}
+              />
+              <Text variant="titleSmall" style={styles.sectionAddr}>
+                Endereço *
+              </Text>
+              <Text variant="bodySmall" style={styles.hint}>
+                Informe o CEP e toque em Buscar CEP. Depois preencha número e
+                complemento.
+              </Text>
+              <CepAddressForm value={addr} onChange={setAddr} />
+            </Card.Content>
+          </Card>
         ) : null}
 
-        {err ? <Text style={styles.err}>{err}</Text> : null}
-        <AppButton title="Cadastrar" loading={signup.isPending} onPress={submit} />
-        <AppButton
-          title="Já tenho conta"
-          variant="ghost"
-          onPress={() => navigation.navigate("Login")}
-        />
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
+        <Button
+          mode="contained"
+          onPress={submit}
+          loading={signup.isPending}
+          disabled={signup.isPending}
+          style={styles.primaryBtn}
+        >
+          Cadastrar
+        </Button>
+        <Button mode="text" onPress={() => navigation.navigate("Login")}>
+          Já tenho conta
+        </Button>
+        <View style={styles.spacer} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
-  container: { padding: 24, paddingTop: 48, gap: 8, paddingBottom: 48 },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 8 },
-  section: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#0f172a",
-    marginTop: 16,
-  },
-  hint: { fontSize: 13, color: "#64748b", lineHeight: 18 },
-  label: { fontSize: 14, color: "#64748b", marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  row: { flexDirection: "row", gap: 10, marginTop: 4 },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-  },
-  chipOn: { backgroundColor: "#2563eb", borderColor: "#2563eb" },
-  chipText: { color: "#334155" },
-  chipTextOn: { color: "#fff", fontWeight: "600" },
-  err: { color: "#dc2626", marginTop: 8 },
+  flex: { flex: 1 },
+  container: { padding: 24, paddingTop: 48, paddingBottom: 48, gap: 8 },
+  title: { marginBottom: 8 },
+  labelAbove: { marginTop: 8, marginBottom: 4, opacity: 0.85 },
+  segment: { marginBottom: 8 },
+  field: { marginBottom: 4, backgroundColor: "#fff" },
+  card: { marginTop: 8, borderRadius: 16 },
+  cardBody: { paddingTop: 0, gap: 4 },
+  sectionAddr: { marginTop: 12, marginBottom: 4 },
+  hint: { marginBottom: 8, opacity: 0.85 },
+  primaryBtn: { marginTop: 8 },
+  spacer: { height: 24 },
 });

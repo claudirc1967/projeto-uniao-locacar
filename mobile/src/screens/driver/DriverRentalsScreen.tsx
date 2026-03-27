@@ -2,11 +2,11 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -23,20 +23,21 @@ const statusLabel: Record<string, string> = {
 };
 
 export function DriverRentalsScreen({ navigation }: Props) {
+  const theme = useTheme();
   const q = trpc.driver.myRentals.useQuery();
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>{trpcErrorMessage(q.error)}</Text>
       </View>
     );
   }
@@ -45,54 +46,58 @@ export function DriverRentalsScreen({ navigation }: Props) {
     <FlatList
       data={q.data ?? []}
       keyExtractor={(i) => i.id}
+      style={{ backgroundColor: theme.colors.background }}
       contentContainerStyle={styles.list}
       ListHeaderComponent={
-        <Text style={styles.title}>Minhas locações</Text>
+        <Text variant="headlineSmall" style={styles.header}>
+          Minhas locações
+        </Text>
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>Nenhuma locação ainda.</Text>
+        <Text variant="bodyMedium" style={styles.empty}>
+          Nenhuma locação ainda.
+        </Text>
       }
       renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.card}
+        <Pressable
           onPress={() =>
             navigation.navigate("RentalDetail", { rentalId: item.id })
           }
         >
-          <Text style={styles.veh}>{item.vehicle.title}</Text>
-          <Text style={styles.meta}>
-            {statusLabel[item.status] ?? item.status}
-          </Text>
-          {item.status === "REJECTED" && item.motivoRecusa ? (
-            <Text style={styles.rejectionNote}>
-              Motivo da recusa: {item.motivoRecusa}
-            </Text>
-          ) : null}
-        </TouchableOpacity>
+          <Card mode="elevated" style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium">{item.vehicle.title}</Text>
+              <Text variant="bodySmall" style={styles.meta}>
+                {statusLabel[item.status] ?? item.status}
+              </Text>
+              {item.status === "REJECTED" && item.motivoRecusa ? (
+                <Text variant="bodySmall" style={styles.rejectionNote}>
+                  Motivo da recusa: {item.motivoRecusa}
+                </Text>
+              ) : null}
+            </Card.Content>
+          </Card>
+        </Pressable>
       )}
+      ListFooterComponent={
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      }
     />
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
   list: { padding: 16, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 16 },
-  card: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-  },
-  veh: { fontWeight: "600", fontSize: 16 },
-  meta: { color: "#64748b", marginTop: 4 },
+  header: { marginBottom: 16 },
+  card: { marginBottom: 12, borderRadius: 16 },
+  meta: { marginTop: 4, opacity: 0.85 },
   rejectionNote: {
     marginTop: 8,
-    fontSize: 14,
     color: "#b45309",
     lineHeight: 20,
   },
-  empty: { color: "#94a3b8", marginTop: 24 },
-  err: { color: "#dc2626" },
+  empty: { marginTop: 24, opacity: 0.7 },
 });

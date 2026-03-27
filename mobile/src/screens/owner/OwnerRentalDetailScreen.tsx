@@ -9,16 +9,21 @@ import {
   Linking,
   Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from "react-native";
+import {
+  Button,
+  Card,
+  HelperText,
+  SegmentedButtons,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import {
@@ -84,6 +89,7 @@ function parseDdMmYyyy(s: string): Date | null {
 }
 
 export function OwnerRentalDetailScreen({ navigation, route }: Props) {
+  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
   const q = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
@@ -167,17 +173,21 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
-        <AppButton title="Voltar" onPress={() => navigation.goBack()} />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error, marginBottom: 16 }}>
+          {trpcErrorMessage(q.error)}
+        </Text>
+        <Button mode="contained" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
       </View>
     );
   }
@@ -195,196 +205,246 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
     row.status === "ACTIVE" || row.status === "COMPLETED";
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Detalhes da solicitação</Text>
+    <ScrollView
+      style={{ backgroundColor: theme.colors.background }}
+      contentContainerStyle={styles.container}
+    >
+      <Text variant="headlineSmall" style={styles.title}>
+        Detalhes da solicitação
+      </Text>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Solicitação</Text>
-        <Text style={styles.meta}>
-          Data solicitação: {formatDateTimeDisplay(row.requestedAt)}
-        </Text>
-        {showApprovalOrRejection ? (
-          <Text style={styles.meta}>
-            {row.status === "REJECTED"
-              ? "Data recusa: "
-              : row.status === "COMPLETED"
-                ? "Data conclusão: "
-                : "Data aprovação: "}
-            {formatDateTimeDisplay(row.updatedAt)}
+      <Card mode="outlined" style={styles.cardWrap}>
+        <Card.Content style={styles.cardContent}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Solicitação
           </Text>
-        ) : null}
-        <Text style={styles.meta}>
-          Status: {statusLabel[row.status] ?? row.status}
-        </Text>
-        {showSituationBlock ? (
-          <>
-            <Text style={styles.meta}>
-              Situação:{" "}
-              {situationLabel[row.situation] ?? row.situation}
+          <Text variant="bodySmall" style={styles.meta}>
+            Data solicitação: {formatDateTimeDisplay(row.requestedAt)}
+          </Text>
+          {showApprovalOrRejection ? (
+            <Text variant="bodySmall" style={styles.meta}>
+              {row.status === "REJECTED"
+                ? "Data recusa: "
+                : row.status === "COMPLETED"
+                  ? "Data conclusão: "
+                  : "Data aprovação: "}
+              {formatDateTimeDisplay(row.updatedAt)}
             </Text>
-            {row.returnDate ? (
-              <Text style={styles.meta}>
-                Data devolução: {formatDateDisplay(row.returnDate)}
-              </Text>
-            ) : null}
-            {row.situation === "PENDENTE" && row.pendingReason ? (
-              <Text style={styles.meta}>
-                Motivo da pendência: {row.pendingReason}
-              </Text>
-            ) : null}
-            {row.situation === "PENDENTE" && row.pendingResolutionExpectedAt ? (
-              <Text style={styles.meta}>
-                Previsão da solução:{" "}
-                {formatDateDisplay(row.pendingResolutionExpectedAt)}
-              </Text>
-            ) : null}
-          </>
-        ) : null}
-        {row.status === "REJECTED" && row.motivoRecusa ? (
-          <Text style={styles.rejectionNote}>
-            Motivo da recusa: {row.motivoRecusa}
+          ) : null}
+          <Text variant="bodySmall" style={styles.meta}>
+            Status: {statusLabel[row.status] ?? row.status}
           </Text>
-        ) : null}
-      </View>
+          {showSituationBlock ? (
+            <>
+              <Text variant="bodySmall" style={styles.meta}>
+                Situação:{" "}
+                {situationLabel[row.situation] ?? row.situation}
+              </Text>
+              {row.returnDate ? (
+                <Text variant="bodySmall" style={styles.meta}>
+                  Data devolução: {formatDateDisplay(row.returnDate)}
+                </Text>
+              ) : null}
+              {row.situation === "PENDENTE" && row.pendingReason ? (
+                <Text variant="bodySmall" style={styles.meta}>
+                  Motivo da pendência: {row.pendingReason}
+                </Text>
+              ) : null}
+              {row.situation === "PENDENTE" && row.pendingResolutionExpectedAt ? (
+                <Text variant="bodySmall" style={styles.meta}>
+                  Previsão da solução:{" "}
+                  {formatDateDisplay(row.pendingResolutionExpectedAt)}
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+          {row.status === "REJECTED" && row.motivoRecusa ? (
+            <Text variant="bodyMedium" style={styles.rejectionNote}>
+              Motivo da recusa: {row.motivoRecusa}
+            </Text>
+          ) : null}
+        </Card.Content>
+      </Card>
 
       <View style={styles.divider} />
 
       {(row.status === "ACTIVE" || row.status === "APPROVED") &&
       (row.pickupInstructions || row.contractUrl) ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Retirada e contrato</Text>
-          {row.pickupInstructions ? (
-            <>
-              <Text style={styles.meta}>Instruções de retirada</Text>
-              <Text style={styles.longText}>{row.pickupInstructions}</Text>
-            </>
-          ) : null}
-          {row.contractUrl ? (
-            <AppButton
-              title="Contrato (PDF)"
-              onPress={() =>
-                Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
-                  { text: "Cancelar", style: "cancel" },
-                  {
-                    text: "Compartilhar PDF",
-                    onPress: () =>
-                      void sharePdfFromUrl(row.contractUrl!, row.rentalId).catch((e) =>
-                        Alert.alert(
-                          "Falha",
-                          `Não foi possível baixar/compartilhar (${e instanceof Error ? e.message : "erro desconhecido"}).`
-                        )
-                      ),
-                  },
-                  {
-                    text: "Abrir link",
-                    onPress: () => void Linking.openURL(row.contractUrl!),
-                  },
-                ])
-              }
-            />
-          ) : null}
-        </View>
+        <Card mode="outlined" style={styles.cardWrap}>
+          <Card.Content style={styles.cardContent}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Retirada e contrato
+            </Text>
+            {row.pickupInstructions ? (
+              <>
+                <Text variant="bodySmall" style={styles.meta}>
+                  Instruções de retirada
+                </Text>
+                <Text variant="bodyMedium" style={styles.longText}>
+                  {row.pickupInstructions}
+                </Text>
+              </>
+            ) : null}
+            {row.contractUrl ? (
+              <Button
+                mode="contained-tonal"
+                style={{ marginTop: 8 }}
+                onPress={() =>
+                  Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Compartilhar PDF",
+                      onPress: () =>
+                        void sharePdfFromUrl(row.contractUrl!, row.rentalId).catch((e) =>
+                          Alert.alert(
+                            "Falha",
+                            `Não foi possível baixar/compartilhar (${e instanceof Error ? e.message : "erro desconhecido"}).`
+                          )
+                        ),
+                    },
+                    {
+                      text: "Abrir link",
+                      onPress: () => void Linking.openURL(row.contractUrl!),
+                    },
+                  ])
+                }
+              >
+                Contrato (PDF)
+              </Button>
+            ) : null}
+          </Card.Content>
+        </Card>
       ) : null}
 
       <View style={styles.divider} />
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Veículo</Text>
-        <Text style={styles.vehicleTitle}>{row.vehicle.title}</Text>
-        <Text style={styles.meta}>
-          Placa: {row.vehicle.plate}
-        </Text>
-        {row.vehicle.brand || row.vehicle.model || row.vehicle.year ? (
-          <Text style={styles.meta}>
-            {row.vehicle.brand ? row.vehicle.brand : ""}
-            {row.vehicle.brand && row.vehicle.model ? " · " : ""}
-            {row.vehicle.model ? row.vehicle.model : ""}
-            {row.vehicle.year ? ` (${row.vehicle.year})` : ""}
+      <Card mode="outlined" style={styles.cardWrap}>
+        <Card.Content style={styles.cardContent}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Veículo
           </Text>
-        ) : null}
-        <Text style={styles.meta}>Cor: {row.vehicle.cor?.trim() || "—"}</Text>
-      </View>
+          <Text variant="titleMedium" style={styles.vehicleTitle}>
+            {row.vehicle.title}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            Placa: {row.vehicle.plate}
+          </Text>
+          {row.vehicle.brand || row.vehicle.model || row.vehicle.year ? (
+            <Text variant="bodySmall" style={styles.meta}>
+              {row.vehicle.brand ? row.vehicle.brand : ""}
+              {row.vehicle.brand && row.vehicle.model ? " · " : ""}
+              {row.vehicle.model ? row.vehicle.model : ""}
+              {row.vehicle.year ? ` (${row.vehicle.year})` : ""}
+            </Text>
+          ) : null}
+          <Text variant="bodySmall" style={styles.meta}>
+            Cor: {row.vehicle.cor?.trim() || "—"}
+          </Text>
+        </Card.Content>
+      </Card>
 
       <View style={styles.divider} />
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Motorista</Text>
-        <Text style={styles.valueTitle}>{driverProfile?.fullName ?? "—"}</Text>
-        <Text style={styles.meta}>E-mail: {row.driver.email}</Text>
-        <Text style={styles.meta}>
-          Telefone: {driverProfile?.phone ? maskPhone(driverProfile.phone) : "—"}
-        </Text>
-        <Text style={styles.meta}>
-          CPF: {driverProfile?.cpf ? maskCpf(driverProfile.cpf) : "—"}
-        </Text>
+      <Card mode="outlined" style={styles.cardWrap}>
+        <Card.Content style={styles.cardContent}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Motorista
+          </Text>
+          <Text variant="titleSmall" style={styles.valueTitle}>
+            {driverProfile?.fullName ?? "—"}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            E-mail: {row.driver.email}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            Telefone: {driverProfile?.phone ? maskPhone(driverProfile.phone) : "—"}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            CPF: {driverProfile?.cpf ? maskCpf(driverProfile.cpf) : "—"}
+          </Text>
 
-        <View style={styles.subBlock}>
-          <Text style={styles.subTitle}>CNH</Text>
-          <Text style={styles.meta}>Número: {driverProfile?.cnh ?? "—"}</Text>
-          <Text style={styles.meta}>
-            Categoria: {driverProfile?.cnhCategory ?? "—"}
-          </Text>
-          <Text style={styles.meta}>
-            Validade: {driverProfile?.cnhValidity ? maskDate(driverProfile.cnhValidity) : "—"}
-          </Text>
-          <Text style={styles.meta}>
-            Anos de habilitação:{" "}
-            {driverProfile?.cnhYears != null ? String(driverProfile.cnhYears) : "—"}
-          </Text>
-          <Text style={styles.meta}>
-            EAR: {driverProfile?.cnhHasEar == null ? "—" : driverProfile.cnhHasEar ? "Sim" : "Não"}
-          </Text>
-          <Text style={styles.meta}>
-            Antecedentes:{" "}
-            {driverProfile?.criminalAttestation == null
-              ? "—"
-              : driverProfile.criminalAttestation
-                ? "Sim"
-                : "Não"}
-          </Text>
-          <Text style={styles.meta}>
-            Uber: {driverProfile?.uberRegistered == null ? "—" : driverProfile.uberRegistered ? "Sim" : "Não"}
-          </Text>
-        </View>
+          <View style={styles.subBlock}>
+            <Text variant="labelLarge" style={styles.subTitle}>
+              CNH
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Número: {driverProfile?.cnh ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Categoria: {driverProfile?.cnhCategory ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Validade: {driverProfile?.cnhValidity ? maskDate(driverProfile.cnhValidity) : "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Anos de habilitação:{" "}
+              {driverProfile?.cnhYears != null ? String(driverProfile.cnhYears) : "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              EAR: {driverProfile?.cnhHasEar == null ? "—" : driverProfile.cnhHasEar ? "Sim" : "Não"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Antecedentes:{" "}
+              {driverProfile?.criminalAttestation == null
+                ? "—"
+                : driverProfile.criminalAttestation
+                  ? "Sim"
+                  : "Não"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Uber: {driverProfile?.uberRegistered == null ? "—" : driverProfile.uberRegistered ? "Sim" : "Não"}
+            </Text>
+          </View>
 
-        <View style={styles.subBlock}>
-          <Text style={styles.subTitle}>Endereço</Text>
-          <Text style={styles.meta}>CEP: {driverProfile?.cep ?? "—"}</Text>
-          <Text style={styles.meta}>Logradouro: {driverProfile?.logradouro ?? "—"}</Text>
-          <Text style={styles.meta}>Número: {driverProfile?.numero ?? "—"}</Text>
-          <Text style={styles.meta}>Complemento: {driverProfile?.complemento ?? "—"}</Text>
-          <Text style={styles.meta}>Bairro: {driverProfile?.bairro ?? "—"}</Text>
-          <Text style={styles.meta}>
-            Cidade/UF: {[driverProfile?.cidade, driverProfile?.uf].filter(Boolean).join(" / ") || "—"}
-          </Text>
-        </View>
-      </View>
+          <View style={styles.subBlock}>
+            <Text variant="labelLarge" style={styles.subTitle}>
+              Endereço
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              CEP: {driverProfile?.cep ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Logradouro: {driverProfile?.logradouro ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Número: {driverProfile?.numero ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Complemento: {driverProfile?.complemento ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Bairro: {driverProfile?.bairro ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Cidade/UF: {[driverProfile?.cidade, driverProfile?.uf].filter(Boolean).join(" / ") || "—"}
+            </Text>
+          </View>
+        </Card.Content>
+      </Card>
 
       {row.status === "ACTIVE" ? (
-        <AppButton
-          title="Efetuar devolução"
-          onPress={openReturnModal}
-        />
+        <Button mode="contained" onPress={openReturnModal}>
+          Efetuar devolução
+        </Button>
       ) : null}
 
       {row.status === "REJECTED" && row.driverRequestBlocked ? (
-        <AppButton
-          title="Permitir nova solicitação"
-          variant="ghost"
+        <Button
+          mode="outlined"
           loading={unblock.isPending}
           onPress={() => unblock.mutate({ rentalId })}
-        />
+        >
+          Permitir nova solicitação
+        </Button>
       ) : row.status === "REJECTED" && !row.driverRequestBlocked ? (
-        <Text style={styles.unlockedHint}>
+        <Text variant="bodyMedium" style={styles.unlockedHint}>
           O motorista já pode enviar uma nova solicitação para este veículo.
         </Text>
       ) : null}
 
-      <AppButton
-        title="Voltar"
-        variant="ghost"
-        onPress={() => navigation.goBack()}
-      />
+      <Button mode="text" onPress={() => navigation.goBack()}>
+        Voltar
+      </Button>
 
       <Modal
         visible={returnModalOpen}
@@ -407,89 +467,82 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
                 { paddingBottom: Math.max(insets.bottom, 24) + 16 },
               ]}
             >
-              <View style={styles.modalCard}>
-                <Text style={styles.modalTitle}>Registrar devolução</Text>
-                <Text style={styles.modalHint}>Data devolução (DD/MM/AAAA)</Text>
+              <View
+                style={[
+                  styles.modalCard,
+                  { backgroundColor: theme.colors.surface },
+                ]}
+              >
+                <Text variant="titleLarge" style={styles.modalTitle}>
+                  Registrar devolução
+                </Text>
+                <Text variant="labelLarge" style={styles.modalHint}>
+                  Data devolução (DD/MM/AAAA)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  mode="outlined"
                   value={returnDateStr}
                   onChangeText={(t) => setReturnDateStr(maskDate(t))}
                   placeholder="21/03/2025"
                   keyboardType="number-pad"
                   maxLength={10}
+                  style={{ backgroundColor: theme.colors.surface }}
                 />
-                <Text style={styles.modalHint}>Situação</Text>
-                <View style={styles.sitRow}>
-                  <Pressable
-                    style={[
-                      styles.sitChip,
-                      returnSituation === "LIBERADA" && styles.sitChipOn,
-                    ]}
-                    onPress={() => setReturnSituation("LIBERADA")}
-                  >
-                    <Text
-                      style={[
-                        styles.sitChipText,
-                        returnSituation === "LIBERADA" && styles.sitChipTextOn,
-                      ]}
-                    >
-                      Liberada
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.sitChip,
-                      returnSituation === "PENDENTE" && styles.sitChipOn,
-                    ]}
-                    onPress={() => setReturnSituation("PENDENTE")}
-                  >
-                    <Text
-                      style={[
-                        styles.sitChipText,
-                        returnSituation === "PENDENTE" && styles.sitChipTextOn,
-                      ]}
-                    >
-                      Pendente
-                    </Text>
-                  </Pressable>
-                </View>
+                <Text variant="labelLarge" style={[styles.modalHint, { marginTop: 8 }]}>
+                  Situação
+                </Text>
+                <SegmentedButtons
+                  value={returnSituation}
+                  onValueChange={(v) =>
+                    setReturnSituation(v as "LIBERADA" | "PENDENTE")
+                  }
+                  buttons={[
+                    { value: "LIBERADA", label: "Liberada" },
+                    { value: "PENDENTE", label: "Pendente" },
+                  ]}
+                />
                 {returnSituation === "PENDENTE" ? (
                   <>
-                    <Text style={styles.modalHint}>Motivo da pendência</Text>
+                    <Text variant="labelLarge" style={[styles.modalHint, { marginTop: 8 }]}>
+                      Motivo da pendência
+                    </Text>
                     <TextInput
-                      style={[styles.input, styles.textArea]}
+                      mode="outlined"
                       value={pendingReason}
                       onChangeText={setPendingReason}
                       placeholder="Descreva o motivo"
                       multiline
+                      contentStyle={{ minHeight: 88 }}
+                      style={{ backgroundColor: theme.colors.surface }}
                     />
-                    <Text style={styles.modalHint}>
+                    <Text variant="labelLarge" style={[styles.modalHint, { marginTop: 8 }]}>
                       Previsão da solução (DD/MM/AAAA)
                     </Text>
                     <TextInput
-                      style={styles.input}
+                      mode="outlined"
                       value={pendingPrevisaoStr}
                       onChangeText={(t) => setPendingPrevisaoStr(maskDate(t))}
                       placeholder="28/03/2025"
                       keyboardType="number-pad"
                       maxLength={10}
+                      style={{ backgroundColor: theme.colors.surface }}
                     />
                   </>
                 ) : null}
-                {returnModalErr ? (
-                  <Text style={styles.err}>{returnModalErr}</Text>
-                ) : null}
+                <HelperText type="error" visible={!!returnModalErr}>
+                  {returnModalErr ?? ""}
+                </HelperText>
                 <View style={styles.modalActions}>
-                  <AppButton
-                    title="Cancelar"
-                    variant="ghost"
-                    onPress={() => setReturnModalOpen(false)}
-                  />
-                  <AppButton
-                    title="Confirmar"
+                  <Button mode="text" onPress={() => setReturnModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    mode="contained"
                     loading={submitReturn.isPending}
                     onPress={confirmReturn}
-                  />
+                  >
+                    Confirmar
+                  </Button>
                 </View>
               </View>
             </ScrollView>
@@ -503,25 +556,24 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
   container: { padding: 20, paddingBottom: 40, gap: 14 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 2 },
-  card: { borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 12, padding: 14, gap: 6 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 6 },
-  vehicleTitle: { fontSize: 18, fontWeight: "700" },
+  title: { marginBottom: 2 },
+  cardWrap: { marginBottom: 0 },
+  cardContent: { gap: 6 },
+  sectionTitle: { marginBottom: 6 },
+  vehicleTitle: { marginBottom: 4 },
   divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 2 },
-  meta: { fontSize: 13, color: "#64748b" },
-  longText: { fontSize: 14, lineHeight: 22, color: "#334155" },
+  meta: { opacity: 0.85 },
+  longText: { lineHeight: 22, marginTop: 4 },
   unlockedHint: {
-    fontSize: 14,
-    color: "#64748b",
     marginTop: 4,
+    opacity: 0.85,
   },
   rejectionNote: {
-    fontSize: 14,
     color: "#b45309",
     marginTop: 8,
     lineHeight: 20,
   },
-  valueTitle: { fontSize: 16, fontWeight: "700" },
+  valueTitle: { marginBottom: 4 },
   subBlock: {
     marginTop: 10,
     paddingTop: 10,
@@ -529,8 +581,7 @@ const styles = StyleSheet.create({
     borderTopColor: "#f1f5f9",
     gap: 4,
   },
-  subTitle: { fontSize: 14, fontWeight: "700", color: "#0f172a" },
-  err: { color: "#dc2626", marginBottom: 12 },
+  subTitle: { marginBottom: 4 },
   modalRoot: {
     flex: 1,
     backgroundColor: "rgba(15,23,42,0.45)",
@@ -547,36 +598,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalCard: {
-    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 20,
     gap: 8,
     maxHeight: "92%",
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  modalHint: { fontSize: 13, color: "#64748b", marginTop: 4 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
-  textArea: { minHeight: 88, textAlignVertical: "top" },
-  sitRow: { flexDirection: "row", gap: 10, marginTop: 4 },
-  sitChip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    backgroundColor: "#f8fafc",
-  },
-  sitChipOn: {
-    borderColor: "#2563eb",
-    backgroundColor: "#eff6ff",
-  },
-  sitChipText: { fontSize: 15, color: "#64748b", fontWeight: "600" },
-  sitChipTextOn: { color: "#1d4ed8" },
+  modalTitle: { marginBottom: 8 },
+  modalHint: { marginTop: 4, opacity: 0.85 },
   modalActions: { flexDirection: "row", gap: 8, marginTop: 12, justifyContent: "flex-end" },
 });

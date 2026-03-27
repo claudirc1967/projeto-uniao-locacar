@@ -3,11 +3,11 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Pressable,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
@@ -17,21 +17,24 @@ import type { RootStackParamList } from "../../navigation/types";
 type Props = NativeStackScreenProps<RootStackParamList, "Marketplace">;
 
 export function MarketplaceScreen({ navigation }: Props) {
+  const theme = useTheme();
   const { user } = useAuth();
   const q = trpc.marketplace.listAvailableVehicles.useQuery();
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error, textAlign: "center" }}>
+          {trpcErrorMessage(q.error)}
+        </Text>
       </View>
     );
   }
@@ -40,50 +43,73 @@ export function MarketplaceScreen({ navigation }: Props) {
     <FlatList
       data={q.data ?? []}
       keyExtractor={(i) => i.id}
+      style={{ backgroundColor: theme.colors.background }}
       contentContainerStyle={styles.list}
       ListHeaderComponent={
-        <Text style={styles.title}>Veículos disponíveis</Text>
+        <Text variant="headlineSmall" style={styles.header}>
+          Veículos disponíveis
+        </Text>
       }
       ListEmptyComponent={
-        <Text style={styles.empty}>Nenhum veículo listado.</Text>
+        <Text variant="bodyMedium" style={styles.empty}>
+          Nenhum veículo listado.
+        </Text>
       }
       renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.card}
+        <Pressable
           onPress={() =>
             navigation.navigate("VehicleDetail", { vehicleId: item.id })
           }
         >
-          {item.coverPhotoUrl ? (
-            <Image source={{ uri: item.coverPhotoUrl }} style={styles.cover} />
-          ) : (
-            <View style={[styles.cover, styles.ph]}>
-              <Text style={styles.phT}>Sem foto</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.meta}>
-              {formatMoneyWithContractPeriod(
-                item.dailyRateCents,
-                item.contractTime
+          <Card mode="elevated" style={styles.card}>
+            <View style={styles.row}>
+              {item.coverPhotoUrl ? (
+                <Image source={{ uri: item.coverPhotoUrl }} style={styles.cover} />
+              ) : (
+                <View style={[styles.cover, styles.ph]}>
+                  <Text variant="labelSmall" style={styles.phT}>
+                    Sem foto
+                  </Text>
+                </View>
               )}
-            </Text>
-            <Text style={styles.meta}>Modelo: {item.model ?? "—"}</Text>
-            <Text style={styles.meta}>Ano: {item.year ?? "—"}</Text>
-            <Text style={styles.meta}>Cor: {item.cor ?? "—"}</Text>
-            {item.pickupCity ? (
-              <Text style={styles.meta}>
-                {item.pickupCity}
-                {item.pickupUf ? `/${item.pickupUf}` : ""}
-              </Text>
-            ) : null}
-            {user?.role === "DRIVER" && item.driverRequestBlocked ? (
-              <Text style={styles.blockedTag}>Solicitação bloqueada</Text>
-            ) : null}
-          </View>
-        </TouchableOpacity>
+              <View style={styles.body}>
+                <Text variant="titleMedium">{item.title}</Text>
+                <Text variant="bodySmall" style={styles.meta}>
+                  {formatMoneyWithContractPeriod(
+                    item.dailyRateCents,
+                    item.contractTime
+                  )}
+                </Text>
+                <Text variant="bodySmall" style={styles.meta}>
+                  Modelo: {item.model ?? "—"}
+                </Text>
+                <Text variant="bodySmall" style={styles.meta}>
+                  Ano: {item.year ?? "—"}
+                </Text>
+                <Text variant="bodySmall" style={styles.meta}>
+                  Cor: {item.cor ?? "—"}
+                </Text>
+                {item.pickupCity ? (
+                  <Text variant="bodySmall" style={styles.meta}>
+                    {item.pickupCity}
+                    {item.pickupUf ? `/${item.pickupUf}` : ""}
+                  </Text>
+                ) : null}
+                {user?.role === "DRIVER" && item.driverRequestBlocked ? (
+                  <Text variant="labelSmall" style={styles.blockedTag}>
+                    Solicitação bloqueada
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          </Card>
+        </Pressable>
       )}
+      ListFooterComponent={
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      }
     />
   );
 }
@@ -91,26 +117,17 @@ export function MarketplaceScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   list: { padding: 16, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 16 },
-  card: {
-    flexDirection: "row",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: "hidden",
-  },
+  header: { marginBottom: 16 },
+  card: { marginBottom: 12, borderRadius: 16, overflow: "hidden" },
+  row: { flexDirection: "row" },
   cover: { width: 110, height: 110, backgroundColor: "#f1f5f9" },
   ph: { justifyContent: "center", alignItems: "center" },
-  phT: { fontSize: 12, color: "#94a3b8" },
+  phT: { color: "#94a3b8" },
   body: { flex: 1, padding: 12, justifyContent: "center" },
-  cardTitle: { fontSize: 17, fontWeight: "600" },
-  meta: { color: "#64748b", marginTop: 4 },
-  empty: { color: "#94a3b8", marginTop: 24 },
-  err: { color: "#dc2626", textAlign: "center" },
+  meta: { marginTop: 4, opacity: 0.85 },
+  empty: { marginTop: 24, opacity: 0.7 },
   blockedTag: {
     marginTop: 8,
-    fontSize: 12,
     fontWeight: "600",
     color: "#b45309",
   },

@@ -10,18 +10,23 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   View,
 } from "react-native";
+import {
+  Button,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "RentalInstructions">;
 
 export function RentalInstructionsScreen({ navigation, route }: Props) {
+  const theme = useTheme();
   const { rentalId } = route.params;
   const detail = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
   const [pickupInstructions, setPickup] = useState("");
@@ -84,56 +89,71 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
 
   if (detail.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (detail.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(detail.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>{trpcErrorMessage(detail.error)}</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Retirada e contrato</Text>
-        <Text style={styles.label}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text variant="headlineSmall" style={styles.title}>
+          Retirada e contrato
+        </Text>
+        <Text variant="labelLarge" style={styles.label}>
           Instruções (como / onde / quando retirar o veículo)
         </Text>
         <TextInput
-          style={[styles.input, styles.area]}
+          mode="outlined"
           multiline
           value={pickupInstructions}
           onChangeText={setPickup}
           placeholder="Ex.: Retirar na garagem X às 10h com documento…"
+          style={styles.area}
         />
-        <Text style={styles.label}>Texto do contrato (opcional)</Text>
+        <Text variant="labelLarge" style={styles.label}>
+          Texto do contrato (opcional)
+        </Text>
         <TextInput
-          style={[styles.input, styles.area]}
+          mode="outlined"
           multiline
           value={contractText}
           onChangeText={setContractText}
+          style={styles.area}
         />
-        <Text style={styles.label}>URL do contrato (opcional)</Text>
+        <Text variant="labelLarge" style={styles.label}>
+          URL do contrato (opcional)
+        </Text>
         <TextInput
-          style={styles.input}
+          mode="outlined"
           value={contractUrl}
           onChangeText={setContractUrl}
           autoCapitalize="none"
           placeholder="https://..."
+          style={styles.field}
         />
-        {err ? <Text style={styles.err}>{err}</Text> : null}
-        <AppButton
-          title="Salvar e ativar locação"
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
+        <Button
+          mode="contained"
           loading={save.isPending}
+          disabled={save.isPending}
           onPress={() =>
             save.mutate({
               rentalId,
@@ -142,26 +162,20 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
               contractUrl: contractUrl.trim() || null,
             })
           }
-        />
+        >
+          Salvar e ativar locação
+        </Button>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
   container: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  label: { fontSize: 13, color: "#64748b", marginTop: 12 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginTop: 6,
-  },
-  area: { minHeight: 100, textAlignVertical: "top" },
-  err: { color: "#dc2626", marginTop: 12 },
+  title: { marginBottom: 12 },
+  label: { marginTop: 12, opacity: 0.9 },
+  field: { marginTop: 6, backgroundColor: "#fff" },
+  area: { marginTop: 6, minHeight: 100, backgroundColor: "#fff" },
 });

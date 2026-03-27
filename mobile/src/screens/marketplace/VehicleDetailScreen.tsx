@@ -6,12 +6,11 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import ImageViewing from "react-native-image-viewing";
+import { Button, Text, useTheme } from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
 import { trpcErrorMessage } from "../../utils/trpcError";
@@ -22,6 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "VehicleDetail">;
 const PHOTO_THUMB = 108;
 
 export function VehicleDetailScreen({ navigation, route }: Props) {
+  const theme = useTheme();
   const { vehicleId } = route.params;
   const { user } = useAuth();
   const q = trpc.marketplace.getVehiclePublic.useQuery({ vehicleId });
@@ -46,16 +46,16 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
 
   if (q.isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (q.isError) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.err}>{trpcErrorMessage(q.error)}</Text>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text style={{ color: theme.colors.error }}>{trpcErrorMessage(q.error)}</Text>
       </View>
     );
   }
@@ -64,15 +64,22 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
 
   return (
     <>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>{v.title}</Text>
-        <Text style={styles.meta}>
+      <ScrollView
+        style={{ backgroundColor: theme.colors.background }}
+        contentContainerStyle={styles.container}
+      >
+        <Text variant="headlineSmall">{v.title}</Text>
+        <Text variant="bodyLarge" style={styles.meta}>
           {formatMoneyWithContractPeriod(v.dailyRateCents, v.contractTime)}
         </Text>
 
-        <Text style={styles.sectionTitle}>Fotos</Text>
+        <Text variant="titleMedium" style={styles.sectionTitle}>
+          Fotos
+        </Text>
         {v.photos.length === 0 ? (
-          <Text style={styles.noPhotos}>Nenhuma foto cadastrada.</Text>
+          <Text variant="bodyMedium" style={styles.noPhotos}>
+            Nenhuma foto cadastrada.
+          </Text>
         ) : (
           <View style={styles.gallery}>
             {v.photos.map((p, index) => (
@@ -96,46 +103,72 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
           </View>
         )}
 
-        <Text style={styles.meta}>Placa: {v.plate}</Text>
-        <Text style={styles.meta}>Modelo: {v.model ?? "—"}</Text>
-        <Text style={styles.meta}>Ano: {v.year ?? "—"}</Text>
-        <Text style={styles.meta}>Cor: {v.cor ?? "—"}</Text>
+        <Text variant="bodyMedium" style={styles.meta}>
+          Placa: {v.plate}
+        </Text>
+        <Text variant="bodyMedium" style={styles.meta}>
+          Modelo: {v.model ?? "—"}
+        </Text>
+        <Text variant="bodyMedium" style={styles.meta}>
+          Ano: {v.year ?? "—"}
+        </Text>
+        <Text variant="bodyMedium" style={styles.meta}>
+          Cor: {v.cor ?? "—"}
+        </Text>
         {v.description ? (
-          <Text style={styles.desc}>{v.description}</Text>
+          <Text variant="bodyMedium" style={styles.desc}>
+            {v.description}
+          </Text>
         ) : null}
         {v.requirementsJson ? (
-          <Text style={styles.req}>Requisitos: {v.requirementsJson}</Text>
+          <Text variant="bodyMedium" style={styles.req}>
+            Requisitos: {v.requirementsJson}
+          </Text>
         ) : null}
         {v.paymentNotes ? (
-          <Text style={styles.req}>Pagamento: {v.paymentNotes}</Text>
+          <Text variant="bodyMedium" style={styles.req}>
+            Pagamento: {v.paymentNotes}
+          </Text>
         ) : null}
         {v.caucao?.trim() ? (
-          <Text style={styles.req}>Caução: {v.caucao.trim()}</Text>
+          <Text variant="bodyMedium" style={styles.req}>
+            Caução: {v.caucao.trim()}
+          </Text>
         ) : null}
         {request.isError ? (
-          <Text style={styles.err}>{trpcErrorMessage(request.error)}</Text>
+          <Text style={{ color: theme.colors.error, marginVertical: 8 }}>
+            {trpcErrorMessage(request.error)}
+          </Text>
         ) : null}
         {user?.role === "DRIVER" ? (
           v.driverRequestBlocked ? (
             <>
-              <Text style={styles.blockedHint}>
+              <Text variant="bodySmall" style={styles.blockedHint}>
                 Você não pode solicitar novamente este veículo após uma recusa. O
                 proprietário pode permitir uma nova solicitação quando quiser.
               </Text>
-              <AppButton title="Solicitar aluguel" disabled />
+              <Button mode="contained" disabled>
+                Solicitar aluguel
+              </Button>
             </>
           ) : (
-            <AppButton
-              title="Solicitar aluguel"
+            <Button
+              mode="contained"
               loading={request.isPending}
+              disabled={request.isPending}
               onPress={() => request.mutate({ vehicleId })}
-            />
+            >
+              Solicitar aluguel
+            </Button>
           )
         ) : (
-          <Text style={styles.hint}>
+          <Text variant="bodyMedium" style={styles.hint}>
             Entre como motorista para solicitar aluguel.
           </Text>
         )}
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
       </ScrollView>
 
       <ImageViewing
@@ -155,15 +188,11 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   container: { padding: 20, paddingBottom: 40 },
-  title: { fontSize: 24, fontWeight: "700" },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#0f172a",
     marginTop: 16,
     marginBottom: 10,
   },
-  meta: { color: "#64748b", marginTop: 6 },
+  meta: { marginTop: 6, opacity: 0.85 },
   desc: { marginTop: 12, fontSize: 16, lineHeight: 22 },
   req: { marginTop: 8, color: "#334155" },
   gallery: {
@@ -184,8 +213,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f1f5f9",
   },
   noPhotos: { color: "#94a3b8", marginBottom: 8, fontStyle: "italic" },
-  err: { color: "#dc2626", marginVertical: 8 },
-  hint: { marginTop: 16, color: "#64748b" },
+  hint: { marginTop: 16, opacity: 0.85 },
   blockedHint: {
     marginTop: 16,
     marginBottom: 8,

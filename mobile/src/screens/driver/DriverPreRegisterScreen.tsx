@@ -5,13 +5,18 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
-  TextInput,
   Switch,
   View,
 } from "react-native";
+import {
+  Button,
+  Card,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import {
   CepAddressForm,
   type CepAddressValue,
@@ -34,6 +39,7 @@ const emptyAddr: CepAddressValue = {
 };
 
 export function DriverPreRegisterScreen({ navigation }: Props) {
+  const theme = useTheme();
   const statusQuery = trpc.driver.myStatus.useQuery(undefined, {
     retry: false,
   });
@@ -133,7 +139,7 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
@@ -142,94 +148,138 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <Text style={styles.title}>Pré-cadastro</Text>
+        <Text variant="headlineSmall" style={styles.title}>
+          Pré-cadastro
+        </Text>
         {statusQuery.isLoading ? (
-          <Text style={styles.hint}>Carregando dados…</Text>
+          <Text variant="bodyMedium" style={styles.hint}>
+            Carregando dados…
+          </Text>
         ) : null}
-        <Text style={styles.label}>Nome completo</Text>
-        <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
-        <Text style={styles.label}>Telefone</Text>
+
         <TextInput
-          style={styles.input}
+          mode="outlined"
+          label="Nome completo"
+          value={fullName}
+          onChangeText={setFullName}
+          style={styles.field}
+        />
+        <TextInput
+          mode="outlined"
+          label="Telefone"
           value={phone}
           onChangeText={(t) => setPhone(maskPhone(t))}
+          keyboardType="phone-pad"
+          style={styles.field}
         />
-        <Text style={styles.label}>CPF</Text>
         <TextInput
-          style={styles.input}
+          mode="outlined"
+          label="CPF"
           value={cpf}
           onChangeText={(t) => setCpf(maskCpf(t))}
           keyboardType="number-pad"
-        />
-        <Text style={styles.sectionTitle}>CARTEIRA DE HABILITAÇÃO (CNH)</Text>
-
-        <Text style={styles.label}>Número da CNH *</Text>
-        <TextInput
-          style={styles.input}
-          value={cnh}
-          onChangeText={setCnh}
-          keyboardType="number-pad"
-          placeholder="Número da CNH"
+          style={styles.field}
         />
 
-        <Text style={styles.label}>Categoria da CNH *</Text>
-        <TextInput
-          style={styles.input}
-          value={cnhCategory}
-          onChangeText={setCnhCategory}
-          placeholder="B"
-        />
+        <Card mode="elevated" style={styles.card}>
+          <Card.Title title="Carteira de habilitação (CNH)" />
+          <Card.Content style={styles.cardBody}>
+            <TextInput
+              mode="outlined"
+              label="Número da CNH *"
+              value={cnh}
+              onChangeText={setCnh}
+              keyboardType="number-pad"
+              placeholder="Número da CNH"
+              style={styles.field}
+            />
+            <TextInput
+              mode="outlined"
+              label="Categoria da CNH *"
+              value={cnhCategory}
+              onChangeText={setCnhCategory}
+              placeholder="B"
+              style={styles.field}
+            />
+            <TextInput
+              mode="outlined"
+              label="Validade da CNH *"
+              value={cnhValidity}
+              onChangeText={(t) => setCnhValidity(maskDate(t))}
+              placeholder="DD/MM/AAAA"
+              style={styles.field}
+            />
+            <TextInput
+              mode="outlined"
+              label="Anos de habilitação *"
+              value={cnhYears}
+              onChangeText={setCnhYears}
+              keyboardType="number-pad"
+              placeholder="Ex.: 3"
+              style={styles.field}
+            />
+            <RowSwitch
+              label="CNH com EAR (Exerce Atividade Remunerada) *"
+              value={cnhHasEar}
+              onChange={setCnhHasEar}
+            />
+            <RowSwitch
+              label="Atestado de Antecedentes Criminais *"
+              value={criminalAttestation}
+              onChange={setCriminalAttestation}
+            />
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.label}>Validade da CNH *</Text>
-        <TextInput
-          style={styles.input}
-          value={cnhValidity}
-          onChangeText={(t) => setCnhValidity(maskDate(t))}
-          placeholder="DD/MM/AAAA"
-        />
+        <Card mode="elevated" style={styles.card}>
+          <Card.Title title="Informações sobre o aplicativo" />
+          <Card.Content style={styles.cardBody}>
+            <RowSwitch
+              label="Já estou cadastrado no aplicativo (Uber, 99, etc.)"
+              value={uberRegistered}
+              onChange={setUberRegistered}
+            />
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.label}>Anos de habilitação *</Text>
-        <TextInput
-          style={styles.input}
-          value={cnhYears}
-          onChangeText={setCnhYears}
-          keyboardType="number-pad"
-          placeholder="Ex.: 3"
-        />
+        <Card mode="elevated" style={styles.card}>
+          <Card.Title title="Endereço" />
+          <Card.Content style={styles.cardBody}>
+            <CepAddressForm
+              value={addr}
+              onChange={setAddr}
+              onNumeroFocus={() => {
+                setTimeout(
+                  () => scrollRef.current?.scrollToEnd({ animated: true }),
+                  50
+                );
+              }}
+              onComplementoFocus={() => {
+                setTimeout(
+                  () => scrollRef.current?.scrollToEnd({ animated: true }),
+                  50
+                );
+              }}
+            />
+          </Card.Content>
+        </Card>
 
-        <RowSwitch
-          label="CNH com EAR (Exerce Atividade Remunerada) *"
-          value={cnhHasEar}
-          onChange={setCnhHasEar}
-        />
-        <RowSwitch
-          label="Atestado de Antecedentes Criminais *"
-          value={criminalAttestation}
-          onChange={setCriminalAttestation}
-        />
-
-        <Text style={styles.sectionTitle}>INFORMAÇÕES SOBRE O APLICATIVO</Text>
-        <RowSwitch
-          label="Já estou cadastrado no aplicativo (Uber, 99, etc.)"
-          value={uberRegistered}
-          onChange={setUberRegistered}
-        />
-        <CepAddressForm
-          value={addr}
-          onChange={setAddr}
-          onNumeroFocus={() => {
-            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
-          }}
-          onComplementoFocus={() => {
-            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50);
-          }}
-        />
-        {err ? <Text style={styles.err}>{err}</Text> : null}
-        <AppButton
-          title="Salvar"
-          loading={save.isPending}
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
+        <Button
+          mode="contained"
           onPress={submit}
-        />
+          loading={save.isPending}
+          disabled={save.isPending}
+          style={styles.saveBtn}
+        >
+          Salvar
+        </Button>
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+        <View style={styles.spacer} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -246,40 +296,31 @@ function RowSwitch({
 }) {
   return (
     <View style={styles.rowSwitch}>
-      <Text style={styles.rowSwitchLabel}>{label}</Text>
+      <Text variant="bodySmall" style={styles.rowSwitchLabel}>
+        {label}
+      </Text>
       <Switch value={value} onValueChange={onChange} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: "#fff" },
+  flex: { flex: 1 },
   container: { padding: 20, paddingBottom: 48 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  hint: { fontSize: 13, color: "#64748b", marginBottom: 12 },
-  label: { fontSize: 13, color: "#64748b", marginTop: 10 },
-  sectionTitle: {
-    marginTop: 18,
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#0f172a",
-    letterSpacing: 0.2,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-  },
+  title: { marginBottom: 12 },
+  hint: { marginBottom: 12, opacity: 0.85 },
+  field: { marginBottom: 4, backgroundColor: "#fff" },
+  card: { marginTop: 12, borderRadius: 16 },
+  cardBody: { paddingTop: 0, gap: 4 },
   rowSwitch: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    marginTop: 10,
+    marginTop: 8,
     paddingVertical: 4,
   },
-  rowSwitchLabel: { flex: 1, fontSize: 13, color: "#64748b", lineHeight: 18 },
-  err: { color: "#dc2626", marginTop: 12 },
+  rowSwitchLabel: { flex: 1, lineHeight: 18, opacity: 0.9 },
+  saveBtn: { marginTop: 8 },
+  spacer: { height: 24 },
 });

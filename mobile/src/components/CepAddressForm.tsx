@@ -1,15 +1,9 @@
 import { useEffect, useState } from "react";
-import {
-  Keyboard,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Keyboard, StyleSheet, View } from "react-native";
+import { Button, HelperText, Text, TextInput } from "react-native-paper";
 import { trpc } from "../api/trpc";
 import { cepDigits, maskCep } from "../utils/masks";
 import { trpcErrorMessage } from "../utils/trpcError";
-import { AppButton } from "./AppButton";
 
 export type CepAddressValue = {
   cep: string;
@@ -26,7 +20,6 @@ type Props = {
   onChange: (v: CepAddressValue) => void;
   onNumeroFocus?: () => void;
   onComplementoFocus?: () => void;
-  /** Quando true, todos os campos ficam somente leitura (ex.: endereço igual ao do proprietário). */
   locked?: boolean;
 };
 
@@ -46,8 +39,6 @@ export function CepAddressForm({
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => {
       const h = e.endCoordinates?.height ?? 0;
-      // Em alguns devices/ROMs `endCoordinates.height` pode vir como 0.
-      // Usamos um fallback para evitar que "Número/Complemento" fiquem escondidos.
       setKeyboardPad(h > 0 ? h : 250);
     });
     const hide = Keyboard.addListener("keyboardDidHide", () => {
@@ -88,91 +79,87 @@ export function CepAddressForm({
     }
   };
 
-  const readStyle = locked ? [styles.input, styles.readonly] : styles.input;
+  const readOnlyProps = {
+    mode: "outlined" as const,
+    editable: false,
+    style: styles.field,
+  };
 
   return (
     <View style={[styles.block, { paddingBottom: 8 + keyboardPad }]}>
-      <Text style={styles.label}>CEP</Text>
       <TextInput
-        style={readStyle}
+        mode="outlined"
+        label="CEP"
         placeholder="00000-000"
         keyboardType="number-pad"
         value={value.cep}
         editable={!locked}
         onChangeText={(t) => onChange({ ...value, cep: maskCep(t) })}
+        style={styles.field}
       />
-      {cepError ? <Text style={styles.err}>{cepError}</Text> : null}
-      <AppButton
-        title={loading ? "Buscando…" : "Buscar CEP"}
-        variant="ghost"
+      <HelperText type="error" visible={!!cepError}>
+        {cepError ?? ""}
+      </HelperText>
+      <Button
+        mode="outlined"
         onPress={buscarCep}
         disabled={locked || loading}
         loading={loading}
-      />
+        style={styles.buscarBtn}
+      >
+        Buscar CEP
+      </Button>
 
-      <Text style={styles.label}>Logradouro</Text>
       <TextInput
-        style={[styles.input, styles.readonly]}
-        value={value.logradouro}
-        editable={false}
+        {...readOnlyProps}
+        label="Logradouro"
         placeholder="Preenchido pelo CEP"
+        value={value.logradouro}
       />
-      <Text style={styles.label}>Bairro</Text>
-      <TextInput
-        style={[styles.input, styles.readonly]}
-        value={value.bairro}
-        editable={false}
-      />
-      <Text style={styles.label}>Cidade / UF</Text>
+      <TextInput {...readOnlyProps} label="Bairro" value={value.bairro} />
       <View style={styles.row}>
         <TextInput
-          style={[styles.input, styles.city]}
+          {...readOnlyProps}
+          label="Cidade"
           value={value.cidade}
-          editable={false}
+          style={[styles.field, styles.city]}
         />
         <TextInput
-          style={[styles.input, styles.uf]}
+          {...readOnlyProps}
+          label="UF"
           value={value.uf}
-          editable={false}
+          style={[styles.field, styles.uf]}
         />
       </View>
-      <Text style={styles.label}>Número</Text>
       <TextInput
-        style={readStyle}
+        mode="outlined"
+        label="Número"
         value={value.numero}
         editable={!locked}
         onChangeText={(numero) => onChange({ ...value, numero })}
         onFocus={() => onNumeroFocus?.()}
         placeholder="Número"
+        style={styles.field}
       />
-      <Text style={styles.label}>Complemento</Text>
       <TextInput
-        style={readStyle}
+        mode="outlined"
+        label="Complemento"
         value={value.complemento}
         editable={!locked}
         onChangeText={(complemento) => onChange({ ...value, complemento })}
         onFocus={() => onComplementoFocus?.()}
         placeholder="Opcional"
+        style={styles.field}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  block: { gap: 6 },
-  label: { fontSize: 13, color: "#475569", marginTop: 8 },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: "#fff",
-  },
-  readonly: { backgroundColor: "#f8fafc", color: "#64748b" },
-  row: { flexDirection: "row", gap: 8 },
+  block: { gap: 4 },
+  field: { marginBottom: 4, backgroundColor: "#fff" },
+  buscarBtn: { marginBottom: 8 },
+  row: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
   city: { flex: 1 },
-  uf: { width: 56, textAlign: "center" },
-  err: { color: "#dc2626", fontSize: 13, marginTop: 4 },
+  uf: { width: 72 },
 });

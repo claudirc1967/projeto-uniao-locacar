@@ -9,13 +9,17 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 import ImageViewing from "react-native-image-viewing";
+import {
+  Button,
+  HelperText,
+  Text,
+  useTheme,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
-import { AppButton } from "../../components/AppButton";
 import {
   isAllowedImageType,
   validatePhotosForUpload,
@@ -44,7 +48,8 @@ const PAD = 20;
 const THUMB_W =
   (Dimensions.get("window").width - PAD * 2 - COL_GAP * (COLS - 1)) / COLS;
 
-export function VehiclePhotosScreen({ route }: Props) {
+export function VehiclePhotosScreen({ navigation, route }: Props) {
+  const theme = useTheme();
   const { vehicleId } = route.params;
   const insets = useSafeAreaInsets();
   const [pending, setPending] = useState<Picked[]>([]);
@@ -260,46 +265,56 @@ export function VehiclePhotosScreen({ route }: Props) {
           { paddingBottom: Math.max(insets.bottom, 16) },
         ]}
       >
-        <Pressable
-          style={styles.viewerDeleteBtn}
+        <Button
+          mode="text"
+          textColor="#fecaca"
           onPress={() => confirmRemoveSlot(imageIndex)}
           disabled={deletePhoto.isPending}
         >
-          <Text style={styles.viewerDeleteText}>
-            {slot.kind === "pending" ? "Remover da fila" : "Excluir foto"}
-          </Text>
-        </Pressable>
+          {slot.kind === "pending" ? "Remover da fila" : "Excluir foto"}
+        </Button>
       </View>
     );
   };
 
   if (vehicleQuery.isLoading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.loadingText}>Carregando fotos…</Text>
+      <View
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text variant="bodyMedium" style={styles.loadingText}>
+          Carregando fotos…
+        </Text>
       </View>
     );
   }
 
   if (vehicleQuery.error) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.err}>{trpcErrorMessage(vehicleQuery.error)}</Text>
+      <View
+        style={[styles.centered, { backgroundColor: theme.colors.background }]}
+      >
+        <Text style={{ color: theme.colors.error }}>
+          {trpcErrorMessage(vehicleQuery.error)}
+        </Text>
       </View>
     );
   }
 
   return (
     <>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Fotos do veículo</Text>
-        <Text style={styles.hint}>
+      <ScrollView
+        style={{ backgroundColor: theme.colors.background }}
+        contentContainerStyle={styles.container}
+      >
+        <Text variant="headlineSmall">Fotos do veículo</Text>
+        <Text variant="bodyMedium" style={styles.hint}>
           Até 6 fotos no total. Toque na imagem para ampliar (use o gesto de pinça
           ou toque duplo para zoom). Máx. 5 MB cada. JPEG, PNG ou WebP.
         </Text>
 
-        <Text style={styles.sectionLabel}>
+        <Text variant="titleMedium" style={styles.sectionLabel}>
           Galeria ({viewerSlots.length}/6)
         </Text>
         <View style={styles.grid}>
@@ -312,7 +327,9 @@ export function VehiclePhotosScreen({ route }: Props) {
                 <Image source={{ uri: slot.uri }} style={styles.thumb} />
                 {slot.kind === "pending" ? (
                   <View style={styles.pendingBadge}>
-                    <Text style={styles.pendingBadgeText}>Nova</Text>
+                    <Text variant="labelSmall" style={styles.pendingBadgeText}>
+                      Nova
+                    </Text>
                   </View>
                 ) : null}
               </Pressable>
@@ -321,32 +338,50 @@ export function VehiclePhotosScreen({ route }: Props) {
                 hitSlop={8}
                 onPress={() => confirmRemoveSlot(index)}
               >
-                <Text style={styles.thumbRemoveText}>×</Text>
+                <Text style={styles.thumbRemoveText} accessibilityLabel="Remover">
+                  ×
+                </Text>
               </Pressable>
             </View>
           ))}
         </View>
 
         {viewerSlots.length === 0 ? (
-          <Text style={styles.empty}>Nenhuma foto ainda.</Text>
+          <Text variant="bodyMedium" style={styles.empty}>
+            Nenhuma foto ainda.
+          </Text>
         ) : null}
 
-        <Text style={[styles.sectionLabel, { marginTop: 20 }]}>
+        <Text variant="titleMedium" style={[styles.sectionLabel, { marginTop: 20 }]}>
           Adicionar fotos
         </Text>
-        <AppButton
-          title="Selecionar imagens"
+        <Button
+          mode="outlined"
           onPress={pickImages}
           disabled={busy || maxSelectable === 0}
-        />
-        <AppButton
-          title={busy ? "Enviando…" : "Enviar novas fotos"}
+        >
+          Selecionar imagens
+        </Button>
+        <Button
+          mode="contained"
           loading={busy}
-          onPress={runUpload}
           disabled={pending.length === 0 || busy}
-        />
-        {status ? <Text style={styles.status}>{status}</Text> : null}
-        {err ? <Text style={styles.err}>{err}</Text> : null}
+          onPress={runUpload}
+          style={{ marginTop: 8 }}
+        >
+          {busy ? "Enviando…" : "Enviar novas fotos"}
+        </Button>
+        {status ? (
+          <Text variant="bodyMedium" style={styles.status}>
+            {status}
+          </Text>
+        ) : null}
+        <HelperText type="error" visible={!!err}>
+          {err ?? ""}
+        </HelperText>
+        <Button mode="text" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
       </ScrollView>
 
       <ImageViewing
@@ -367,13 +402,11 @@ export function VehiclePhotosScreen({ route }: Props) {
 const styles = StyleSheet.create({
   container: { padding: PAD, paddingBottom: 40 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  loadingText: { marginTop: 12, color: "#64748b" },
-  title: { fontSize: 22, fontWeight: "700" },
-  hint: { color: "#64748b", marginVertical: 12, lineHeight: 20 },
-  sectionLabel: { fontSize: 15, fontWeight: "600", color: "#0f172a", marginBottom: 10 },
-  empty: { color: "#94a3b8", fontStyle: "italic", marginBottom: 8 },
+  loadingText: { marginTop: 12, opacity: 0.75 },
+  hint: { marginVertical: 12, lineHeight: 20, opacity: 0.85 },
+  sectionLabel: { marginBottom: 10 },
+  empty: { fontStyle: "italic", marginBottom: 8, opacity: 0.7 },
   status: { marginTop: 12, color: "#0f766e" },
-  err: { color: "#dc2626", marginTop: 12 },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -402,7 +435,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
   },
-  pendingBadgeText: { color: "#fff", fontSize: 11, fontWeight: "600" },
+  pendingBadgeText: { color: "#fff" },
   thumbRemove: {
     position: "absolute",
     top: -4,
@@ -424,14 +457,5 @@ const styles = StyleSheet.create({
   viewerFooter: {
     alignItems: "center",
     width: "100%",
-  },
-  viewerDeleteBtn: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  viewerDeleteText: {
-    color: "#fecaca",
-    fontSize: 17,
-    fontWeight: "600",
   },
 });

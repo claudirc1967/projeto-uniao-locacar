@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import { useState } from "react";
 import superjson from "superjson";
-import { getTrpcUrl } from "../utils/trpcUrl";
+import { getTrpcNgrokHeaders, getTrpcUrl } from "../utils/trpcUrl";
 import { getAuthToken } from "./authToken";
 import { trpc } from "./trpc";
 
@@ -30,7 +30,10 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
           url: getTrpcUrl(),
           headers() {
             const t = getAuthToken();
-            return t ? { Authorization: `Bearer ${t}` } : {};
+            return {
+              ...getTrpcNgrokHeaders(),
+              ...(t ? { Authorization: `Bearer ${t}` } : {}),
+            };
           },
         }),
       ],

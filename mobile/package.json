@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "npx expo start",
+    "android": "npx expo start --android",
+    "ios": "npx expo start --ios",
+    "web": "npx expo start --web",
+    "eas:android": "eas build -p android --profile preview",
+    "eas:ios": "eas build -p ios --profile preview"
   },
   "dependencies": {
     "@react-navigation/native": "^7.1.33",

@@ -11,3 +11,15 @@ export function getTrpcUrl(): string {
   }
   return "http://localhost:4000/trpc";
 }
+
+/**
+ * Túneis ngrok (plano free) devolvem página HTML de aviso para clientes que não
+ * enviam este header; o fetch do React Native falha com "Network request failed".
+ * @see https://ngrok.com/docs/guides/device-gateway/linux
+ */
+export function getTrpcNgrokHeaders(): Record<string, string> {
+  if (getTrpcUrl().includes("ngrok")) {
+    return { "ngrok-skip-browser-warning": "true" };
+  }
+  return {};
+}

@@ -9,6 +9,7 @@
     "dev:backend": "npm run dev -w backend",
     "dev:mobile": "npm run start -w mobile",
     "db:push": "npm run db:push -w backend",
-    "db:generate": "npm run db:generate -w backend"
+    "db:generate": "npm run db:generate -w backend",
+    "eas:android": "npm run eas:android -w mobile"
   }
 }

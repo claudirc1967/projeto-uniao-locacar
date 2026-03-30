@@ -86,6 +86,8 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [cor, setCor] = useState("");
+  const [portasStr, setPortasStr] = useState("4");
+  const [lugaresStr, setLugaresStr] = useState("5");
   const [dailyReais, setDailyReais] = useState("");
   const [contractTime, setContractTime] = useState<
     "DIARIO" | "SEMANAL" | "MENSAL"
@@ -123,8 +125,14 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     setPlate(formatPlate(v.plate ?? ""));
     setBrand(v.brand ?? "");
     setModel(v.model ?? "");
-    setYear(v.year != null ? String(v.year) : "");
+    setYear(String(v.year ?? ""));
     setCor(v.cor ?? "");
+    setPortasStr(
+      v.portas != null && Number.isFinite(v.portas) ? String(v.portas) : "4"
+    );
+    setLugaresStr(
+      v.lugares != null && Number.isFinite(v.lugares) ? String(v.lugares) : "5"
+    );
     setContractTime(v.contractTime ?? "DIARIO");
     setKmLivre(!!v.kmLivre);
     setKmPorContrato(
@@ -272,7 +280,25 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       setErr("Complemento é obrigatório (use - se necessário).");
       return;
     }
-    const y = year.trim() ? parseInt(year, 10) : undefined;
+    const portasNum = parseInt(portasStr.replace(/\D/g, ""), 10);
+    const lugaresNum = parseInt(lugaresStr.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(portasNum) || portasNum < 2 || portasNum > 8) {
+      setErr("Portas: informe um número entre 2 e 8.");
+      return;
+    }
+    if (!Number.isFinite(lugaresNum) || lugaresNum < 1 || lugaresNum > 15) {
+      setErr("Lugares: informe um número entre 1 e 15.");
+      return;
+    }
+    if (!year.trim()) {
+      setErr("Informe o ano do veículo.");
+      return;
+    }
+    const y = parseInt(year.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(y) || y < 1900 || y > 2100) {
+      setErr("Ano inválido (use um valor entre 1900 e 2100).");
+      return;
+    }
     const kmParsed = kmPorContrato.trim()
       ? parseInt(kmPorContrato.replace(/\D/g, ""), 10)
       : 0;
@@ -285,8 +311,10 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         plate,
         brand: brand || undefined,
         model: model || undefined,
-        year: Number.isFinite(y!) ? y : undefined,
+        year: y,
         cor: cor || undefined,
+        portas: portasNum,
+        lugares: lugaresNum,
         contractTime,
         kmLivre,
         kmPorContrato: kmPorContratoNum,
@@ -315,8 +343,10 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         plate,
         brand: brand || undefined,
         model: model || undefined,
-        year: Number.isFinite(y!) ? y : undefined,
+        year: y,
         cor: cor || undefined,
+        portas: portasNum,
+        lugares: lugaresNum,
         contractTime,
         kmLivre,
         kmPorContrato: kmPorContratoNum,
@@ -406,6 +436,18 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           keyboardType="number-pad"
         />
         <Field label="Cor" value={cor} onChangeText={setCor} />
+        <Field
+          label="Portas"
+          value={portasStr}
+          onChangeText={setPortasStr}
+          keyboardType="number-pad"
+        />
+        <Field
+          label="Lugares"
+          value={lugaresStr}
+          onChangeText={setLugaresStr}
+          keyboardType="number-pad"
+        />
         <Field
           label={`Valor do período (R$)${contractTimeSuffix(contractTime)}`}
           value={dailyReais}

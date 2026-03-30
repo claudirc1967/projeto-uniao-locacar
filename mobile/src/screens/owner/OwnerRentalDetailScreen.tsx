@@ -340,6 +340,10 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           <Text variant="bodySmall" style={styles.meta}>
             Cor: {row.vehicle.cor?.trim() || "—"}
           </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            Portas: {row.vehicle.portas ?? 4} · Lugares:{" "}
+            {row.vehicle.lugares ?? 5}
+          </Text>
         </Card.Content>
       </Card>
 

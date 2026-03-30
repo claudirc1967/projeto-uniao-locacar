@@ -197,6 +197,8 @@ export const driverRouter = router({
               brand: true,
               model: true,
               cor: true,
+              portas: true,
+              lugares: true,
               pickupCity: true,
               pickupUf: true,
               pickupCep: true,

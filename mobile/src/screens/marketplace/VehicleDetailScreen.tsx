@@ -110,10 +110,13 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
           Modelo: {v.model ?? "—"}
         </Text>
         <Text variant="bodyMedium" style={styles.meta}>
-          Ano: {v.year ?? "—"}
+          Ano: {v.year}
         </Text>
         <Text variant="bodyMedium" style={styles.meta}>
           Cor: {v.cor ?? "—"}
+        </Text>
+        <Text variant="bodyMedium" style={styles.meta}>
+          Portas: {v.portas ?? 4} · Lugares: {v.lugares ?? 5}
         </Text>
         {v.description ? (
           <Text variant="bodyMedium" style={styles.desc}>

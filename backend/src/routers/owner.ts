@@ -90,8 +90,10 @@ export const ownerRouter = router({
         plate: z.string().min(5),
         brand: z.string().optional(),
         model: z.string().optional(),
-        year: z.number().int().min(1900).max(2100).optional(),
+        year: z.number().int().min(1900).max(2100),
         cor: z.string().optional(),
+        portas: z.number().int().min(2).max(8).default(4),
+        lugares: z.number().int().min(1).max(15).default(5),
         contractTime: contractTimeSchema.default("DIARIO"),
         kmLivre: z.boolean().default(false),
         kmPorContrato: z.number().int().min(0).default(0),
@@ -125,6 +127,8 @@ export const ownerRouter = router({
           model: input.model,
           year: input.year,
           cor: input.cor,
+          portas: input.portas,
+          lugares: input.lugares,
           contractTime: input.contractTime,
           kmLivre: input.kmLivre,
           kmPorContrato: input.kmPorContrato,
@@ -160,8 +164,10 @@ export const ownerRouter = router({
         plate: z.string().min(5).optional(),
         brand: z.string().optional().nullable(),
         model: z.string().optional().nullable(),
-        year: z.number().int().min(1900).max(2100).optional().nullable(),
+        year: z.number().int().min(1900).max(2100).optional(),
         cor: z.string().optional().nullable(),
+        portas: z.number().int().min(2).max(8).optional(),
+        lugares: z.number().int().min(1).max(15).optional(),
         contractTime: contractTimeSchema.optional(),
         kmLivre: z.boolean().optional(),
         kmPorContrato: z.number().int().min(0).optional(),
@@ -440,6 +446,25 @@ export const ownerRouter = router({
     }));
   }),
 
+  listRejectedDrivers: ownerProcedure.query(async () => {
+    const profiles = await prisma.driverProfile.findMany({
+      where: { status: "REJECTED" },
+      include: { user: { select: { id: true, email: true, createdAt: true } } },
+    });
+    profiles.sort(
+      (a, b) => a.user.createdAt.getTime() - b.user.createdAt.getTime()
+    );
+    return profiles.map((p) => ({
+      driverUserId: p.userId,
+      email: p.user.email,
+      fullName: p.fullName,
+      phone: p.phone,
+      cpf: p.cpf,
+      cnh: p.cnh,
+      createdAt: p.user.createdAt,
+    }));
+  }),
+
   getDriverProfile: ownerProcedure
     .input(z.object({ driverUserId: z.string() }))
     .query(async ({ input }) => {
@@ -459,6 +484,7 @@ export const ownerRouter = router({
         driverUserId: profile.userId,
         email: profile.user.email,
         status: profile.status,
+        rejectionReason: profile.rejectionReason,
         fullName: profile.fullName,
         phone: profile.phone,
         cpf: profile.cpf,
@@ -488,14 +514,51 @@ export const ownerRouter = router({
       if (!p) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Motorista não encontrado" });
       }
+      if (p.status !== "PENDING") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Só é possível aprovar motoristas com cadastro pendente.",
+        });
+      }
       await prisma.driverProfile.update({
         where: { userId: input.driverUserId },
-        data: { status: "APPROVED" },
+        data: { status: "APPROVED", rejectionReason: null },
       });
       return { ok: true as const };
     }),
 
   rejectDriver: ownerProcedure
+    .input(
+      z.object({
+        driverUserId: z.string(),
+        motivo: z.string().min(3).max(2000),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const p = await prisma.driverProfile.findUnique({
+        where: { userId: input.driverUserId },
+      });
+      if (!p) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Motorista não encontrado" });
+      }
+      if (p.status !== "PENDING") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Só é possível rejeitar motoristas com cadastro pendente.",
+        });
+      }
+      await prisma.driverProfile.update({
+        where: { userId: input.driverUserId },
+        data: {
+          status: "REJECTED",
+          rejectionReason: input.motivo.trim(),
+        },
+      });
+      return { ok: true as const };
+    }),
+
+  /** Recoloca cadastro rejeitado na fila de análise (volta para pendente). */
+  reopenDriverForReview: ownerProcedure
     .input(z.object({ driverUserId: z.string() }))
     .mutation(async ({ input }) => {
       const p = await prisma.driverProfile.findUnique({
@@ -504,9 +567,15 @@ export const ownerRouter = router({
       if (!p) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Motorista não encontrado" });
       }
+      if (p.status !== "REJECTED") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Só é possível recolocar na análise cadastros rejeitados.",
+        });
+      }
       await prisma.driverProfile.update({
         where: { userId: input.driverUserId },
-        data: { status: "REJECTED" },
+        data: { status: "PENDING", rejectionReason: null },
       });
       return { ok: true as const };
     }),
@@ -760,6 +829,8 @@ export const ownerRouter = router({
               model: true,
               year: true,
               cor: true,
+              portas: true,
+              lugares: true,
               dailyRateCents: true,
             },
           },

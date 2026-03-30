@@ -48,6 +48,17 @@ export function DriverStatusScreen({ navigation }: Props) {
         {map[q.data!.status] ?? q.data!.status}
       </Text>
 
+      {q.data!.status === "REJECTED" && p.rejectionReason?.trim() ? (
+        <Card mode="outlined" style={[styles.card, styles.warnCard]}>
+          <Card.Content>
+            <Text variant="titleSmall">Motivo da recusa</Text>
+            <Text variant="bodyMedium" style={styles.rejectionText}>
+              {p.rejectionReason.trim()}
+            </Text>
+          </Card.Content>
+        </Card>
+      ) : null}
+
       <Card mode="elevated" style={styles.card}>
         <Card.Content style={styles.gap}>
           <Text variant="bodyMedium">Nome: {p.fullName ?? "—"}</Text>
@@ -88,6 +99,8 @@ const styles = StyleSheet.create({
   container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 12 },
   title: { marginBottom: 4 },
   badge: { marginVertical: 8 },
+  warnCard: { borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
+  rejectionText: { marginTop: 8, lineHeight: 22 },
   card: { borderRadius: 16 },
   gap: { gap: 8 },
 });

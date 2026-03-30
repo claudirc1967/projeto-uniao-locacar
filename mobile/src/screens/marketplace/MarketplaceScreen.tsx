@@ -1,13 +1,24 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Card, Text, useTheme } from "react-native-paper";
+import {
+  Button,
+  Card,
+  IconButton,
+  SegmentedButtons,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
@@ -16,10 +27,192 @@ import type { RootStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Marketplace">;
 
+type MarketplaceListFilters = {
+  brandContains?: string;
+  modelContains?: string;
+  corContains?: string;
+  yearMin?: number;
+  yearMax?: number;
+  portas?: number;
+  lugares?: number;
+  contractTime?: "DIARIO" | "SEMANAL" | "MENSAL";
+  priceMinCents?: number;
+  priceMaxCents?: number;
+};
+
+type FilterDraft = {
+  brand: string;
+  model: string;
+  cor: string;
+  yearMin: string;
+  yearMax: string;
+  portas: string;
+  lugares: string;
+  contractTime: "ANY" | "DIARIO" | "SEMANAL" | "MENSAL";
+  priceMin: string;
+  priceMax: string;
+};
+
+function emptyDraft(): FilterDraft {
+  return {
+    brand: "",
+    model: "",
+    cor: "",
+    yearMin: "",
+    yearMax: "",
+    portas: "",
+    lugares: "",
+    contractTime: "ANY",
+    priceMin: "",
+    priceMax: "",
+  };
+}
+
+function draftFromApplied(a: MarketplaceListFilters): FilterDraft {
+  return {
+    brand: a.brandContains ?? "",
+    model: a.modelContains ?? "",
+    cor: a.corContains ?? "",
+    yearMin: a.yearMin != null ? String(a.yearMin) : "",
+    yearMax: a.yearMax != null ? String(a.yearMax) : "",
+    portas: a.portas != null ? String(a.portas) : "",
+    lugares: a.lugares != null ? String(a.lugares) : "",
+    contractTime: a.contractTime ?? "ANY",
+    priceMin:
+      a.priceMinCents != null ? (a.priceMinCents / 100).toFixed(2) : "",
+    priceMax:
+      a.priceMaxCents != null ? (a.priceMaxCents / 100).toFixed(2) : "",
+  };
+}
+
+/** Aceita "12,50" ou "12.50"; retorna centavos ou undefined se vazio/ inválido. */
+function parseReaisToCents(s: string): number | undefined {
+  const raw = s.trim();
+  if (!raw) return undefined;
+  const normalized = raw
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const n = Number(normalized);
+  if (!Number.isFinite(n) || n < 0) return undefined;
+  return Math.round(n * 100);
+}
+
+function buildFilters(d: FilterDraft): {
+  filters: MarketplaceListFilters;
+  error: string | null;
+} {
+  const o: MarketplaceListFilters = {};
+  if (d.brand.trim()) o.brandContains = d.brand.trim();
+  if (d.model.trim()) o.modelContains = d.model.trim();
+  if (d.cor.trim()) o.corContains = d.cor.trim();
+
+  if (d.yearMin.trim()) {
+    const n = parseInt(d.yearMin.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(n) || n < 1900 || n > 2100) {
+      return { filters: {}, error: "Ano mínimo inválido (1900–2100)." };
+    }
+    o.yearMin = n;
+  }
+  if (d.yearMax.trim()) {
+    const n = parseInt(d.yearMax.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(n) || n < 1900 || n > 2100) {
+      return { filters: {}, error: "Ano máximo inválido (1900–2100)." };
+    }
+    o.yearMax = n;
+  }
+  if (
+    o.yearMin != null &&
+    o.yearMax != null &&
+    o.yearMin > o.yearMax
+  ) {
+    return {
+      filters: {},
+      error: "Ano mínimo não pode ser maior que o ano máximo.",
+    };
+  }
+
+  if (d.portas.trim()) {
+    const n = parseInt(d.portas.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(n) || n < 2 || n > 8) {
+      return { filters: {}, error: "Portas: informe um número entre 2 e 8." };
+    }
+    o.portas = n;
+  }
+  if (d.lugares.trim()) {
+    const n = parseInt(d.lugares.replace(/\D/g, ""), 10);
+    if (!Number.isFinite(n) || n < 1 || n > 15) {
+      return { filters: {}, error: "Lugares: informe um número entre 1 e 15." };
+    }
+    o.lugares = n;
+  }
+
+  if (d.contractTime !== "ANY") {
+    o.contractTime = d.contractTime;
+  }
+
+  const minC = parseReaisToCents(d.priceMin);
+  const maxC = parseReaisToCents(d.priceMax);
+  if (d.priceMin.trim() && minC === undefined) {
+    return { filters: {}, error: "Valor mínimo (R$) inválido." };
+  }
+  if (d.priceMax.trim() && maxC === undefined) {
+    return { filters: {}, error: "Valor máximo (R$) inválido." };
+  }
+  if (minC != null) o.priceMinCents = minC;
+  if (maxC != null) o.priceMaxCents = maxC;
+  if (
+    o.priceMinCents != null &&
+    o.priceMaxCents != null &&
+    o.priceMinCents > o.priceMaxCents
+  ) {
+    return {
+      filters: {},
+      error: "Valor mínimo não pode ser maior que o valor máximo.",
+    };
+  }
+
+  return { filters: o, error: null };
+}
+
 export function MarketplaceScreen({ navigation }: Props) {
   const theme = useTheme();
   const { user } = useAuth();
-  const q = trpc.marketplace.listAvailableVehicles.useQuery();
+  const [applied, setApplied] = useState<MarketplaceListFilters>({});
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draft, setDraft] = useState<FilterDraft>(emptyDraft);
+  const [modalErr, setModalErr] = useState<string | null>(null);
+
+  const q = trpc.marketplace.listAvailableVehicles.useQuery(applied);
+
+  const activeCount = useMemo(
+    () => Object.keys(applied).length,
+    [applied]
+  );
+
+  const applyFilters = () => {
+    const { filters, error } = buildFilters(draft);
+    if (error) {
+      setModalErr(error);
+      return;
+    }
+    setApplied(filters);
+    setModalErr(null);
+    setFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setApplied({});
+    setDraft(emptyDraft());
+    setModalErr(null);
+    setFilterOpen(false);
+  };
+
+  const openFilters = () => {
+    setDraft(draftFromApplied(applied));
+    setModalErr(null);
+    setFilterOpen(true);
+  };
 
   if (q.isLoading) {
     return (
@@ -40,84 +233,258 @@ export function MarketplaceScreen({ navigation }: Props) {
   }
 
   return (
-    <FlatList
-      data={q.data ?? []}
-      keyExtractor={(i) => i.id}
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.list}
-      ListHeaderComponent={
-        <Text variant="headlineSmall" style={styles.header}>
-          Veículos disponíveis
-        </Text>
-      }
-      ListEmptyComponent={
-        <Text variant="bodyMedium" style={styles.empty}>
-          Nenhum veículo listado.
-        </Text>
-      }
-      renderItem={({ item }) => (
-        <Pressable
-          onPress={() =>
-            navigation.navigate("VehicleDetail", { vehicleId: item.id })
-          }
-        >
-          <Card mode="elevated" style={styles.card}>
-            <View style={styles.row}>
-              {item.coverPhotoUrl ? (
-                <Image source={{ uri: item.coverPhotoUrl }} style={styles.cover} />
-              ) : (
-                <View style={[styles.cover, styles.ph]}>
-                  <Text variant="labelSmall" style={styles.phT}>
-                    Sem foto
-                  </Text>
-                </View>
-              )}
-              <View style={styles.body}>
-                <Text variant="titleMedium">{item.title}</Text>
-                <Text variant="bodySmall" style={styles.meta}>
-                  {formatMoneyWithContractPeriod(
-                    item.dailyRateCents,
-                    item.contractTime
-                  )}
-                </Text>
-                <Text variant="bodySmall" style={styles.meta}>
-                  Modelo: {item.model ?? "—"}
-                </Text>
-                <Text variant="bodySmall" style={styles.meta}>
-                  Ano: {item.year ?? "—"}
-                </Text>
-                <Text variant="bodySmall" style={styles.meta}>
-                  Cor: {item.cor ?? "—"}
-                </Text>
-                {item.pickupCity ? (
-                  <Text variant="bodySmall" style={styles.meta}>
-                    {item.pickupCity}
-                    {item.pickupUf ? `/${item.pickupUf}` : ""}
-                  </Text>
-                ) : null}
-                {user?.role === "DRIVER" && item.driverRequestBlocked ? (
-                  <Text variant="labelSmall" style={styles.blockedTag}>
-                    Solicitação bloqueada
-                  </Text>
-                ) : null}
-              </View>
+    <>
+      <FlatList
+        data={q.data ?? []}
+        keyExtractor={(i) => i.id}
+        style={{ backgroundColor: theme.colors.background }}
+        contentContainerStyle={styles.list}
+        ListHeaderComponent={
+          <View style={styles.headerBlock}>
+            <View style={styles.headerRow}>
+              <Text variant="headlineSmall" style={styles.headerTitle}>
+                Veículos disponíveis
+              </Text>
+              <IconButton
+                icon="filter-variant"
+                accessibilityLabel="Filtros"
+                onPress={openFilters}
+              />
             </View>
-          </Card>
+            {activeCount > 0 ? (
+              <Text variant="labelMedium" style={styles.filterHint}>
+                {activeCount} filtro(s) ativo(s)
+              </Text>
+            ) : null}
+          </View>
+        }
+        ListEmptyComponent={
+          <Text variant="bodyMedium" style={styles.empty}>
+            {activeCount > 0
+              ? "Nenhum veículo encontrado com os filtros atuais."
+              : "Nenhum veículo listado."}
+          </Text>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() =>
+              navigation.navigate("VehicleDetail", { vehicleId: item.id })
+            }
+          >
+            <Card mode="elevated" style={styles.card}>
+              <View style={styles.row}>
+                {item.coverPhotoUrl ? (
+                  <Image source={{ uri: item.coverPhotoUrl }} style={styles.cover} />
+                ) : (
+                  <View style={[styles.cover, styles.ph]}>
+                    <Text variant="labelSmall" style={styles.phT}>
+                      Sem foto
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.body}>
+                  <Text variant="titleMedium">{item.title}</Text>
+                  <Text variant="bodySmall" style={styles.meta}>
+                    {formatMoneyWithContractPeriod(
+                      item.dailyRateCents,
+                      item.contractTime
+                    )}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.meta}>
+                    Modelo: {item.model ?? "—"}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.meta}>
+                    Ano: {item.year}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.meta}>
+                    Cor: {item.cor ?? "—"}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.meta}>
+                    Portas: {item.portas ?? 4} · Lugares: {item.lugares ?? 5}
+                  </Text>
+                  {item.pickupCity ? (
+                    <Text variant="bodySmall" style={styles.meta}>
+                      {item.pickupCity}
+                      {item.pickupUf ? `/${item.pickupUf}` : ""}
+                    </Text>
+                  ) : null}
+                  {user?.role === "DRIVER" && item.driverRequestBlocked ? (
+                    <Text variant="labelSmall" style={styles.blockedTag}>
+                      Solicitação bloqueada
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            </Card>
+          </Pressable>
+        )}
+        ListFooterComponent={
+          <Button mode="text" onPress={() => navigation.goBack()}>
+            Voltar
+          </Button>
+        }
+      />
+
+      <Modal
+        visible={filterOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setFilterOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.modalSheet,
+              { backgroundColor: theme.colors.surface },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleLarge" style={styles.modalTitle}>
+              Filtrar veículos
+            </Text>
+            <Text variant="bodySmall" style={styles.modalSub}>
+              Preencha só o que quiser; todos os critérios informados são
+              aplicados em conjunto.
+            </Text>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              style={styles.modalScroll}
+            >
+              <TextInput
+                label="Marca (contém)"
+                value={draft.brand}
+                onChangeText={(t) => setDraft((d) => ({ ...d, brand: t }))}
+                mode="outlined"
+                style={styles.field}
+              />
+              <TextInput
+                label="Modelo (contém)"
+                value={draft.model}
+                onChangeText={(t) => setDraft((d) => ({ ...d, model: t }))}
+                mode="outlined"
+                style={styles.field}
+              />
+              <TextInput
+                label="Cor (contém)"
+                value={draft.cor}
+                onChangeText={(t) => setDraft((d) => ({ ...d, cor: t }))}
+                mode="outlined"
+                style={styles.field}
+              />
+              <View style={styles.rowFields}>
+                <TextInput
+                  label="Ano mín."
+                  value={draft.yearMin}
+                  onChangeText={(t) => setDraft((d) => ({ ...d, yearMin: t }))}
+                  mode="outlined"
+                  keyboardType="number-pad"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+                <TextInput
+                  label="Ano máx."
+                  value={draft.yearMax}
+                  onChangeText={(t) => setDraft((d) => ({ ...d, yearMax: t }))}
+                  mode="outlined"
+                  keyboardType="number-pad"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+              </View>
+              <View style={styles.rowFields}>
+                <TextInput
+                  label="Portas"
+                  value={draft.portas}
+                  onChangeText={(t) => setDraft((d) => ({ ...d, portas: t }))}
+                  mode="outlined"
+                  keyboardType="number-pad"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+                <TextInput
+                  label="Lugares"
+                  value={draft.lugares}
+                  onChangeText={(t) => setDraft((d) => ({ ...d, lugares: t }))}
+                  mode="outlined"
+                  keyboardType="number-pad"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+              </View>
+              <Text variant="labelLarge" style={styles.sectionLabel}>
+                Período de cobrança
+              </Text>
+              <SegmentedButtons
+                value={draft.contractTime}
+                onValueChange={(v) =>
+                  setDraft((d) => ({
+                    ...d,
+                    contractTime: v as FilterDraft["contractTime"],
+                  }))
+                }
+                buttons={[
+                  { value: "ANY", label: "Qualquer" },
+                  { value: "DIARIO", label: "Diário" },
+                  { value: "SEMANAL", label: "Semanal" },
+                  { value: "MENSAL", label: "Mensal" },
+                ]}
+                style={styles.segment}
+              />
+              <Text variant="labelLarge" style={styles.sectionLabel}>
+                Valor no período (R$)
+              </Text>
+              <View style={styles.rowFields}>
+                <TextInput
+                  label="Mín."
+                  value={draft.priceMin}
+                  onChangeText={(t) => setDraft((d) => ({ ...d, priceMin: t }))}
+                  mode="outlined"
+                  keyboardType="decimal-pad"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+                <TextInput
+                  label="Máx."
+                  value={draft.priceMax}
+                  onChangeText={(t) => setDraft((d) => ({ ...d, priceMax: t }))}
+                  mode="outlined"
+                  keyboardType="decimal-pad"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+              </View>
+              {modalErr ? (
+                <Text style={[styles.modalErr, { color: theme.colors.error }]}>
+                  {modalErr}
+                </Text>
+              ) : null}
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <Button mode="outlined" onPress={clearFilters} style={styles.btn}>
+                Limpar
+              </Button>
+              <Button mode="contained" onPress={applyFilters} style={styles.btn}>
+                Aplicar
+              </Button>
+            </View>
+            <Button mode="text" onPress={() => setFilterOpen(false)}>
+              Fechar
+            </Button>
+          </Pressable>
         </Pressable>
-      )}
-      ListFooterComponent={
-        <Button mode="text" onPress={() => navigation.goBack()}>
-          Voltar
-        </Button>
-      }
-    />
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   list: { padding: 16, paddingBottom: 40 },
-  header: { marginBottom: 16 },
+  headerBlock: { marginBottom: 16 },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerTitle: { flex: 1 },
+  filterHint: { marginTop: 4, opacity: 0.75 },
   card: { marginBottom: 12, borderRadius: 16, overflow: "hidden" },
   row: { flexDirection: "row" },
   cover: { width: 110, height: 110, backgroundColor: "#f1f5f9" },
@@ -131,4 +498,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#b45309",
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    maxHeight: "88%",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    paddingBottom: 28,
+  },
+  modalTitle: { marginBottom: 4 },
+  modalSub: { opacity: 0.75, marginBottom: 12 },
+  modalScroll: { maxHeight: 420 },
+  field: { marginBottom: 10 },
+  rowFields: { flexDirection: "row", gap: 8 },
+  fieldHalf: { flex: 1 },
+  sectionLabel: { marginTop: 8, marginBottom: 6 },
+  segment: { marginBottom: 12 },
+  modalErr: { marginBottom: 8 },
+  modalActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  btn: { flex: 1 },
 });

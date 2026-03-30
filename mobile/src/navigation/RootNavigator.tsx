@@ -82,6 +82,7 @@ export function RootNavigator() {
         <Stack.Screen
           name="OwnerDriverProfile"
           component={OwnerDriverProfileScreen}
+          options={{ title: "Análise do cadastro" }}
         />
         <Stack.Screen name="OwnerRentals" component={OwnerRentalsScreen} />
         <Stack.Screen name="OwnerRentalDetail" component={OwnerRentalDetailScreen} />

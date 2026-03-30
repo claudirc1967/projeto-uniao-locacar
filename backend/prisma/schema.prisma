@@ -78,6 +78,8 @@ model DriverProfile {
   userId String       @unique
   user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   status DriverStatus @default(PENDING)
+  /** Motivo informado pelo proprietário ao recusar o cadastro (cadastro aprovado/reaberto zera). */
+  rejectionReason String?
 
   fullName    String?
   phone       String?
@@ -107,8 +109,10 @@ model Vehicle {
   plate            String
   brand            String?
   model            String?
-  year             Int?
+  year             Int          @default(2010)
   cor              String?
+  portas           Int          @default(4)
+  lugares          Int          @default(5)
   contractTime   ContractTime @default(DIARIO)
   kmLivre        Boolean  @default(false)
   kmPorContrato  Int      @default(0)

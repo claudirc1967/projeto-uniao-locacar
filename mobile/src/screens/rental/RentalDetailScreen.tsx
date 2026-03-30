@@ -162,6 +162,9 @@ export function RentalDetailScreen({ navigation, route }: Props) {
         Cor: {r.vehicle.cor ?? "—"}
       </Text>
       <Text variant="bodyMedium" style={styles.meta}>
+        Portas: {r.vehicle.portas ?? 4} · Lugares: {r.vehicle.lugares ?? 5}
+      </Text>
+      <Text variant="bodyMedium" style={styles.meta}>
         Placa: {r.vehicle.plate}
       </Text>
 

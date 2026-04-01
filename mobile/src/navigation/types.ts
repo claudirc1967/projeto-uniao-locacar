@@ -14,7 +14,8 @@ export type RootStackParamList = {
   OwnerDriverProfile: { driverUserId: string };
   OwnerRentals: undefined;
   OwnerRentalDetail: { rentalId: string };
-  RentalInstructions: { rentalId: string };
+  RentalInstructions: { rentalId: string; contractTextDraft?: string };
+  RentalContractEdit: { rentalId: string; initialContractText: string };
   DriverHome: undefined;
   DriverPreRegister: undefined;
   DriverStatus: undefined;

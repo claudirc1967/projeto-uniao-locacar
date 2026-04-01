@@ -902,7 +902,10 @@ export const ownerRouter = router({
     .input(
       z.object({
         rentalId: z.string(),
-        pickupInstructions: z.string().min(3),
+        pickupInstructions: z.string().min(3, {
+          message:
+            "Informe as instruções de retirada (mínimo 3 caracteres).",
+        }),
         contractText: z.string().optional().nullable(),
         contractUrl: z.preprocess(
           (v) => (typeof v === "string" && v.trim() === "" ? null : v),

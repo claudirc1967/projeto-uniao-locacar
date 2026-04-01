@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -117,6 +118,7 @@ function VehicleLocationActions({ vehicle }: { vehicle: VehiclePickupFields }) {
 
 export function RentalDetailScreen({ navigation, route }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
   const q = trpc.driver.getRentalDetail.useQuery({ rentalId });
 
@@ -137,6 +139,10 @@ export function RentalDetailScreen({ navigation, route }: Props) {
   }
 
   const r = q.data!;
+  const ownerName =
+    r.vehicle.owner?.ownerProfile?.nomeRazaoSocial?.trim() ||
+    r.vehicle.owner?.email ||
+    "—";
   const showPickup =
     (r.status === "ACTIVE" || r.status === "APPROVED") && r.pickupInstructions;
 
@@ -144,10 +150,14 @@ export function RentalDetailScreen({ navigation, route }: Props) {
     r.status === "ACTIVE" || r.status === "COMPLETED";
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.container}
-    >
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+      <ScrollView
+        style={{ backgroundColor: theme.colors.background }}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 20 + insets.bottom },
+        ]}
+      >
       <Text variant="headlineSmall">{r.vehicle.title}</Text>
       <Text variant="titleMedium" style={{ color: theme.colors.primary, marginVertical: 8 }}>
         {statusLabel[r.status] ?? r.status}
@@ -166,6 +176,9 @@ export function RentalDetailScreen({ navigation, route }: Props) {
       </Text>
       <Text variant="bodyMedium" style={styles.meta}>
         Placa: {r.vehicle.plate}
+      </Text>
+      <Text variant="titleSmall" style={styles.ownerLabel}>
+        Locador: {ownerName}
       </Text>
 
       {showReturnInfo ? (
@@ -240,17 +253,27 @@ export function RentalDetailScreen({ navigation, route }: Props) {
         </Button>
       ) : null}
       <VehicleLocationActions vehicle={r.vehicle} />
-      <Button mode="text" onPress={() => navigation.goBack()}>
-        Voltar
-      </Button>
-    </ScrollView>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 20, paddingBottom: 40 },
+  container: { padding: 20, paddingBottom: 16 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
   meta: { marginTop: 4, opacity: 0.85 },
+  ownerLabel: {
+    marginTop: 16,
+    textAlign: "center",
+    fontWeight: "700",
+  },
   card: { marginTop: 16, borderRadius: 16 },
   infoCard: {
     backgroundColor: "#f0fdf4",

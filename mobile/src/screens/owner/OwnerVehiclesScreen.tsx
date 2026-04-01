@@ -8,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
   type ContractTime,
@@ -20,6 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "OwnerVehicles">;
 
 export function OwnerVehiclesScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const q = trpc.owner.listMyVehicles.useQuery();
 
   if (q.isLoading) {
@@ -48,7 +50,10 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
       <FlatList
         data={q.data ?? []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: 8 + insets.bottom },
+        ]}
         ListHeaderComponent={
           <View style={styles.header}>
             <Text variant="headlineSmall">Veículos</Text>
@@ -98,12 +103,12 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
             </Pressable>
           );
         }}
-        ListFooterComponent={
-          <Button mode="text" onPress={() => navigation.goBack()}>
-            Voltar
-          </Button>
-        }
       />
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </View>
   );
 }
@@ -111,7 +116,7 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  list: { padding: 16, paddingBottom: 40 },
+  list: { padding: 16, paddingBottom: 12 },
   header: { marginBottom: 16, gap: 12 },
   card: { marginBottom: 12, borderRadius: 16, overflow: "hidden" },
   cardRow: { flexDirection: "row" },
@@ -120,4 +125,5 @@ const styles = StyleSheet.create({
   thumbPhT: { fontSize: 11, color: "#94a3b8" },
   cardBody: { flex: 1, padding: 12, justifyContent: "center" },
   meta: { marginTop: 4, opacity: 0.85 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

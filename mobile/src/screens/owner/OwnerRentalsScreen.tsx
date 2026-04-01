@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { Button, Card, HelperText, Text, TextInput, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -39,6 +40,7 @@ function driverDisplayName(item: {
 
 export function OwnerRentalsScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const q = trpc.owner.listIncomingRentals.useQuery();
   const utils = trpc.useUtils();
   const approve = trpc.owner.approveRental.useMutation({
@@ -110,7 +112,10 @@ export function OwnerRentalsScreen({ navigation }: Props) {
       <FlatList
         data={q.data ?? []}
         keyExtractor={(i) => i.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: 8 + insets.bottom },
+        ]}
         ListHeaderComponent={
           <Text variant="headlineSmall" style={styles.listTitle}>
             Solicitações de locação
@@ -221,8 +226,8 @@ export function OwnerRentalsScreen({ navigation }: Props) {
           </Card>
         )}
       />
-      <View style={styles.footer}>
-        <Button mode="text" onPress={() => navigation.goBack()}>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
       </View>
@@ -254,7 +259,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
           />
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : undefined}
-            style={styles.modalKeyboard}
+            style={[styles.modalKeyboard, { paddingBottom: 20 + insets.bottom }]}
           >
             <View style={[styles.modalBox, { backgroundColor: theme.colors.surface }]}>
               <Text variant="titleLarge">Motivo da recusa</Text>
@@ -311,7 +316,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, paddingHorizontal: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  list: { paddingBottom: 24 },
+  list: { paddingBottom: 16 },
   listTitle: { marginBottom: 16 },
   card: { marginBottom: 12, borderRadius: 16 },
   cardGap: { gap: 8 },
@@ -320,7 +325,7 @@ const styles = StyleSheet.create({
   empty: { marginTop: 24, opacity: 0.7 },
   unlockedHint: { color: "#64748b" },
   hintWrap: { flex: 1, justifyContent: "center" },
-  footer: { padding: 16, paddingBottom: 24 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
   modalRoot: {
     flex: 1,
     justifyContent: "center",

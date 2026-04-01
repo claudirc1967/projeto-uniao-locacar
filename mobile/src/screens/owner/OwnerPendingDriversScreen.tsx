@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -25,6 +26,7 @@ type DriverRow = {
 
 export function OwnerPendingDriversScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const pendingQ = trpc.owner.listPendingDrivers.useQuery();
   const rejectedQ = trpc.owner.listRejectedDrivers.useQuery();
 
@@ -125,8 +127,8 @@ export function OwnerPendingDriversScreen({ navigation }: Props) {
           }
         />
       )}
-      <View style={styles.footer}>
-        <Button mode="text" onPress={() => navigation.goBack()}>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
       </View>
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, paddingHorizontal: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   emptyWrap: { flex: 1, paddingTop: 8, paddingBottom: 24 },
-  list: { paddingBottom: 24 },
+  list: { paddingBottom: 16 },
   screenTitle: { marginBottom: 8 },
   hint: { marginBottom: 16, opacity: 0.85 },
   sectionTitle: { marginBottom: 10, marginTop: 8 },
@@ -146,5 +148,5 @@ const styles = StyleSheet.create({
   meta: { marginTop: 4, opacity: 0.85 },
   tapHint: { marginTop: 8, opacity: 0.65 },
   empty: { marginTop: 8, opacity: 0.7 },
-  footer: { padding: 16, paddingBottom: 24 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

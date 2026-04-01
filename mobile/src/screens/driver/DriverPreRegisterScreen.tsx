@@ -16,6 +16,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
   CepAddressForm,
@@ -40,6 +41,7 @@ const emptyAddr: CepAddressValue = {
 
 export function DriverPreRegisterScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const statusQuery = trpc.driver.myStatus.useQuery(undefined, {
     retry: false,
   });
@@ -276,11 +278,13 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
         >
           Salvar
         </Button>
-        <Button mode="text" onPress={() => navigation.goBack()}>
-          Voltar
-        </Button>
         <View style={styles.spacer} />
       </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -322,5 +326,6 @@ const styles = StyleSheet.create({
   },
   rowSwitchLabel: { flex: 1, lineHeight: 18, opacity: 0.9 },
   saveBtn: { marginTop: 8 },
-  spacer: { height: 24 },
+  spacer: { height: 8 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
 });

@@ -15,6 +15,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
   CepAddressForm,
@@ -39,6 +40,7 @@ const emptyAddr: CepAddressValue = {
 
 export function OwnerProfileEditScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const utils = trpc.useUtils();
 
@@ -207,14 +209,17 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
         >
           {update.isPending ? "Salvando..." : "Salvar"}
         </Button>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <Button
-          mode="text"
+          mode="outlined"
+          icon="arrow-left"
           disabled={update.isPending}
           onPress={() => navigation.goBack()}
         >
           Cancelar
         </Button>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -222,7 +227,8 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 20, paddingBottom: 40 },
+  container: { padding: 20, paddingBottom: 16 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
   title: { marginBottom: 12 },
   labelAbove: { marginTop: 8, marginBottom: 4, opacity: 0.85 },
   hint: {

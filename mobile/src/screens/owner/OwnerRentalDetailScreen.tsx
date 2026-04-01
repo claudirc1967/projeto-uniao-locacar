@@ -181,11 +181,16 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
 
   if (q.isError) {
     return (
-      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: theme.colors.background, paddingBottom: insets.bottom },
+        ]}
+      >
         <Text style={{ color: theme.colors.error, marginBottom: 16 }}>
           {trpcErrorMessage(q.error)}
         </Text>
-        <Button mode="contained" onPress={() => navigation.goBack()}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
       </View>
@@ -205,10 +210,11 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
     row.status === "ACTIVE" || row.status === "COMPLETED";
 
   return (
-    <ScrollView
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.container}
-    >
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+      <ScrollView
+        style={{ backgroundColor: theme.colors.background }}
+        contentContainerStyle={styles.container}
+      >
       <Text variant="headlineSmall" style={styles.title}>
         Detalhes da solicitação
       </Text>
@@ -446,9 +452,12 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         </Text>
       ) : null}
 
-      <Button mode="text" onPress={() => navigation.goBack()}>
-        Voltar
-      </Button>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
 
       <Modal
         visible={returnModalOpen}
@@ -458,7 +467,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       >
         <View style={styles.modalRoot}>
           <KeyboardAvoidingView
-            style={styles.modalKeyboardRoot}
+            style={[styles.modalKeyboardRoot, { paddingBottom: insets.bottom }]}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
           >
@@ -553,13 +562,15 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           </KeyboardAvoidingView>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  container: { padding: 20, paddingBottom: 40, gap: 14 },
+  container: { padding: 20, paddingBottom: 20, gap: 14 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
   title: { marginBottom: 2 },
   cardWrap: { marginBottom: 0 },
   cardContent: { gap: 6 },

@@ -199,6 +199,16 @@ export const driverRouter = router({
               cor: true,
               portas: true,
               lugares: true,
+              owner: {
+                select: {
+                  email: true,
+                  ownerProfile: {
+                    select: {
+                      nomeRazaoSocial: true,
+                    },
+                  },
+                },
+              },
               pickupCity: true,
               pickupUf: true,
               pickupCep: true,

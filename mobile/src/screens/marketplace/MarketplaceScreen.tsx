@@ -19,6 +19,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
@@ -27,10 +28,44 @@ import type { RootStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Marketplace">;
 
+const UFS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "AC", label: "AC — Acre" },
+  { value: "AL", label: "AL — Alagoas" },
+  { value: "AP", label: "AP — Amapá" },
+  { value: "AM", label: "AM — Amazonas" },
+  { value: "BA", label: "BA — Bahia" },
+  { value: "CE", label: "CE — Ceará" },
+  { value: "DF", label: "DF — Distrito Federal" },
+  { value: "ES", label: "ES — Espírito Santo" },
+  { value: "GO", label: "GO — Goiás" },
+  { value: "MA", label: "MA — Maranhão" },
+  { value: "MT", label: "MT — Mato Grosso" },
+  { value: "MS", label: "MS — Mato Grosso do Sul" },
+  { value: "MG", label: "MG — Minas Gerais" },
+  { value: "PA", label: "PA — Pará" },
+  { value: "PB", label: "PB — Paraíba" },
+  { value: "PR", label: "PR — Paraná" },
+  { value: "PE", label: "PE — Pernambuco" },
+  { value: "PI", label: "PI — Piauí" },
+  { value: "RJ", label: "RJ — Rio de Janeiro" },
+  { value: "RN", label: "RN — Rio Grande do Norte" },
+  { value: "RS", label: "RS — Rio Grande do Sul" },
+  { value: "RO", label: "RO — Rondônia" },
+  { value: "RR", label: "RR — Roraima" },
+  { value: "SC", label: "SC — Santa Catarina" },
+  { value: "SP", label: "SP — São Paulo" },
+  { value: "SE", label: "SE — Sergipe" },
+  { value: "TO", label: "TO — Tocantins" },
+];
+
 type MarketplaceListFilters = {
   brandContains?: string;
   modelContains?: string;
   corContains?: string;
+  pickupUf?: string;
+  pickupCityContains?: string;
+  ownerNameContains?: string;
+  ownerUserId?: string;
   yearMin?: number;
   yearMax?: number;
   portas?: number;
@@ -44,6 +79,9 @@ type FilterDraft = {
   brand: string;
   model: string;
   cor: string;
+  pickupUf: string;
+  pickupCity: string;
+  ownerName: string;
   yearMin: string;
   yearMax: string;
   portas: string;
@@ -58,6 +96,9 @@ function emptyDraft(): FilterDraft {
     brand: "",
     model: "",
     cor: "",
+    pickupUf: "",
+    pickupCity: "",
+    ownerName: "",
     yearMin: "",
     yearMax: "",
     portas: "",
@@ -73,6 +114,9 @@ function draftFromApplied(a: MarketplaceListFilters): FilterDraft {
     brand: a.brandContains ?? "",
     model: a.modelContains ?? "",
     cor: a.corContains ?? "",
+    pickupUf: a.pickupUf ?? "",
+    pickupCity: a.pickupCityContains ?? "",
+    ownerName: a.ownerNameContains ?? "",
     yearMin: a.yearMin != null ? String(a.yearMin) : "",
     yearMax: a.yearMax != null ? String(a.yearMax) : "",
     portas: a.portas != null ? String(a.portas) : "",
@@ -106,6 +150,16 @@ function buildFilters(d: FilterDraft): {
   if (d.brand.trim()) o.brandContains = d.brand.trim();
   if (d.model.trim()) o.modelContains = d.model.trim();
   if (d.cor.trim()) o.corContains = d.cor.trim();
+
+  if (d.pickupUf.trim()) {
+    const uf = d.pickupUf.trim().toUpperCase();
+    if (uf.length !== 2) {
+      return { filters: {}, error: "UF inválida (use 2 letras, ex.: SP)." };
+    }
+    o.pickupUf = uf;
+  }
+  if (d.pickupCity.trim()) o.pickupCityContains = d.pickupCity.trim();
+  if (d.ownerName.trim()) o.ownerNameContains = d.ownerName.trim();
 
   if (d.yearMin.trim()) {
     const n = parseInt(d.yearMin.replace(/\D/g, ""), 10);
@@ -177,9 +231,11 @@ function buildFilters(d: FilterDraft): {
 
 export function MarketplaceScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [applied, setApplied] = useState<MarketplaceListFilters>({});
   const [filterOpen, setFilterOpen] = useState(false);
+  const [ufPickerOpen, setUfPickerOpen] = useState(false);
   const [draft, setDraft] = useState<FilterDraft>(emptyDraft);
   const [modalErr, setModalErr] = useState<string | null>(null);
 
@@ -234,11 +290,15 @@ export function MarketplaceScreen({ navigation }: Props) {
 
   return (
     <>
-      <FlatList
-        data={q.data ?? []}
-        keyExtractor={(i) => i.id}
-        style={{ backgroundColor: theme.colors.background }}
-        contentContainerStyle={styles.list}
+      <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+        <FlatList
+          data={q.data ?? []}
+          keyExtractor={(i) => i.id}
+          style={{ backgroundColor: theme.colors.background }}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: 8 + insets.bottom },
+          ]}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             <View style={styles.headerRow}>
@@ -291,6 +351,9 @@ export function MarketplaceScreen({ navigation }: Props) {
                     )}
                   </Text>
                   <Text variant="bodySmall" style={styles.meta}>
+                    Locador: {item.ownerName ?? "—"}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.meta}>
                     Modelo: {item.model ?? "—"}
                   </Text>
                   <Text variant="bodySmall" style={styles.meta}>
@@ -318,12 +381,13 @@ export function MarketplaceScreen({ navigation }: Props) {
             </Card>
           </Pressable>
         )}
-        ListFooterComponent={
-          <Button mode="text" onPress={() => navigation.goBack()}>
+        />
+        <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+          <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
             Voltar
           </Button>
-        }
-      />
+        </View>
+      </View>
 
       <Modal
         visible={filterOpen}
@@ -353,6 +417,38 @@ export function MarketplaceScreen({ navigation }: Props) {
               keyboardShouldPersistTaps="handled"
               style={styles.modalScroll}
             >
+              <View style={styles.rowFields}>
+                <Pressable
+                  onPress={() => setUfPickerOpen(true)}
+                  style={styles.fieldHalf}
+                >
+                  <TextInput
+                    label="UF (retirada)"
+                    value={draft.pickupUf || "Qualquer"}
+                    mode="outlined"
+                    editable={false}
+                    pointerEvents="none"
+                    right={<TextInput.Icon icon="chevron-down" />}
+                    style={styles.field}
+                  />
+                </Pressable>
+                <TextInput
+                  label="Cidade (retirada)"
+                  value={draft.pickupCity}
+                  onChangeText={(t) =>
+                    setDraft((d) => ({ ...d, pickupCity: t }))
+                  }
+                  mode="outlined"
+                  style={[styles.field, styles.fieldHalf]}
+                />
+              </View>
+              <TextInput
+                label="Locador (contém)"
+                value={draft.ownerName}
+                onChangeText={(t) => setDraft((d) => ({ ...d, ownerName: t }))}
+                mode="outlined"
+                style={styles.field}
+              />
               <TextInput
                 label="Marca (contém)"
                 value={draft.brand}
@@ -470,13 +566,67 @@ export function MarketplaceScreen({ navigation }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <Modal
+        visible={ufPickerOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setUfPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setUfPickerOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.ufSheet,
+              { backgroundColor: theme.colors.surface },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleMedium" style={styles.ufTitle}>
+              Selecione a UF
+            </Text>
+            <FlatList
+              data={[{ value: "", label: "Qualquer UF" }, ...UFS]}
+              keyExtractor={(i) => i.value || "ANY"}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    setDraft((d) => ({ ...d, pickupUf: item.value }));
+                    setUfPickerOpen(false);
+                  }}
+                  style={({ pressed }) => [
+                    styles.ufItem,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Text variant="bodyMedium">{item.label}</Text>
+                  {draft.pickupUf === item.value ? (
+                    <Text variant="labelMedium" style={styles.ufSelected}>
+                      Selecionado
+                    </Text>
+                  ) : null}
+                </Pressable>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.ufSep} />}
+              style={{ maxHeight: 420 }}
+            />
+            <Button mode="text" onPress={() => setUfPickerOpen(false)}>
+              Fechar
+            </Button>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  list: { padding: 16, paddingBottom: 40 },
+  list: { padding: 16, paddingBottom: 12 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
   headerBlock: { marginBottom: 16 },
   headerRow: {
     flexDirection: "row",
@@ -510,6 +660,24 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 28,
   },
+  ufSheet: {
+    width: "92%",
+    maxWidth: 520,
+    alignSelf: "center",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 28,
+  },
+  ufTitle: { marginBottom: 10 },
+  ufItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  ufSelected: { opacity: 0.7 },
+  ufSep: { height: StyleSheet.hairlineWidth, backgroundColor: "#e2e8f0" },
   modalTitle: { marginBottom: 4 },
   modalSub: { opacity: 0.75, marginBottom: 12 },
   modalScroll: { maxHeight: 420 },

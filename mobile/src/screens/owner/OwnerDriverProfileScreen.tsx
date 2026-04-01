@@ -19,6 +19,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -28,6 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "OwnerDriverProfile">;
 
 export function OwnerDriverProfileScreen({ navigation, route }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { driverUserId } = route.params;
   const q = trpc.owner.getDriverProfile.useQuery({ driverUserId });
   const utils = trpc.useUtils();
@@ -78,7 +80,7 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
         <Text style={{ color: theme.colors.error, marginBottom: 12 }}>
           {trpcErrorMessage(q.error)}
         </Text>
-        <Button mode="contained" onPress={() => navigation.goBack()}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
       </View>
@@ -234,11 +236,12 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
         <HelperText type="error" visible={!!reject.error}>
           {reject.error ? trpcErrorMessage(reject.error) : ""}
         </HelperText>
-
-        <Button mode="text" onPress={() => navigation.goBack()}>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Cancelar
         </Button>
-      </ScrollView>
+      </View>
 
       <Portal>
         <Dialog visible={rejectOpen} onDismiss={() => setRejectOpen(false)}>
@@ -286,7 +289,8 @@ function Row({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  container: { padding: 24, paddingBottom: 40, gap: 12 },
+  container: { padding: 24, paddingBottom: 12, gap: 12 },
+  footer: { paddingHorizontal: 24, paddingTop: 8 },
   lead: { marginBottom: 4, opacity: 0.9 },
   statusText: { marginTop: 4 },
   rejectionBox: {

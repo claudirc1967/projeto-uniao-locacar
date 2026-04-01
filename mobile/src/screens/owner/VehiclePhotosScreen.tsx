@@ -304,10 +304,14 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
 
   return (
     <>
-      <ScrollView
-        style={{ backgroundColor: theme.colors.background }}
-        contentContainerStyle={styles.container}
-      >
+      <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+        <ScrollView
+          style={{ backgroundColor: theme.colors.background }}
+          contentContainerStyle={[
+            styles.container,
+            { paddingBottom: 8 + insets.bottom },
+          ]}
+        >
         <Text variant="headlineSmall">Fotos do veículo</Text>
         <Text variant="bodyMedium" style={styles.hint}>
           Até 6 fotos no total. Toque na imagem para ampliar (use o gesto de pinça
@@ -379,10 +383,13 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
         <HelperText type="error" visible={!!err}>
           {err ?? ""}
         </HelperText>
-        <Button mode="text" onPress={() => navigation.goBack()}>
-          Voltar
-        </Button>
-      </ScrollView>
+        </ScrollView>
+        <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+          <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+            Voltar
+          </Button>
+        </View>
+      </View>
 
       <ImageViewing
         images={viewerImages}
@@ -400,7 +407,9 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: PAD, paddingBottom: 40 },
+  flex: { flex: 1 },
+  container: { padding: PAD, paddingBottom: 12 },
+  footer: { paddingHorizontal: PAD, paddingTop: 8 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   loadingText: { marginTop: 12, opacity: 0.75 },
   hint: { marginVertical: 12, lineHeight: 20, opacity: 0.85 },

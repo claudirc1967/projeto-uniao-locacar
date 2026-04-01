@@ -18,6 +18,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import {
@@ -71,6 +72,7 @@ function isValidPlate(raw: string) {
 
 export function VehicleFormScreen({ navigation, route }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const ownerProfile = user?.role === "OWNER" ? user.ownerProfile : null;
   const vehicleId = route.params?.vehicleId;
@@ -561,10 +563,12 @@ export function VehicleFormScreen({ navigation, route }: Props) {
             Gerenciar fotos
           </Button>
         ) : null}
-        <Button mode="text" onPress={() => navigation.goBack()}>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -604,7 +608,8 @@ function Field({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 20, paddingBottom: 48 },
+  container: { padding: 20, paddingBottom: 20 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
   hint: { marginTop: 4, opacity: 0.85 },
   rowBetween: {
     flexDirection: "row",

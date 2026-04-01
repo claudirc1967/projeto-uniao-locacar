@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -24,6 +25,7 @@ const statusLabel: Record<string, string> = {
 
 export function DriverRentalsScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const q = trpc.driver.myRentals.useQuery();
 
   if (q.isLoading) {
@@ -43,11 +45,15 @@ export function DriverRentalsScreen({ navigation }: Props) {
   }
 
   return (
-    <FlatList
-      data={q.data ?? []}
-      keyExtractor={(i) => i.id}
-      style={{ backgroundColor: theme.colors.background }}
-      contentContainerStyle={styles.list}
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+      <FlatList
+        data={q.data ?? []}
+        keyExtractor={(i) => i.id}
+        style={{ backgroundColor: theme.colors.background }}
+        contentContainerStyle={[
+          styles.list,
+          { paddingBottom: 8 + insets.bottom },
+        ]}
       ListHeaderComponent={
         <Text variant="headlineSmall" style={styles.header}>
           Minhas locações
@@ -79,18 +85,20 @@ export function DriverRentalsScreen({ navigation }: Props) {
           </Card>
         </Pressable>
       )}
-      ListFooterComponent={
-        <Button mode="text" onPress={() => navigation.goBack()}>
+      />
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
-      }
-    />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  list: { padding: 16, paddingBottom: 40 },
+  list: { padding: 16, paddingBottom: 12 },
   header: { marginBottom: 16 },
   card: { marginBottom: 12, borderRadius: 16 },
   meta: { marginTop: 4, opacity: 0.85 },
@@ -100,4 +108,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   empty: { marginTop: 24, opacity: 0.7 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

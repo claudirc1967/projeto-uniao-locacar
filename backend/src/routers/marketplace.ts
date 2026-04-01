@@ -11,6 +11,10 @@ const listFiltersSchema = z.object({
   brandContains: z.string().max(120).optional(),
   modelContains: z.string().max(120).optional(),
   corContains: z.string().max(120).optional(),
+  pickupUf: z.string().length(2).optional(),
+  pickupCityContains: z.string().max(120).optional(),
+  ownerUserId: z.string().min(1).optional(),
+  ownerNameContains: z.string().max(200).optional(),
   yearMin: z.number().int().min(1900).max(2100).optional(),
   yearMax: z.number().int().min(1900).max(2100).optional(),
   portas: z.number().int().min(2).max(8).optional(),
@@ -36,6 +40,30 @@ function buildVehicleWhere(
   const cor = f.corContains?.trim();
   if (cor) {
     and.push({ cor: { contains: cor } });
+  }
+
+  const uf = f.pickupUf?.trim().toUpperCase();
+  if (uf) {
+    and.push({ pickupUf: uf });
+  }
+  const city = f.pickupCityContains?.trim();
+  if (city) {
+    and.push({ pickupCity: { contains: city } });
+  }
+
+  const ownerUserId = f.ownerUserId?.trim();
+  if (ownerUserId) {
+    and.push({ ownerUserId });
+  }
+  const ownerName = f.ownerNameContains?.trim();
+  if (ownerName) {
+    and.push({
+      owner: {
+        ownerProfile: {
+          is: { nomeRazaoSocial: { contains: ownerName } },
+        },
+      },
+    });
   }
 
   if (f.yearMin != null) {
@@ -95,7 +123,20 @@ export const marketplaceRouter = router({
         orderBy: { updatedAt: "desc" },
         include: {
           photos: { orderBy: { sortOrder: "asc" }, take: 1 },
-          owner: { select: { id: true, email: true } },
+          owner: {
+            select: {
+              id: true,
+              email: true,
+              ownerProfile: {
+                select: {
+                  nomeRazaoSocial: true,
+                  phone: true,
+                  cidade: true,
+                  uf: true,
+                },
+              },
+            },
+          },
         },
       });
       try {
@@ -128,7 +169,11 @@ export const marketplaceRouter = router({
               dailyRateCents: v.dailyRateCents,
               pickupCity: v.pickupCity,
               pickupUf: v.pickupUf,
-              ownerEmail: v.owner.email,
+              ownerUserId: v.owner.id,
+              ownerName: v.owner.ownerProfile?.nomeRazaoSocial || null,
+              ownerPhone: v.owner.ownerProfile?.phone || null,
+              ownerCity: v.owner.ownerProfile?.cidade || null,
+              ownerUf: v.owner.ownerProfile?.uf || null,
               coverPhotoUrl: coverUrl,
               driverRequestBlocked,
             };
@@ -148,7 +193,18 @@ export const marketplaceRouter = router({
     .query(async ({ ctx, input }) => {
       const v = await prisma.vehicle.findFirst({
         where: { id: input.vehicleId, available: true },
-        include: { photos: { orderBy: { sortOrder: "asc" } } },
+        include: {
+          photos: { orderBy: { sortOrder: "asc" } },
+          owner: {
+            select: {
+              id: true,
+              email: true,
+              ownerProfile: {
+                select: { nomeRazaoSocial: true },
+              },
+            },
+          },
+        },
       });
       if (!v) {
         throw new TRPCError({
@@ -190,8 +246,16 @@ export const marketplaceRouter = router({
           requirementsJson: v.requirementsJson,
           paymentNotes: v.paymentNotes,
           caucao: v.caucao,
+          pickupCep: v.pickupCep,
+          pickupLogradouro: v.pickupLogradouro,
+          pickupNumero: v.pickupNumero,
+          pickupComplemento: v.pickupComplemento,
+          pickupBairro: v.pickupBairro,
           pickupCity: v.pickupCity,
           pickupUf: v.pickupUf,
+          ownerUserId: v.owner.id,
+          ownerName: v.owner.ownerProfile?.nomeRazaoSocial || null,
+          ownerEmail: v.owner.email,
           photos,
           driverRequestBlocked,
         };

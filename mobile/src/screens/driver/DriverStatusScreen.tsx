@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -16,6 +17,7 @@ const map: Record<string, string> = {
 
 export function DriverStatusScreen({ navigation }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const q = trpc.driver.myStatus.useQuery();
 
   if (q.isLoading) {
@@ -37,10 +39,14 @@ export function DriverStatusScreen({ navigation }: Props) {
   const p = q.data!.profile;
 
   return (
-    <ScrollView
-      style={[styles.flex, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={styles.container}
-    >
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+      <ScrollView
+        style={[styles.flex, { backgroundColor: theme.colors.background }]}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 8 + insets.bottom },
+        ]}
+      >
       <Text variant="headlineSmall" style={styles.title}>
         Status
       </Text>
@@ -86,21 +92,25 @@ export function DriverStatusScreen({ navigation }: Props) {
         </Card.Content>
       </Card>
 
-      <Button mode="text" onPress={() => navigation.goBack()}>
-        Voltar
-      </Button>
-    </ScrollView>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 12 },
+  container: { padding: 24, paddingTop: 48, paddingBottom: 12, gap: 12 },
   title: { marginBottom: 4 },
   badge: { marginVertical: 8 },
   warnCard: { borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
   rejectionText: { marginTop: 8, lineHeight: 22 },
   card: { borderRadius: 16 },
   gap: { gap: 8 },
+  footer: { paddingHorizontal: 24, paddingTop: 8 },
 });

@@ -19,6 +19,7 @@ import {
   TextInput,
   useTheme,
 } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -27,6 +28,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "RentalInstructions">;
 
 export function RentalInstructionsScreen({ navigation, route }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
   const detail = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
   const [pickupInstructions, setPickup] = useState("");
@@ -40,6 +42,13 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
     setContractText(detail.data.contractText ?? "");
     setContractUrl(detail.data.contractUrl ?? "");
   }, [detail.data]);
+
+  useEffect(() => {
+    const draft = route.params?.contractTextDraft;
+    if (draft === undefined) return;
+    setContractText(draft);
+    navigation.setParams({ contractTextDraft: undefined });
+  }, [route.params?.contractTextDraft, navigation]);
 
   const utils = trpc.useUtils();
   const save = trpc.owner.setRentalPickupAndContract.useMutation({
@@ -129,13 +138,24 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
         <Text variant="labelLarge" style={styles.label}>
           Texto do contrato (opcional)
         </Text>
-        <TextInput
+        <Text variant="bodySmall" style={styles.contractPreview} numberOfLines={3}>
+          {contractText.trim()
+            ? contractText.trim()
+            : "Nenhum texto do contrato informado."}
+        </Text>
+        <Button
           mode="outlined"
-          multiline
-          value={contractText}
-          onChangeText={setContractText}
-          style={styles.area}
-        />
+          icon="file-document-edit-outline"
+          style={styles.editContractBtn}
+          onPress={() =>
+            navigation.navigate("RentalContractEdit", {
+              rentalId,
+              initialContractText: contractText,
+            })
+          }
+        >
+          Editar contrato
+        </Button>
         <Text variant="labelLarge" style={styles.label}>
           URL do contrato (opcional)
         </Text>
@@ -154,18 +174,36 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
           mode="contained"
           loading={save.isPending}
           disabled={save.isPending}
-          onPress={() =>
+          onPress={() => {
+            setErr(null);
+            const instr = pickupInstructions.trim();
+            if (instr.length < 3) {
+              setErr(
+                "Informe as instruções de retirada (mínimo 3 caracteres)."
+              );
+              return;
+            }
             save.mutate({
               rentalId,
-              pickupInstructions,
+              pickupInstructions: instr,
               contractText: contractText || null,
               contractUrl: contractUrl.trim() || null,
-            })
-          }
+            });
+          }}
         >
           Salvar e ativar locação
         </Button>
       </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button
+          mode="outlined"
+          icon="arrow-left"
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          Voltar
+        </Button>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -178,4 +216,14 @@ const styles = StyleSheet.create({
   label: { marginTop: 12, opacity: 0.9 },
   field: { marginTop: 6, backgroundColor: "#fff" },
   area: { marginTop: 6, minHeight: 100, backgroundColor: "#fff" },
+  contractPreview: {
+    marginTop: 6,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: "#f1f5f9",
+    opacity: 0.95,
+  },
+  editContractBtn: { marginTop: 10 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
+  backBtn: { marginTop: 0 },
 });

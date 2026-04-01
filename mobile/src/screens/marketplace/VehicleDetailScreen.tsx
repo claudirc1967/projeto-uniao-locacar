@@ -1,8 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMemo, useState } from "react";
 import {
+  ActionSheetIOS,
   ActivityIndicator,
+  Alert,
   Image,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,18 +14,63 @@ import {
 } from "react-native";
 import ImageViewing from "react-native-image-viewing";
 import { Button, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
+import {
+  buildVehiclePickupSearchQuery,
+  googleMapsSearchUrl,
+  wazeSearchUrl,
+  type VehiclePickupFields,
+} from "../../utils/vehicleLocationLinks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VehicleDetail">;
 
 const PHOTO_THUMB = 108;
 
+function VehicleLocationActions({ vehicle }: { vehicle: VehiclePickupFields }) {
+  const query = buildVehiclePickupSearchQuery(vehicle);
+  if (!query) return null;
+
+  const googleUrl = googleMapsSearchUrl(query);
+  const wazeUrl = wazeSearchUrl(query);
+
+  const onPress = () => {
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Cancelar", "Google Maps", "Waze"],
+          cancelButtonIndex: 0,
+          title: "Localização do veículo",
+          message: query,
+        },
+        (i) => {
+          if (i === 1) void Linking.openURL(googleUrl);
+          else if (i === 2) void Linking.openURL(wazeUrl);
+        }
+      );
+    } else {
+      Alert.alert("Localização do veículo", query, [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Google Maps", onPress: () => void Linking.openURL(googleUrl) },
+        { text: "Waze", onPress: () => void Linking.openURL(wazeUrl) },
+      ]);
+    }
+  };
+
+  return (
+    <Button mode="outlined" icon="map-marker-radius" onPress={onPress} style={styles.locationBtn}>
+      Localização do veículo
+    </Button>
+  );
+}
+
 export function VehicleDetailScreen({ navigation, route }: Props) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const { vehicleId } = route.params;
   const { user } = useAuth();
   const q = trpc.marketplace.getVehiclePublic.useQuery({ vehicleId });
@@ -61,13 +110,23 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
   }
 
   const v = q.data!;
+  const ownerName = v.ownerName?.trim() || v.ownerEmail || "—";
+  const descriptionText = v.description?.trim() || "";
+  const brandModel = [v.brand?.trim(), v.model?.trim()].filter(Boolean).join(" ");
+  const showDescription =
+    !!descriptionText &&
+    descriptionText.toLocaleLowerCase() !== brandModel.toLocaleLowerCase();
 
   return (
     <>
-      <ScrollView
-        style={{ backgroundColor: theme.colors.background }}
-        contentContainerStyle={styles.container}
-      >
+      <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+        <ScrollView
+          style={{ backgroundColor: theme.colors.background }}
+          contentContainerStyle={[
+            styles.container,
+            { paddingBottom: 20 + insets.bottom },
+          ]}
+        >
         <Text variant="headlineSmall">{v.title}</Text>
         <Text variant="bodyLarge" style={styles.meta}>
           {formatMoneyWithContractPeriod(v.dailyRateCents, v.contractTime)}
@@ -107,6 +166,9 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
           Placa: {v.plate}
         </Text>
         <Text variant="bodyMedium" style={styles.meta}>
+          Marca: {v.brand ?? "—"}
+        </Text>
+        <Text variant="bodyMedium" style={styles.meta}>
           Modelo: {v.model ?? "—"}
         </Text>
         <Text variant="bodyMedium" style={styles.meta}>
@@ -118,9 +180,9 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
         <Text variant="bodyMedium" style={styles.meta}>
           Portas: {v.portas ?? 4} · Lugares: {v.lugares ?? 5}
         </Text>
-        {v.description ? (
+        {showDescription ? (
           <Text variant="bodyMedium" style={styles.desc}>
-            {v.description}
+            {descriptionText}
           </Text>
         ) : null}
         {v.requirementsJson ? (
@@ -144,35 +206,47 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
           </Text>
         ) : null}
         {user?.role === "DRIVER" ? (
+          <>
+            <Text variant="titleSmall" style={styles.ownerLabel}>
+              Locador: {ownerName}
+            </Text>
+            <VehicleLocationActions vehicle={v} />
+          </>
+        ) : null}
+        {user?.role === "DRIVER" ? (
           v.driverRequestBlocked ? (
             <>
               <Text variant="bodySmall" style={styles.blockedHint}>
                 Você não pode solicitar novamente este veículo após uma recusa. O
                 proprietário pode permitir uma nova solicitação quando quiser.
               </Text>
-              <Button mode="contained" disabled>
-                Solicitar aluguel
+              <Button mode="contained" disabled style={styles.requestBtn}>
+                Solicitar locação
               </Button>
             </>
           ) : (
             <Button
               mode="contained"
+              style={styles.requestBtn}
               loading={request.isPending}
               disabled={request.isPending}
               onPress={() => request.mutate({ vehicleId })}
             >
-              Solicitar aluguel
+              Solicitar locação
             </Button>
           )
         ) : (
           <Text variant="bodyMedium" style={styles.hint}>
-            Entre como motorista para solicitar aluguel.
+            Entre como motorista para solicitar locação.
           </Text>
         )}
-        <Button mode="text" onPress={() => navigation.goBack()}>
-          Voltar
-        </Button>
-      </ScrollView>
+        </ScrollView>
+        <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+          <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+            Voltar
+          </Button>
+        </View>
+      </View>
 
       <ImageViewing
         images={viewerImages}
@@ -189,13 +263,23 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  container: { padding: 20, paddingBottom: 40 },
+  container: { padding: 20, paddingBottom: 16 },
+  footer: { paddingHorizontal: 20, paddingTop: 8 },
   sectionTitle: {
     marginTop: 16,
     marginBottom: 10,
   },
   meta: { marginTop: 6, opacity: 0.85 },
+  ownerLabel: {
+    marginTop: 16,
+    marginBottom: 4,
+    textAlign: "center",
+    fontWeight: "700",
+  },
+  locationBtn: { marginTop: 4 },
+  requestBtn: { marginTop: 18 },
   desc: { marginTop: 12, fontSize: 16, lineHeight: 22 },
   req: { marginTop: 8, color: "#334155" },
   gallery: {

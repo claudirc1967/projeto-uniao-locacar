@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "70ba6971-e4d2-4eb9-a3ec-b8918c0ed3c3"
+      }
+    },
+    "android": {
+      "package": "com.claudirc.projetouniaolocacar"
+    }
+  }
+}

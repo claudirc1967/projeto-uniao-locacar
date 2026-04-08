@@ -391,10 +391,10 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
               {driverProfile?.cnhYears != null ? String(driverProfile.cnhYears) : "—"}
             </Text>
             <Text variant="bodySmall" style={styles.meta}>
-              EAR: {driverProfile?.cnhHasEar == null ? "—" : driverProfile.cnhHasEar ? "Sim" : "Não"}
+            CNH com EAR (Exerce Atividade Remunerada): {driverProfile?.cnhHasEar == null ? "—" : driverProfile.cnhHasEar ? "Sim" : "Não"}
             </Text>
             <Text variant="bodySmall" style={styles.meta}>
-              Antecedentes:{" "}
+              Atestado de Antecedentes Criminais *:{" "}
               {driverProfile?.criminalAttestation == null
                 ? "—"
                 : driverProfile.criminalAttestation
@@ -402,7 +402,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
                   : "Não"}
             </Text>
             <Text variant="bodySmall" style={styles.meta}>
-              Uber: {driverProfile?.uberRegistered == null ? "—" : driverProfile.uberRegistered ? "Sim" : "Não"}
+            Cadastrado no aplicativo (Uber, 99, etc.): {driverProfile?.uberRegistered == null ? "—" : driverProfile.uberRegistered ? "Sim" : "Não"}
             </Text>
           </View>
 

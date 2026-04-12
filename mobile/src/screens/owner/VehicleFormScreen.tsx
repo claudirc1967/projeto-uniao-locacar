@@ -208,7 +208,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         cidade: ownerProfile.cidade,
         uf: ownerProfile.uf,
         numero: ownerProfile.numero,
-        complemento: ownerProfile.complemento.trim() || "-",
+        complemento: ownerProfile.complemento.trim(),
       });
       setSameAsOwner(true);
     } else {
@@ -276,10 +276,6 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     }
     if (!pickupAddr.numero.trim()) {
       setErr("Número do endereço de retirada é obrigatório.");
-      return;
-    }
-    if (!pickupAddr.complemento.trim()) {
-      setErr("Complemento é obrigatório (use - se necessário).");
       return;
     }
     const portasNum = parseInt(portasStr.replace(/\D/g, ""), 10);

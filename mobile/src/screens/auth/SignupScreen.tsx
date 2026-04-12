@@ -90,10 +90,6 @@ export function SignupScreen({ navigation }: Props) {
       setErr("Número do endereço é obrigatório.");
       return false;
     }
-    if (!addr.complemento.trim()) {
-      setErr("Complemento é obrigatório (use - se não houver).");
-      return false;
-    }
     return true;
   };
 
@@ -123,7 +119,7 @@ export function SignupScreen({ navigation }: Props) {
       cidade: addr.cidade.trim(),
       uf: addr.uf.trim().toUpperCase(),
       numero: addr.numero.trim(),
-      complemento: addr.complemento.trim(),
+      complemento: addr.complemento.trim() || "",
     });
   };
 
@@ -213,8 +209,8 @@ export function SignupScreen({ navigation }: Props) {
                 Endereço *
               </Text>
               <Text variant="bodySmall" style={styles.hint}>
-                Informe o CEP e toque em Buscar CEP. Depois preencha número e
-                complemento.
+                Informe o CEP e toque em Buscar CEP. Depois preencha o número;
+                complemento é opcional.
               </Text>
               <CepAddressForm value={addr} onChange={setAddr} />
             </Card.Content>

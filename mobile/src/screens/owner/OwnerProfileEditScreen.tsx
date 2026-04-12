@@ -96,8 +96,6 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
     if (!addr.logradouro.trim())
       return setErr("Busque o CEP para preencher o endereço.");
     if (!addr.numero.trim()) return setErr("Número do endereço é obrigatório.");
-    if (!addr.complemento.trim())
-      return setErr("Complemento é obrigatório (use - se necessário).");
 
     update.mutate({
       nomeRazaoSocial: nomeRazaoSocial.trim(),
@@ -113,7 +111,7 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
       cidade: addr.cidade,
       uf: addr.uf,
       numero: addr.numero,
-      complemento: addr.complemento,
+      complemento: addr.complemento.trim(),
     });
   };
 

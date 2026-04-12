@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Button, Card, Text, useTheme } from "react-native-paper";
+import { Button, Text, useTheme } from "react-native-paper";
+import { HomeMixedMenuGrid } from "../../components/HomeMixedMenuGrid";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -8,69 +9,73 @@ type Props = NativeStackScreenProps<RootStackParamList, "OwnerHome">;
 
 export function OwnerHomeScreen({ navigation }: Props) {
   const theme = useTheme();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const greeting =
+    user?.ownerProfile?.nomeRazaoSocial ??
+    user?.email?.split("@")[0] ??
+    "Proprietário";
 
   return (
     <ScrollView
       style={[styles.flex, { backgroundColor: theme.colors.background }]}
       contentContainerStyle={styles.container}
     >
-      <Text variant="headlineMedium" style={styles.title}>
-        Proprietário
+      <Text variant="headlineSmall" style={styles.greeting}>
+        Olá, {greeting}
       </Text>
       <Text variant="bodyMedium" style={styles.sub}>
         Gerencie veículos, motoristas e locações.
       </Text>
+      {user?.email ? (
+        <Text
+          variant="bodySmall"
+          style={[styles.email, { color: theme.colors.onSurfaceVariant }]}
+          numberOfLines={1}
+        >
+          {user.email}
+        </Text>
+      ) : null}
 
-      <Card mode="elevated" style={styles.card}>
-        <Card.Content style={styles.cardInner}>
-          <Button
-            mode="contained-tonal"
-            icon="account-circle-outline"
-            onPress={() => navigation.navigate("OwnerProfile")}
-            style={styles.rowBtn}
-            contentStyle={styles.btnContent}
-          >
-            Meu perfil
-          </Button>
-          <Button
-            mode="contained-tonal"
-            icon="car-outline"
-            onPress={() => navigation.navigate("OwnerVehicles")}
-            style={styles.rowBtn}
-            contentStyle={styles.btnContent}
-          >
-            Meus veículos
-          </Button>
-          <Button
-            mode="contained-tonal"
-            icon="account-clock-outline"
-            onPress={() => navigation.navigate("OwnerPendingDrivers")}
-            style={styles.rowBtn}
-            contentStyle={styles.btnContent}
-          >
-            Motoristas pendentes
-          </Button>
-          <Button
-            mode="contained-tonal"
-            icon="clipboard-text-outline"
-            onPress={() => navigation.navigate("OwnerRentals")}
-            style={styles.rowBtn}
-            contentStyle={styles.btnContent}
-          >
-            Solicitações de locação
-          </Button>
-          <Button
-            mode="outlined"
-            icon="store-outline"
-            onPress={() => navigation.navigate("Marketplace")}
-            style={styles.rowBtn}
-            contentStyle={styles.btnContent}
-          >
-            Ver marketplace (todos)
-          </Button>
-        </Card.Content>
-      </Card>
+      <HomeMixedMenuGrid
+        featured={{
+          key: "profile",
+          title: "Meu perfil",
+          subtitle: "Dados e contato",
+          icon: "account-circle-outline",
+          onPress: () => navigation.navigate("OwnerProfile"),
+        }}
+        items={[
+          {
+            key: "vehicles",
+            title: "Meus veículos",
+            subtitle: "Cadastro e fotos",
+            icon: "car-outline",
+            onPress: () => navigation.navigate("OwnerVehicles"),
+          },
+          {
+            key: "pending",
+            title: "Motoristas pendentes",
+            subtitle: "Aprovar cadastros",
+            icon: "account-clock-outline",
+            onPress: () => navigation.navigate("OwnerPendingDrivers"),
+          },
+          {
+            key: "rentals",
+            title: "Solicitações de locação",
+            subtitle: "Pedidos recebidos",
+            icon: "clipboard-text-outline",
+            onPress: () => navigation.navigate("OwnerRentals"),
+          },
+          {
+            key: "marketplace",
+            title: "Marketplace",
+            subtitle: "Ver todos os veículos",
+            icon: "store-outline",
+            onPress: () => navigation.navigate("Marketplace"),
+          },
+        ]}
+      />
 
       <View style={styles.footer}>
         <Button
@@ -91,13 +96,11 @@ export function OwnerHomeScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 8 },
-  title: { marginBottom: 4 },
-  sub: { marginBottom: 16, opacity: 0.85 },
-  card: { borderRadius: 16 },
-  cardInner: { gap: 8, paddingVertical: 4 },
-  rowBtn: { borderRadius: 12 },
-  btnContent: { justifyContent: "flex-start" },
-  footer: { marginTop: 24 },
+  container: { padding: 24, paddingTop: 40, paddingBottom: 40, gap: 12 },
+  greeting: { fontWeight: "600" },
+  sub: { opacity: 0.9, marginTop: 4 },
+  email: { marginTop: -4, marginBottom: 8 },
+  footer: { marginTop: 16 },
   logout: { borderRadius: 12 },
+  btnContent: { justifyContent: "center" },
 });

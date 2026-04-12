@@ -44,7 +44,7 @@ const ownerProfileInput = z
     cidade: z.string().min(1),
     uf: z.string().length(2),
     numero: z.string().min(1),
-    complemento: z.string().min(1),
+    complemento: z.string().max(200),
   })
   .superRefine((data, ctx) => {
     const d = data.cpfCnpj.replace(/\D/g, "");
@@ -260,7 +260,7 @@ export const ownerRouter = router({
           cidade: input.cidade,
           uf: input.uf.toUpperCase(),
           numero: input.numero,
-          complemento: input.complemento,
+          complemento: input.complemento.trim(),
         },
         update: {
           nomeRazaoSocial: input.nomeRazaoSocial,
@@ -276,7 +276,7 @@ export const ownerRouter = router({
           cidade: input.cidade,
           uf: input.uf.toUpperCase(),
           numero: input.numero,
-          complemento: input.complemento,
+          complemento: input.complemento.trim(),
         },
       });
       return { ok: true as const };

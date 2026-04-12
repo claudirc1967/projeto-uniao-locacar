@@ -11,7 +11,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "OwnerProfile">;
 export function OwnerProfileScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const o = user?.ownerProfile;
 
@@ -67,16 +67,6 @@ export function OwnerProfileScreen({ navigation }: Props) {
         style={styles.btn}
       >
         Editar meus dados
-      </Button>
-      <Button
-        mode="contained"
-        buttonColor={theme.colors.error}
-        textColor={theme.colors.onError}
-        icon="logout"
-        onPress={() => void logout()}
-        style={styles.btn}
-      >
-        Sair
       </Button>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>

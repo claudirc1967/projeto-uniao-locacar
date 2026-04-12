@@ -22,7 +22,7 @@ const ownerSignupFields = {
   cidade: z.string().min(1),
   uf: z.string().length(2),
   numero: z.string().min(1),
-  complemento: z.string().min(1),
+  complemento: z.string().max(200),
 } as const;
 
 const signupInput = z.union([
@@ -78,7 +78,7 @@ export const authRouter = router({
                     cidade: input.cidade,
                     uf: input.uf.toUpperCase(),
                     numero: input.numero,
-                    complemento: input.complemento,
+                    complemento: input.complemento.trim(),
                   },
                 },
               }

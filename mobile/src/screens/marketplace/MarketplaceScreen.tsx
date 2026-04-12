@@ -239,7 +239,14 @@ export function MarketplaceScreen({ navigation }: Props) {
   const [draft, setDraft] = useState<FilterDraft>(emptyDraft);
   const [modalErr, setModalErr] = useState<string | null>(null);
 
-  const q = trpc.marketplace.listAvailableVehicles.useQuery(applied);
+  const queryFilters = useMemo(() => {
+    if (user?.role === "OWNER") {
+      return { ...applied, ownerUserId: user.id };
+    }
+    return applied;
+  }, [applied, user]);
+
+  const q = trpc.marketplace.listAvailableVehicles.useQuery(queryFilters);
 
   const activeCount = useMemo(
     () => Object.keys(applied).length,
@@ -351,17 +358,16 @@ export function MarketplaceScreen({ navigation }: Props) {
                     )}
                   </Text>
                   <Text variant="bodySmall" style={styles.meta}>
-                    Locador: {item.ownerName ?? "—"}
-                  </Text>
-                  <Text variant="bodySmall" style={styles.meta}>
                     Modelo: {item.model ?? "—"}
                   </Text>
-                  <Text variant="bodySmall" style={styles.meta}>
-                    Ano: {item.year}
-                  </Text>
-                  <Text variant="bodySmall" style={styles.meta}>
-                    Cor: {item.cor ?? "—"}
-                  </Text>
+                  <View style={styles.rowYearCor}>
+                    <Text variant="bodySmall" style={[styles.meta, styles.metaPairLine]}>
+                      Ano: {item.year}
+                    </Text>
+                    <Text variant="bodySmall" style={[styles.meta, styles.metaPairLine]}>
+                      Cor: {item.cor ?? "—"}
+                    </Text>
+                  </View>
                   <Text variant="bodySmall" style={styles.meta}>
                     Portas: {item.portas ?? 4} · Lugares: {item.lugares ?? 5}
                   </Text>
@@ -369,6 +375,11 @@ export function MarketplaceScreen({ navigation }: Props) {
                     <Text variant="bodySmall" style={styles.meta}>
                       {item.pickupCity}
                       {item.pickupUf ? `/${item.pickupUf}` : ""}
+                    </Text>
+                  ) : null}
+                  {user?.role === "DRIVER" ? (
+                    <Text variant="bodySmall" style={styles.locadorBold}>
+                      Locador: {item.ownerName ?? "—"}
                     </Text>
                   ) : null}
                   {user?.role === "DRIVER" && item.driverRequestBlocked ? (
@@ -442,13 +453,17 @@ export function MarketplaceScreen({ navigation }: Props) {
                   style={[styles.field, styles.fieldHalf]}
                 />
               </View>
-              <TextInput
-                label="Locador (contém)"
-                value={draft.ownerName}
-                onChangeText={(t) => setDraft((d) => ({ ...d, ownerName: t }))}
-                mode="outlined"
-                style={styles.field}
-              />
+              {user?.role !== "OWNER" ? (
+                <TextInput
+                  label="Locador (contém)"
+                  value={draft.ownerName}
+                  onChangeText={(t) =>
+                    setDraft((d) => ({ ...d, ownerName: t }))
+                  }
+                  mode="outlined"
+                  style={styles.field}
+                />
+              ) : null}
               <TextInput
                 label="Marca (contém)"
                 value={draft.brand}
@@ -642,6 +657,19 @@ const styles = StyleSheet.create({
   phT: { color: "#94a3b8" },
   body: { flex: 1, padding: 12, justifyContent: "center" },
   meta: { marginTop: 4, opacity: 0.85 },
+  rowYearCor: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 4,
+    alignItems: "flex-start",
+  },
+  metaPairLine: { marginTop: 0, opacity: 0.85 },
+  locadorBold: {
+    marginTop: 4,
+    fontWeight: "700",
+    opacity: 1,
+  },
   empty: { marginTop: 24, opacity: 0.7 },
   blockedTag: {
     marginTop: 8,

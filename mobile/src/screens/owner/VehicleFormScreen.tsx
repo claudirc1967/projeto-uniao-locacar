@@ -30,6 +30,7 @@ import {
   CepAddressForm,
   type CepAddressValue,
 } from "../../components/CepAddressForm";
+import { MenuTile } from "../../components/MenuTile";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -550,14 +551,17 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           {vehicleId ? "Salvar" : "Criar e enviar fotos"}
         </Button>
         {vehicleId ? (
-          <Button
-            mode="outlined"
-            onPress={() =>
-              navigation.navigate("VehiclePhotos", { vehicleId })
-            }
-          >
-            Gerenciar fotos
-          </Button>
+          <View style={styles.photosTileWrap}>
+            <MenuTile
+              title="Gerenciar fotos"
+              icon="image-multiple-outline"
+              fullWidth
+              accentColor="#b45309"
+              onPress={() =>
+                navigation.navigate("VehiclePhotos", { vehicleId })
+              }
+            />
+          </View>
         ) : null}
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
@@ -612,5 +616,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 16,
+  },
+  photosTileWrap: {
+    marginTop: 24,
   },
 });

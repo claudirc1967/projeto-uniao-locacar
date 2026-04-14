@@ -8,6 +8,8 @@ export type MenuTileProps = {
   onPress: () => void;
   /** Quando true, ocupa a largura inteira (linha de destaque). */
   fullWidth?: boolean;
+  /** Cor do ícone e do título; se omitido, o ícone usa a cor primária do tema. */
+  accentColor?: string;
 };
 
 export function MenuTile({
@@ -16,8 +18,10 @@ export function MenuTile({
   icon,
   onPress,
   fullWidth,
+  accentColor,
 }: MenuTileProps) {
   const theme = useTheme();
+  const iconTint = accentColor ?? theme.colors.primary;
 
   return (
     <Pressable
@@ -32,9 +36,13 @@ export function MenuTile({
       ]}
     >
       <View style={styles.inner}>
-        <Icon source={icon} size={28} color={theme.colors.primary} />
+        <Icon source={icon} size={28} color={iconTint} />
         <View style={styles.textBlock}>
-          <Text variant="titleSmall" style={styles.title} numberOfLines={2}>
+          <Text
+            variant="titleSmall"
+            style={[styles.title, accentColor ? { color: accentColor } : null]}
+            numberOfLines={2}
+          >
             {title}
           </Text>
           {subtitle ? (

@@ -11,13 +11,13 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import ImageViewing from "react-native-image-viewing";
 import {
   Button,
   HelperText,
   Text,
   useTheme,
 } from "react-native-paper";
+import VehicleImageViewer from "../../components/VehicleImageViewer";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
@@ -391,16 +391,13 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
         </View>
       </View>
 
-      <ImageViewing
+      <VehicleImageViewer
         images={viewerImages}
         imageIndex={viewerIndex}
         visible={viewerVisible}
         onRequestClose={() => setViewerVisible(false)}
         onImageIndexChange={setViewerIndex}
-        doubleTapToZoomEnabled
-        swipeToCloseEnabled
-        FooterComponent={Footer}
-        presentationStyle="overFullScreen"
+        renderFooter={({ imageIndex }) => <Footer imageIndex={imageIndex} />}
       />
     </>
   );

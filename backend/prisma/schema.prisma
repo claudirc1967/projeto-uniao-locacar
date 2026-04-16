@@ -39,6 +39,14 @@ enum ContractTime {
   MENSAL
 }
 
+enum PartnerCategory {
+  INSURANCE
+  WORKSHOP
+  BODYSHOP
+  PARTS
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -52,6 +60,31 @@ model User {
   rentals       Rental[]      @relation("DriverRentals")
   vehicleDriverBlocks VehicleDriverBlock[]
   resetTokens   PasswordResetToken[]
+  partners      Partner[]
+}
+
+model Partner {
+  id          String          @id @default(cuid())
+  ownerUserId String
+  owner       User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  name     String
+  category PartnerCategory @default(OTHER)
+  email    String?
+  phone    String?
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehiclesAsInsurance Vehicle[] @relation("VehicleInsurancePartner")
+  vehiclesAsWorkshop  Vehicle[] @relation("VehicleWorkshopPartner")
+  vehiclesAsBodyshop  Vehicle[] @relation("VehicleBodyshopPartner")
+  vehiclesAsParts     Vehicle[] @relation("VehiclePartsPartner")
+
+  @@index([ownerUserId])
+  @@index([ownerUserId, category])
+  @@index([ownerUserId, name])
 }
 
 model OwnerProfile {
@@ -118,6 +151,19 @@ model Vehicle {
   kmPorContrato  Int      @default(0)
   insuranceMaintenanceIncluded Boolean @default(true)
   insurerPolicy  String?
+
+  insurancePartnerId String?
+  insurancePartner   Partner? @relation("VehicleInsurancePartner", fields: [insurancePartnerId], references: [id], onDelete: SetNull)
+
+  workshopPartnerId String?
+  workshopPartner   Partner? @relation("VehicleWorkshopPartner", fields: [workshopPartnerId], references: [id], onDelete: SetNull)
+
+  bodyshopPartnerId String?
+  bodyshopPartner   Partner? @relation("VehicleBodyshopPartner", fields: [bodyshopPartnerId], references: [id], onDelete: SetNull)
+
+  partsPartnerId String?
+  partsPartner   Partner? @relation("VehiclePartsPartner", fields: [partsPartnerId], references: [id], onDelete: SetNull)
+
   dailyRateCents   Int
   available        Boolean  @default(true)
   requirementsJson String?

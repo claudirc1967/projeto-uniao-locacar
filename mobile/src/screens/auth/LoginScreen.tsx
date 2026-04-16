@@ -17,6 +17,10 @@ import {
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import {
+  validateEmailForAuth,
+  validatePasswordForAuth,
+} from "../../utils/authValidation";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
@@ -88,7 +92,20 @@ export function LoginScreen({ navigation }: Props) {
 
         <Button
           mode="contained"
-          onPress={() => login.mutate({ email: email.trim(), password })}
+          onPress={() => {
+            setErr(null);
+            const emailErr = validateEmailForAuth(email);
+            if (emailErr) {
+              setErr(emailErr);
+              return;
+            }
+            const pwdErr = validatePasswordForAuth(password);
+            if (pwdErr) {
+              setErr(pwdErr);
+              return;
+            }
+            login.mutate({ email: email.trim(), password });
+          }}
           loading={login.isPending}
           disabled={login.isPending}
           style={styles.primaryBtn}

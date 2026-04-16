@@ -8,6 +8,7 @@ export type RootStackParamList = {
   OwnerProfileEdit: undefined;
   OwnerContractTemplate: undefined;
   OwnerVehicles: undefined;
+  OwnerPartners: undefined;
   VehicleForm: { vehicleId?: string };
   VehiclePhotos: { vehicleId: string };
   OwnerPendingDrivers: undefined;

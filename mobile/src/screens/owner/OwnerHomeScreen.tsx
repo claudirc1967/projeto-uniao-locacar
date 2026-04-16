@@ -54,6 +54,13 @@ export function OwnerHomeScreen({ navigation }: Props) {
             onPress: () => navigation.navigate("OwnerVehicles"),
           },
           {
+            key: "partners",
+            title: "Parceiros",
+            subtitle: "Fornecedores e seguradora",
+            icon: "handshake-outline",
+            onPress: () => navigation.navigate("OwnerPartners"),
+          },
+          {
             key: "pending",
             title: "Motoristas pendentes",
             subtitle: "Aprovar cadastros",

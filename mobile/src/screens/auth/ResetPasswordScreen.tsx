@@ -17,6 +17,10 @@ import {
 } from "react-native-paper";
 import { trpc } from "../../api/trpc";
 import type { RootStackParamList } from "../../navigation/types";
+import {
+  validatePasswordForAuth,
+  validateResetToken,
+} from "../../utils/authValidation";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ResetPassword">;
@@ -77,7 +81,20 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         </HelperText>
         <Button
           mode="contained"
-          onPress={() => reset.mutate({ token: token.trim(), password })}
+          onPress={() => {
+            setErr(null);
+            const tokenErr = validateResetToken(token);
+            if (tokenErr) {
+              setErr(tokenErr);
+              return;
+            }
+            const pwdErr = validatePasswordForAuth(password);
+            if (pwdErr) {
+              setErr(pwdErr);
+              return;
+            }
+            reset.mutate({ token: token.trim(), password });
+          }}
           loading={reset.isPending}
           disabled={reset.isPending}
           style={styles.btn}

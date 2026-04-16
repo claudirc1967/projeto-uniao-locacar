@@ -30,6 +30,13 @@ const fileMeta = z.object({
 });
 
 const contractTimeSchema = z.enum(["DIARIO", "SEMANAL", "MENSAL"]);
+const partnerCategorySchema = z.enum([
+  "INSURANCE",
+  "WORKSHOP",
+  "BODYSHOP",
+  "PARTS",
+  "OTHER",
+]);
 
 const ownerProfileInput = z
   .object({
@@ -70,6 +77,42 @@ async function assertOwnsVehicle(ownerUserId: string, vehicleId: string) {
   return v;
 }
 
+async function assertPartnersBelongToOwner(
+  ownerUserId: string,
+  partnerIds: Array<string | null | undefined>
+) {
+  const ids = Array.from(
+    new Set(
+      partnerIds
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .filter(Boolean)
+    )
+  );
+  if (ids.length === 0) return;
+  const count = await prisma.partner.count({
+    where: { id: { in: ids }, ownerUserId },
+  });
+  if (count !== ids.length) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Parceiro inválido (não encontrado ou não pertence ao proprietário).",
+    });
+  }
+}
+
+async function assertOwnsPartner(ownerUserId: string, partnerId: string) {
+  const p = await prisma.partner.findFirst({
+    where: { id: partnerId, ownerUserId },
+  });
+  if (!p) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Parceiro não encontrado",
+    });
+  }
+  return p;
+}
+
 async function withPhotoUrls<T extends { key: string }>(
   photos: T[]
 ): Promise<(T & { photoUrl: string })[]> {
@@ -82,6 +125,102 @@ async function withPhotoUrls<T extends { key: string }>(
 }
 
 export const ownerRouter = router({
+  listMyPartners: ownerProcedure
+    .input(
+      z.object({
+        category: partnerCategorySchema.optional(),
+        nameContains: z.string().max(200).optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const ownerUserId = (ctx as AuthedContext).user.id;
+      const name = input.nameContains?.trim();
+      return prisma.partner.findMany({
+        where: {
+          ownerUserId,
+          category: input.category,
+          ...(name ? { name: { contains: name } } : {}),
+        },
+        orderBy: [{ name: "asc" }, { createdAt: "desc" }],
+      });
+    }),
+
+  createPartner: ownerProcedure
+    .input(
+      z.object({
+        name: z.string().min(2).max(200),
+        category: partnerCategorySchema.default("OTHER"),
+        email: z.string().email().optional().nullable(),
+        phone: z.string().min(8).max(30).optional().nullable(),
+        notes: z.string().max(4000).optional().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const ownerUserId = (ctx as AuthedContext).user.id;
+      const p = await prisma.partner.create({
+        data: {
+          ownerUserId,
+          name: input.name.trim(),
+          category: input.category,
+          email: input.email?.trim() ? input.email.trim().toLowerCase() : null,
+          phone: input.phone?.trim() ? input.phone.trim() : null,
+          notes: input.notes?.trim() ? input.notes.trim() : null,
+        },
+      });
+      return { partnerId: p.id };
+    }),
+
+  updatePartner: ownerProcedure
+    .input(
+      z.object({
+        partnerId: z.string(),
+        name: z.string().min(2).max(200).optional(),
+        category: partnerCategorySchema.optional(),
+        email: z.string().email().optional().nullable(),
+        phone: z.string().min(8).max(30).optional().nullable(),
+        notes: z.string().max(4000).optional().nullable(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const ownerUserId = (ctx as AuthedContext).user.id;
+      await assertOwnsPartner(ownerUserId, input.partnerId);
+      await prisma.partner.update({
+        where: { id: input.partnerId },
+        data: {
+          name: input.name?.trim(),
+          category: input.category,
+          email:
+            input.email === undefined
+              ? undefined
+              : input.email?.trim()
+                ? input.email.trim().toLowerCase()
+                : null,
+          phone:
+            input.phone === undefined
+              ? undefined
+              : input.phone?.trim()
+                ? input.phone.trim()
+                : null,
+          notes:
+            input.notes === undefined
+              ? undefined
+              : input.notes?.trim()
+                ? input.notes.trim()
+                : null,
+        },
+      });
+      return { ok: true as const };
+    }),
+
+  deletePartner: ownerProcedure
+    .input(z.object({ partnerId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const ownerUserId = (ctx as AuthedContext).user.id;
+      await assertOwnsPartner(ownerUserId, input.partnerId);
+      await prisma.partner.delete({ where: { id: input.partnerId } });
+      return { ok: true as const };
+    }),
+
   createVehicle: ownerProcedure
     .input(
       z.object({
@@ -99,6 +238,12 @@ export const ownerRouter = router({
         kmPorContrato: z.number().int().min(0).default(0),
         insuranceMaintenanceIncluded: z.boolean().default(true),
         insurerPolicy: z.string().optional().nullable(),
+
+        insurancePartnerId: z.string().optional().nullable(),
+        workshopPartnerId: z.string().optional().nullable(),
+        bodyshopPartnerId: z.string().optional().nullable(),
+        partsPartnerId: z.string().optional().nullable(),
+
         dailyRateCents: z.number().int().positive(),
         available: z.boolean().default(true),
         requirementsJson: z.string().optional(),
@@ -117,6 +262,12 @@ export const ownerRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx as AuthedContext;
+      await assertPartnersBelongToOwner(user.id, [
+        input.insurancePartnerId,
+        input.workshopPartnerId,
+        input.bodyshopPartnerId,
+        input.partsPartnerId,
+      ]);
       const v = await prisma.vehicle.create({
         data: {
           ownerUserId: user.id,
@@ -136,6 +287,10 @@ export const ownerRouter = router({
           insurerPolicy: input.insuranceMaintenanceIncluded
             ? input.insurerPolicy ?? undefined
             : null,
+          insurancePartnerId: input.insurancePartnerId ?? undefined,
+          workshopPartnerId: input.workshopPartnerId ?? undefined,
+          bodyshopPartnerId: input.bodyshopPartnerId ?? undefined,
+          partsPartnerId: input.partsPartnerId ?? undefined,
           dailyRateCents: input.dailyRateCents,
           available: input.available,
           requirementsJson: input.requirementsJson,
@@ -173,6 +328,12 @@ export const ownerRouter = router({
         kmPorContrato: z.number().int().min(0).optional(),
         insuranceMaintenanceIncluded: z.boolean().optional(),
         insurerPolicy: z.string().optional().nullable(),
+
+        insurancePartnerId: z.string().optional().nullable(),
+        workshopPartnerId: z.string().optional().nullable(),
+        bodyshopPartnerId: z.string().optional().nullable(),
+        partsPartnerId: z.string().optional().nullable(),
+
         dailyRateCents: z.number().int().positive().optional(),
         available: z.boolean().optional(),
         requirementsJson: z.string().optional().nullable(),
@@ -190,7 +351,14 @@ export const ownerRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await assertOwnsVehicle((ctx as AuthedContext).user.id, input.vehicleId);
+      const ownerUserId = (ctx as AuthedContext).user.id;
+      await assertOwnsVehicle(ownerUserId, input.vehicleId);
+      await assertPartnersBelongToOwner(ownerUserId, [
+        input.insurancePartnerId,
+        input.workshopPartnerId,
+        input.bodyshopPartnerId,
+        input.partsPartnerId,
+      ]);
       const { vehicleId, ...rest } = input;
       const data = { ...rest };
       if (data.insuranceMaintenanceIncluded === false) {
@@ -207,7 +375,13 @@ export const ownerRouter = router({
     const list = await prisma.vehicle.findMany({
       where: { ownerUserId: (ctx as AuthedContext).user.id },
       orderBy: { updatedAt: "desc" },
-      include: { photos: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        photos: { orderBy: { sortOrder: "asc" } },
+        insurancePartner: true,
+        workshopPartner: true,
+        bodyshopPartner: true,
+        partsPartner: true,
+      },
     });
     try {
       return await Promise.all(
@@ -231,7 +405,13 @@ export const ownerRouter = router({
       await assertOwnsVehicle((ctx as AuthedContext).user.id, input.vehicleId);
       const v = await prisma.vehicle.findUniqueOrThrow({
         where: { id: input.vehicleId },
-        include: { photos: { orderBy: { sortOrder: "asc" } } },
+        include: {
+          photos: { orderBy: { sortOrder: "asc" } },
+          insurancePartner: true,
+          workshopPartner: true,
+          bodyshopPartner: true,
+          partsPartner: true,
+        },
       });
       return {
         ...v,

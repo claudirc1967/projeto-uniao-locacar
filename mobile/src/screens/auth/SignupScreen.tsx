@@ -24,6 +24,10 @@ import {
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { cepDigits, maskCpfCnpj, maskPhone, onlyDigits } from "../../utils/masks";
+import {
+  validateEmailForAuth,
+  validatePasswordForAuth,
+} from "../../utils/authValidation";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Signup">;
@@ -95,6 +99,16 @@ export function SignupScreen({ navigation }: Props) {
 
   const submit = () => {
     setErr(null);
+    const emailErr = validateEmailForAuth(email);
+    if (emailErr) {
+      setErr(emailErr);
+      return;
+    }
+    const pwdErr = validatePasswordForAuth(password);
+    if (pwdErr) {
+      setErr(pwdErr);
+      return;
+    }
     if (role === "OWNER" && !validateOwner()) return;
 
     if (role === "DRIVER") {

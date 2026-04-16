@@ -1,10 +1,14 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -82,6 +86,18 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     { enabled: !!vehicleId }
   );
 
+  const insurancePartnersQ = trpc.owner.listMyPartners.useQuery(
+    { category: "INSURANCE" },
+    { staleTime: 30_000 }
+  );
+
+  const refetchInsurancePartners = insurancePartnersQ.refetch;
+  useFocusEffect(
+    useCallback(() => {
+      void refetchInsurancePartners();
+    }, [refetchInsurancePartners])
+  );
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [plate, setPlate] = useState("");
@@ -100,6 +116,11 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const [insuranceMaintenanceIncluded, setInsuranceMaintenanceIncluded] =
     useState(true);
   const [insurerPolicy, setInsurerPolicy] = useState("");
+  const [insurancePartnerId, setInsurancePartnerId] = useState<string | null>(
+    null
+  );
+  const [insurancePartnerPickerOpen, setInsurancePartnerPickerOpen] =
+    useState(false);
   const [available, setAvailable] = useState(true);
   const [requirementsJson, setRequirementsJson] = useState("");
   const [paymentNotes, setPaymentNotes] = useState(
@@ -119,6 +140,24 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   });
   const [sameAsOwner, setSameAsOwner] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const insurancePickerRows = useMemo(() => {
+    const none = { id: null as string | null, label: "Nenhum selecionado" };
+    const partners = (insurancePartnersQ.data ?? []).map((p) => ({
+      id: p.id,
+      label: p.name,
+    }));
+    return [none, ...partners];
+  }, [insurancePartnersQ.data]);
+
+  const insurancePartnerLabel = useMemo(() => {
+    if (!insurancePartnerId) return "Nenhum selecionado";
+    const name = insurancePartnersQ.data?.find(
+      (p) => p.id === insurancePartnerId
+    )?.name;
+    if (name) return name;
+    return "Parceiro não listado (toque para alterar)";
+  }, [insurancePartnerId, insurancePartnersQ.data]);
 
   useEffect(() => {
     if (!existing.data) return;
@@ -145,6 +184,11 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       v.insuranceMaintenanceIncluded !== false
     );
     setInsurerPolicy(v.insurerPolicy ?? "");
+    setInsurancePartnerId(
+      typeof v.insurancePartnerId === "string" && v.insurancePartnerId
+        ? v.insurancePartnerId
+        : null
+    );
     setDailyReais((v.dailyRateCents / 100).toFixed(2));
     setAvailable(v.available);
     setRequirementsJson(v.requirementsJson ?? "");
@@ -321,6 +365,9 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         insurerPolicy: insuranceMaintenanceIncluded
           ? insurerPolicy.trim() || null
           : null,
+        insurancePartnerId: insuranceMaintenanceIncluded
+          ? insurancePartnerId ?? null
+          : null,
         dailyRateCents: cents,
         available,
         requirementsJson: requirementsJson || undefined,
@@ -352,6 +399,9 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         insuranceMaintenanceIncluded,
         insurerPolicy: insuranceMaintenanceIncluded
           ? insurerPolicy.trim() || null
+          : null,
+        insurancePartnerId: insuranceMaintenanceIncluded
+          ? insurancePartnerId ?? null
           : null,
         dailyRateCents: cents,
         available,
@@ -487,16 +537,39 @@ export function VehicleFormScreen({ navigation, route }: Props) {
             value={insuranceMaintenanceIncluded}
             onValueChange={(v) => {
               setInsuranceMaintenanceIncluded(v);
-              if (!v) setInsurerPolicy("");
+              if (!v) {
+                setInsurerPolicy("");
+                setInsurancePartnerId(null);
+              }
             }}
           />
         </View>
-        <Field
-          label="Seguradora / Apólice"
-          value={insurerPolicy}
-          onChangeText={setInsurerPolicy}
-          editable={insuranceMaintenanceIncluded}
-        />
+        {insuranceMaintenanceIncluded ? (
+          <View style={styles.insurancePartnerBlock}>
+            <Text variant="labelLarge" style={{ marginTop: 14 }}>
+              Parceiro seguradora
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{ marginTop: 6, opacity: 0.85, marginBottom: 4 }}
+            >
+              Use parceiros cadastrados com o tipo &quot;Seguradora&quot;.
+            </Text>
+            <Button
+              mode="outlined"
+              onPress={() => setInsurancePartnerPickerOpen(true)}
+              style={{ marginTop: 4 }}
+            >
+              {insurancePartnerLabel}
+            </Button>
+            <Field
+              label="Número da apólice"
+              value={insurerPolicy}
+              onChangeText={setInsurerPolicy}
+              placeholder="Número da apólice"
+            />
+          </View>
+        ) : null}
 
         <View style={styles.rowBetween}>
           <Text variant="bodyMedium">Disponível para locação</Text>
@@ -561,9 +634,81 @@ export function VehicleFormScreen({ navigation, route }: Props) {
                 navigation.navigate("VehiclePhotos", { vehicleId })
               }
             />
+            <MenuTile
+              title="Gerenciar parceiros"
+              subtitle="Seguradora e fornecedores"
+              icon="handshake-outline"
+              fullWidth
+              accentColor="#b45309"
+              onPress={() => navigation.navigate("OwnerPartners")}
+            />
           </View>
         ) : null}
       </ScrollView>
+
+      <Modal
+        visible={insurancePartnerPickerOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setInsurancePartnerPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setInsurancePartnerPickerOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.pickerSheet,
+              { backgroundColor: theme.colors.surface },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleMedium" style={styles.pickerTitle}>
+              Parceiro seguradora
+            </Text>
+            <FlatList
+              data={insurancePickerRows}
+              keyExtractor={(item) => (item.id == null ? "__none__" : item.id)}
+              renderItem={({ item }) => {
+                const selected =
+                  (item.id == null && insurancePartnerId == null) ||
+                  (item.id != null && item.id === insurancePartnerId);
+                return (
+                  <Pressable
+                    onPress={() => {
+                      setInsurancePartnerId(item.id);
+                      setInsurancePartnerPickerOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.pickerItem,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <Text variant="bodyMedium">{item.label}</Text>
+                    {selected ? (
+                      <Text
+                        variant="labelMedium"
+                        style={styles.pickerSelected}
+                      >
+                        Selecionado
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+              style={{ maxHeight: 420 }}
+            />
+            <Button
+              mode="text"
+              onPress={() => setInsurancePartnerPickerOpen(false)}
+            >
+              Fechar
+            </Button>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
@@ -619,5 +764,30 @@ const styles = StyleSheet.create({
   },
   photosTileWrap: {
     marginTop: 24,
+    gap: 12,
   },
+  insurancePartnerBlock: { marginBottom: 4 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  pickerSheet: {
+    width: "92%",
+    maxWidth: 520,
+    alignSelf: "center",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 28,
+  },
+  pickerTitle: { marginBottom: 10 },
+  pickerItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  pickerSelected: { opacity: 0.7 },
+  pickerSep: { height: StyleSheet.hairlineWidth, backgroundColor: "#e2e8f0" },
 });

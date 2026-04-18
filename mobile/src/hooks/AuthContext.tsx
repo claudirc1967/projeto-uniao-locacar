@@ -22,6 +22,8 @@ export type SessionUser = {
     status: string;
     fullName: string | null;
     phone: string | null;
+    averageRating?: number;
+    ratingCount?: number;
   } | null;
   ownerProfile: {
     id: string;
@@ -37,6 +39,8 @@ export type SessionUser = {
     bairro: string;
     cidade: string;
     uf: string;
+    averageRating?: number;
+    ratingCount?: number;
   } | null;
 };
 

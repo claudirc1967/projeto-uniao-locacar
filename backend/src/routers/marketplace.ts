@@ -22,6 +22,8 @@ const listFiltersSchema = z.object({
   contractTime: z.enum(["DIARIO", "SEMANAL", "MENSAL"]).optional(),
   priceMinCents: z.number().int().min(0).optional(),
   priceMaxCents: z.number().int().min(0).optional(),
+  /** Média mínima do locador (avaliações recebidas de locatários). Exige ao menos 1 avaliação. */
+  ownerMinAverageStars: z.number().int().min(1).max(5).optional(),
 });
 
 function buildVehicleWhere(
@@ -61,6 +63,19 @@ function buildVehicleWhere(
       owner: {
         ownerProfile: {
           is: { nomeRazaoSocial: { contains: ownerName } },
+        },
+      },
+    });
+  }
+
+  if (f.ownerMinAverageStars != null) {
+    and.push({
+      owner: {
+        ownerProfile: {
+          is: {
+            ratingCount: { gt: 0 },
+            averageRating: { gte: f.ownerMinAverageStars },
+          },
         },
       },
     });

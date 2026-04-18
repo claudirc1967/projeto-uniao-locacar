@@ -32,6 +32,12 @@ export function OwnerProfileScreen({ navigation }: Props) {
         <Card.Content style={styles.gap}>
           <Text variant="bodyMedium">E-mail: {user?.email}</Text>
           <Text variant="bodyMedium">Papel: proprietário</Text>
+          {o?.ratingCount != null && o.ratingCount > 0 ? (
+            <Text variant="bodyMedium">
+              Reputação: {o.averageRating?.toFixed(1) ?? "—"} ★ ·{" "}
+              {o.ratingCount} avaliação(ões)
+            </Text>
+          ) : null}
           {o ? (
             <>
               <Text variant="bodyMedium">

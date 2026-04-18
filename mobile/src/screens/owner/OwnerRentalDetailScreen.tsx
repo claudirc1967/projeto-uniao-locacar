@@ -23,6 +23,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -431,6 +432,13 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           </View>
         </Card.Content>
       </Card>
+
+      <RentalReviewSection
+        rentalId={rentalId}
+        review={row.review}
+        role="OWNER"
+        title="Como foi com o motorista?"
+      />
 
       {row.status === "ACTIVE" ? (
         <Button mode="contained" onPress={openReturnModal}>

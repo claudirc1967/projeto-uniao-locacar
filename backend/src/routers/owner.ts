@@ -1051,6 +1051,23 @@ export const ownerRouter = router({
         });
       }
 
+      const myReview = await prisma.rentalReview.findUnique({
+        where: {
+          rentalId_direction: {
+            rentalId: r.id,
+            direction: "OWNER_TO_DRIVER",
+          },
+        },
+      });
+
+      const tagsFromJson = (json: unknown): string[] => {
+        if (json == null) return [];
+        if (Array.isArray(json)) {
+          return json.filter((x): x is string => typeof x === "string");
+        }
+        return [];
+      };
+
       return {
         rentalId: r.id,
         status: r.status,
@@ -1075,6 +1092,17 @@ export const ownerRouter = router({
         pendingResolutionExpectedAt: r.pendingResolutionExpectedAt,
         vehicle: r.vehicle,
         driver: r.driver,
+        review: {
+          canSubmit: r.status === "COMPLETED" && !myReview,
+          submitted: myReview
+            ? {
+                stars: myReview.stars,
+                tags: tagsFromJson(myReview.tagsJson),
+                comment: myReview.comment,
+                createdAt: myReview.createdAt,
+              }
+            : null,
+        },
       };
     }),
 

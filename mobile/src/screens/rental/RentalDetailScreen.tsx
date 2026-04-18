@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -253,6 +254,13 @@ export function RentalDetailScreen({ navigation, route }: Props) {
         </Button>
       ) : null}
       <VehicleLocationActions vehicle={r.vehicle} />
+
+      <RentalReviewSection
+        rentalId={rentalId}
+        review={r.review}
+        role="DRIVER"
+        title="Como foi com o locador?"
+      />
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>

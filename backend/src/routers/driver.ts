@@ -226,6 +226,37 @@ export const driverRouter = router({
           message: "Locação não encontrada",
         });
       }
-      return r;
+
+      const myReview = await prisma.rentalReview.findUnique({
+        where: {
+          rentalId_direction: {
+            rentalId: r.id,
+            direction: "DRIVER_TO_OWNER",
+          },
+        },
+      });
+
+      const tagsFromJson = (json: unknown): string[] => {
+        if (json == null) return [];
+        if (Array.isArray(json)) {
+          return json.filter((x): x is string => typeof x === "string");
+        }
+        return [];
+      };
+
+      return {
+        ...r,
+        review: {
+          canSubmit: r.status === "COMPLETED" && !myReview,
+          submitted: myReview
+            ? {
+                stars: myReview.stars,
+                tags: tagsFromJson(myReview.tagsJson),
+                comment: myReview.comment,
+                createdAt: myReview.createdAt,
+              }
+            : null,
+        },
+      };
     }),
 });

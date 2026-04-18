@@ -13,6 +13,7 @@ import {
 import {
   Button,
   Card,
+  Chip,
   IconButton,
   SegmentedButtons,
   Text,
@@ -73,9 +74,15 @@ type MarketplaceListFilters = {
   contractTime?: "DIARIO" | "SEMANAL" | "MENSAL";
   priceMinCents?: number;
   priceMaxCents?: number;
+  /** Média mínima do locador (1–5), conforme avaliações de locatários. */
+  ownerMinAverageStars?: number;
 };
 
+const OWNER_MIN_STARS_OPTIONS = ["ANY", "1", "2", "3", "4", "5"] as const;
+type OwnerMinStarsOption = (typeof OWNER_MIN_STARS_OPTIONS)[number];
+
 type FilterDraft = {
+  ownerMinStars: OwnerMinStarsOption;
   brand: string;
   model: string;
   cor: string;
@@ -93,6 +100,7 @@ type FilterDraft = {
 
 function emptyDraft(): FilterDraft {
   return {
+    ownerMinStars: "ANY",
     brand: "",
     model: "",
     cor: "",
@@ -110,7 +118,17 @@ function emptyDraft(): FilterDraft {
 }
 
 function draftFromApplied(a: MarketplaceListFilters): FilterDraft {
+  const minStars = a.ownerMinAverageStars;
+  const ownerMinStars: OwnerMinStarsOption =
+    minStars === 1 ||
+    minStars === 2 ||
+    minStars === 3 ||
+    minStars === 4 ||
+    minStars === 5
+      ? String(minStars)
+      : "ANY";
   return {
+    ownerMinStars,
     brand: a.brandContains ?? "",
     model: a.modelContains ?? "",
     cor: a.corContains ?? "",
@@ -147,6 +165,9 @@ function buildFilters(d: FilterDraft): {
   error: string | null;
 } {
   const o: MarketplaceListFilters = {};
+  if (d.ownerMinStars !== "ANY") {
+    o.ownerMinAverageStars = Number.parseInt(d.ownerMinStars, 10);
+  }
   if (d.brand.trim()) o.brandContains = d.brand.trim();
   if (d.model.trim()) o.modelContains = d.model.trim();
   if (d.cor.trim()) o.corContains = d.cor.trim();
@@ -241,17 +262,21 @@ export function MarketplaceScreen({ navigation }: Props) {
 
   const queryFilters = useMemo(() => {
     if (user?.role === "OWNER") {
-      return { ...applied, ownerUserId: user.id };
+      const { ownerMinAverageStars: _stars, ...rest } = applied;
+      return { ...rest, ownerUserId: user.id };
     }
     return applied;
   }, [applied, user]);
 
   const q = trpc.marketplace.listAvailableVehicles.useQuery(queryFilters);
 
-  const activeCount = useMemo(
-    () => Object.keys(applied).length,
-    [applied]
-  );
+  const activeCount = useMemo(() => {
+    const a = { ...applied };
+    if (user?.role === "OWNER") {
+      delete a.ownerMinAverageStars;
+    }
+    return Object.keys(a).length;
+  }, [applied, user]);
 
   const applyFilters = () => {
     const { filters, error } = buildFilters(draft);
@@ -259,7 +284,12 @@ export function MarketplaceScreen({ navigation }: Props) {
       setModalErr(error);
       return;
     }
-    setApplied(filters);
+    if (user?.role === "OWNER" && filters.ownerMinAverageStars != null) {
+      const { ownerMinAverageStars: _o, ...rest } = filters;
+      setApplied(rest);
+    } else {
+      setApplied(filters);
+    }
     setModalErr(null);
     setFilterOpen(false);
   };
@@ -272,7 +302,11 @@ export function MarketplaceScreen({ navigation }: Props) {
   };
 
   const openFilters = () => {
-    setDraft(draftFromApplied(applied));
+    let d = draftFromApplied(applied);
+    if (user?.role === "OWNER") {
+      d = { ...d, ownerMinStars: "ANY" };
+    }
+    setDraft(d);
     setModalErr(null);
     setFilterOpen(true);
   };
@@ -428,7 +462,47 @@ export function MarketplaceScreen({ navigation }: Props) {
               keyboardShouldPersistTaps="handled"
               style={styles.modalScroll}
             >
-              <View style={styles.rowFields}>
+              {user?.role !== "OWNER" ? (
+                <>
+                  <Text variant="labelLarge" style={styles.sectionLabel}>
+                    Avaliação mínima do locador
+                  </Text>
+                  <Text variant="bodySmall" style={styles.starsFilterHint}>
+                    Média das avaliações recebidas pelo proprietário (de
+                    locatários). Só entram locadores com pelo menos uma
+                    avaliação.
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    nestedScrollEnabled
+                    showsHorizontalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.ownerStarsScroll}
+                    contentContainerStyle={styles.ownerStarsChipsRow}
+                  >
+                    {OWNER_MIN_STARS_OPTIONS.map((opt) => (
+                      <Chip
+                        key={opt}
+                        compact
+                        selected={draft.ownerMinStars === opt}
+                        onPress={() =>
+                          setDraft((prev) => ({ ...prev, ownerMinStars: opt }))
+                        }
+                        style={styles.ownerStarChip}
+                        mode="outlined"
+                      >
+                        {opt === "ANY" ? "Qualquer" : `${opt}+ ★`}
+                      </Chip>
+                    ))}
+                  </ScrollView>
+                </>
+              ) : null}
+              <View
+                style={[
+                  styles.rowFields,
+                  user?.role === "OWNER" ? styles.rowFieldsFirst : null,
+                ]}
+              >
                 <Pressable
                   onPress={() => setUfPickerOpen(true)}
                   style={styles.fieldHalf}
@@ -711,8 +785,22 @@ const styles = StyleSheet.create({
   modalScroll: { maxHeight: 420 },
   field: { marginBottom: 10 },
   rowFields: { flexDirection: "row", gap: 8 },
+  /** Espaço após o texto introdutório quando o bloco de estrelas está oculto (proprietário). */
+  rowFieldsFirst: { marginTop: 4 },
   fieldHalf: { flex: 1 },
   sectionLabel: { marginTop: 8, marginBottom: 6 },
+  starsFilterHint: { opacity: 0.8, marginBottom: 10, lineHeight: 18 },
+  ownerStarsScroll: {
+    marginBottom: 16,
+  },
+  ownerStarsChipsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingRight: 12,
+    flexGrow: 1,
+  },
+  ownerStarChip: { marginRight: 0 },
   segment: { marginBottom: 12 },
   modalErr: { marginBottom: 8 },
   modalActions: {

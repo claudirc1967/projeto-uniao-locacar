@@ -4,6 +4,7 @@ import { authRouter } from "./routers/auth.js";
 import { driverRouter } from "./routers/driver.js";
 import { marketplaceRouter } from "./routers/marketplace.js";
 import { ownerRouter } from "./routers/owner.js";
+import { rentalReviewRouter } from "./routers/rentalReview.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   owner: ownerRouter,
   driver: driverRouter,
   marketplace: marketplaceRouter,
+  rentalReview: rentalReviewRouter,
 });
 
 export type AppRouter = typeof appRouter;

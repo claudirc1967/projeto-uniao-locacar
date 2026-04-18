@@ -54,6 +54,17 @@ export function DriverStatusScreen({ navigation }: Props) {
         {map[q.data!.status] ?? q.data!.status}
       </Text>
 
+      {p.ratingCount > 0 ? (
+        <Card mode="outlined" style={[styles.card, styles.reputationCard]}>
+          <Card.Content>
+            <Text variant="titleSmall">Reputação</Text>
+            <Text variant="bodyLarge" style={{ marginTop: 4 }}>
+              {p.averageRating.toFixed(1)} ★ · {p.ratingCount} avaliação(ões)
+            </Text>
+          </Card.Content>
+        </Card>
+      ) : null}
+
       {q.data!.status === "REJECTED" && p.rejectionReason?.trim() ? (
         <Card mode="outlined" style={[styles.card, styles.warnCard]}>
           <Card.Content>
@@ -111,6 +122,11 @@ const styles = StyleSheet.create({
   warnCard: { borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
   rejectionText: { marginTop: 8, lineHeight: 22 },
   card: { borderRadius: 16 },
+  reputationCard: {
+    borderColor: "#c7d2fe",
+    backgroundColor: "#eef2ff",
+    marginBottom: 4,
+  },
   gap: { gap: 8 },
   footer: { paddingHorizontal: 24, paddingTop: 8 },
 });

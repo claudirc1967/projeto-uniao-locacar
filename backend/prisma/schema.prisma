@@ -47,6 +47,12 @@ enum PartnerCategory {
   OTHER
 }
 
+/** Locador avalia o motorista ou o contrário (uma avaliação por direção por locação). */
+enum ReviewDirection {
+  OWNER_TO_DRIVER
+  DRIVER_TO_OWNER
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -61,6 +67,8 @@ model User {
   vehicleDriverBlocks VehicleDriverBlock[]
   resetTokens   PasswordResetToken[]
   partners      Partner[]
+  reviewsFrom   RentalReview[] @relation("ReviewFrom")
+  reviewsTo     RentalReview[] @relation("ReviewTo")
 }
 
 model Partner {
@@ -104,6 +112,9 @@ model OwnerProfile {
   bairro      String @default("")
   cidade      String @default("")
   uf          String @default("")
+  /** Média das avaliações recebidas (locatário → locador). Atualizada ao salvar avaliação. */
+  averageRating Float @default(0)
+  ratingCount   Int   @default(0)
 }
 
 model DriverProfile {
@@ -131,6 +142,9 @@ model DriverProfile {
   bairro      String?
   cidade      String?
   uf          String?
+  /** Média das avaliações recebidas (locador → locatário). Atualizada ao salvar avaliação. */
+  averageRating Float @default(0)
+  ratingCount   Int   @default(0)
 }
 
 model Vehicle {
@@ -230,6 +244,29 @@ model Rental {
   pendingResolutionExpectedAt DateTime?
   requestedAt        DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+
+  reviews RentalReview[]
+}
+
+model RentalReview {
+  id         String @id @default(cuid())
+  rentalId   String
+  rental     Rental @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  fromUserId String
+  fromUser   User   @relation("ReviewFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     User   @relation("ReviewTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  direction ReviewDirection
+  stars     Int
+  tagsJson  Json?
+  comment   String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([rentalId, direction])
+  @@index([toUserId])
+  @@index([fromUserId])
 }
 
 model PasswordResetToken {

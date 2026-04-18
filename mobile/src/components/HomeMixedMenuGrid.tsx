@@ -11,6 +11,11 @@ type Props = {
   featured: HomeMenuItem;
   /** Demais itens em grade de duas colunas. */
   items: HomeMenuItem[];
+  /**
+   * Se true, coloca o destaque e o primeiro item na mesma linha (duas colunas),
+   * útil para ganhar espaço vertical na tela inicial.
+   */
+  pairFeaturedWithFirst?: boolean;
 };
 
 function chunkPairs<T>(list: T[]): T[][] {
@@ -21,18 +26,45 @@ function chunkPairs<T>(list: T[]): T[][] {
   return rows;
 }
 
-export function HomeMixedMenuGrid({ featured, items }: Props) {
-  const rows = chunkPairs(items);
+export function HomeMixedMenuGrid({
+  featured,
+  items,
+  pairFeaturedWithFirst,
+}: Props) {
+  const first = pairFeaturedWithFirst ? items[0] : undefined;
+  const gridItems = pairFeaturedWithFirst && first ? items.slice(1) : items;
+  const rows = chunkPairs(gridItems);
 
   return (
     <View style={styles.root}>
-      <MenuTile
-        title={featured.title}
-        subtitle={featured.subtitle}
-        icon={featured.icon}
-        onPress={featured.onPress}
-        fullWidth
-      />
+      {pairFeaturedWithFirst && first ? (
+        <View style={styles.row}>
+          <View style={styles.cell}>
+            <MenuTile
+              title={featured.title}
+              subtitle={featured.subtitle}
+              icon={featured.icon}
+              onPress={featured.onPress}
+            />
+          </View>
+          <View style={styles.cell}>
+            <MenuTile
+              title={first.title}
+              subtitle={first.subtitle}
+              icon={first.icon}
+              onPress={first.onPress}
+            />
+          </View>
+        </View>
+      ) : (
+        <MenuTile
+          title={featured.title}
+          subtitle={featured.subtitle}
+          icon={featured.icon}
+          onPress={featured.onPress}
+          fullWidth
+        />
+      )}
 
       <View style={styles.grid}>
         {rows.map((pair, rowIndex) => (

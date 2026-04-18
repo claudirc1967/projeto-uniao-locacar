@@ -84,3 +84,29 @@ Avaliações espontâneas tendem a vir mais de quem teve problema. A UX deve pri
 ---
 
 *Este arquivo existe só para copiar/colar. Pode apagar depois de abrir a issue no GitHub.*
+
+## Implementação neste repositório
+
+### Domínio / dados
+- **Status “locação concluída”:** `RentalStatus.COMPLETED` em `backend/prisma/schema.prisma` (enum `RentalStatus`, modelo `Rental`).
+- **Persistência:** criar migration no Prisma (SQLite); novo modelo (ex. avaliação) com `rentalId`, avaliador, avaliado, direção (owner→driver / driver→owner), `stars` 1–5, `tags` opcional (JSON), `comment` opcional, `createdAt`; **`@@unique([rentalId, direction])`** (ou equivalente) para impedir duplicata na mesma direção.
+- **Agregados (média / contagem):** campos em `OwnerProfile` / `DriverProfile` **ou** view calculada nas queries — fechar no MVP (atualizar no `create` da avaliação é o caminho mais simples).
+
+### Backend (tRPC)
+- Registro em `backend/src/router.ts` (hoje: `auth`, `address`, `owner`, `driver`, `marketplace`).
+- Procedimentos sugeridos: **mutation** submeter avaliação (validar JWT, papel do usuário, `rental` existe, `status === COMPLETED`, participante é dono do veículo ou `driverUserId`, e não duplicar); **query** opcional para “já avaliei / posso avaliar” e para médias no perfil.
+- Lógica de rental **owner** está concentrada em `backend/src/routers/owner.ts` (ex.: `getIncomingRentalDetail`, listagens); **motorista** em `backend/src/routers/driver.ts` (ex.: `getRentalDetail`). Reutilizar os mesmos critérios de ownership ao validar “pertence à locação”.
+
+### Mobile
+- **Telas de detalhe da locação (ponto de UX principal):**
+  - Proprietário: `mobile/src/screens/owner/OwnerRentalDetailScreen.tsx`, rota `OwnerRentalDetail` com `{ rentalId }` (`mobile/src/navigation/types.ts`).
+  - Motorista: `mobile/src/screens/rental/RentalDetailScreen.tsx`, rota `RentalDetail` com `{ rentalId }`.
+- **Onde mostrar média + contagem:** `mobile/src/screens/owner/OwnerProfileScreen.tsx` para locador; para locatário, alinhar ao fluxo atual (motorista não tem espelho de “Meu perfil” tão óbvio quanto o owner — usar tela de cadastro/status ou card na home, conforme menor atrito).
+- Tipos de navegação: `mobile/src/navigation/types.ts` / `RootNavigator.tsx`.
+
+### Fora do primeiro PR (confirmar)
+- Push/e-mail de lembrete; jobs agendados; edição da avaliação após envio; moderação.
+
+### Decisões MVP a fixar antes de codar
+- Edição após envio: **sem edição** no MVP (mais simples).
+- Lembrete 24–48h: **fora** do MVP.

@@ -24,6 +24,7 @@ import {
 } from "../../components/CepAddressForm";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
+import { cpfValidationMessage } from "../../utils/cpfCnpj";
 import { maskCpf, maskDate, maskPhone, onlyDigits } from "../../utils/masks";
 import { maskCep } from "../../utils/masks";
 
@@ -98,6 +99,11 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
   }, [statusQuery.data]);
 
   const submit = () => {
+    const cpfErr = cpfValidationMessage(onlyDigits(cpf));
+    if (cpfErr) {
+      setErr(cpfErr);
+      return;
+    }
     if (!addr.numero.trim()) {
       setErr("Informe o número do endereço.");
       return;

@@ -10,6 +10,7 @@ import {
 import {
   Button,
   Card,
+  Checkbox,
   HelperText,
   SegmentedButtons,
   Text,
@@ -17,12 +18,14 @@ import {
   useTheme,
 } from "react-native-paper";
 import { trpc } from "../../api/trpc";
+import { PRIVACY_POLICY_VERSION } from "../../constants/privacyPolicyVersion";
 import {
   CepAddressForm,
   type CepAddressValue,
 } from "../../components/CepAddressForm";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import { cpfCnpjValidationMessage } from "../../utils/cpfCnpj";
 import { cepDigits, maskCpfCnpj, maskPhone, onlyDigits } from "../../utils/masks";
 import {
   validateEmailForAuth,
@@ -54,6 +57,7 @@ export function SignupScreen({ navigation }: Props) {
   const [phone, setPhone] = useState("");
   const [addr, setAddr] = useState<CepAddressValue>(emptyAddr);
   const [err, setErr] = useState<string | null>(null);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   const signup = trpc.auth.signup.useMutation({
     onSuccess: async (data) => {
@@ -68,9 +72,9 @@ export function SignupScreen({ navigation }: Props) {
       setErr("Nome / Razão Social é obrigatório.");
       return false;
     }
-    const doc = onlyDigits(cpfCnpj);
-    if (doc.length !== 11 && doc.length !== 14) {
-      setErr("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
+    const docErr = cpfCnpjValidationMessage(onlyDigits(cpfCnpj));
+    if (docErr) {
+      setErr(docErr);
       return false;
     }
     if (!onlyDigits(phone) || onlyDigits(phone).length < 8) {
@@ -99,6 +103,10 @@ export function SignupScreen({ navigation }: Props) {
 
   const submit = () => {
     setErr(null);
+    if (!acceptPrivacy) {
+      setErr("É necessário aceitar a Política de Privacidade.");
+      return;
+    }
     const emailErr = validateEmailForAuth(email);
     if (emailErr) {
       setErr(emailErr);
@@ -116,6 +124,7 @@ export function SignupScreen({ navigation }: Props) {
         email: email.trim(),
         password,
         role: "DRIVER",
+        privacyPolicyAcceptedVersion: PRIVACY_POLICY_VERSION,
       });
       return;
     }
@@ -134,6 +143,7 @@ export function SignupScreen({ navigation }: Props) {
       uf: addr.uf.trim().toUpperCase(),
       numero: addr.numero.trim(),
       complemento: addr.complemento.trim() || "",
+      privacyPolicyAcceptedVersion: PRIVACY_POLICY_VERSION,
     });
   };
 
@@ -231,6 +241,25 @@ export function SignupScreen({ navigation }: Props) {
           </Card>
         ) : null}
 
+        <View style={styles.privacyRow}>
+          <Checkbox.Android
+            status={acceptPrivacy ? "checked" : "unchecked"}
+            onPress={() => setAcceptPrivacy((v) => !v)}
+          />
+          <View style={styles.privacyTextWrap}>
+            <Text variant="bodyMedium" style={styles.privacyLine}>
+              Li e aceito a{" "}
+              <Text
+                style={{ color: theme.colors.primary }}
+                onPress={() => navigation.navigate("PrivacyPolicy")}
+              >
+                Política de Privacidade
+              </Text>
+              .
+            </Text>
+          </View>
+        </View>
+
         <HelperText type="error" visible={!!err}>
           {err ?? ""}
         </HelperText>
@@ -265,4 +294,12 @@ const styles = StyleSheet.create({
   hint: { marginBottom: 8, opacity: 0.85 },
   primaryBtn: { marginTop: 8 },
   spacer: { height: 24 },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 8,
+    gap: 4,
+  },
+  privacyTextWrap: { flex: 1, paddingTop: 6 },
+  privacyLine: { flexWrap: "wrap", lineHeight: 22 },
 });

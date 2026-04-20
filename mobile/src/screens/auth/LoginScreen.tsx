@@ -128,6 +128,13 @@ export function LoginScreen({ navigation }: Props) {
         >
           Esqueci a senha
         </Button>
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate("PrivacyPolicy")}
+          style={styles.linkBtn}
+        >
+          Política de Privacidade
+        </Button>
 
         <View style={styles.spacer} />
       </ScrollView>

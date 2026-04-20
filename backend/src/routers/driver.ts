@@ -5,29 +5,41 @@ import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import { driverProcedure, router } from "../trpc.js";
+import { cpfValidationMessage } from "../validation/cpfCnpj.js";
 
 export const driverRouter = router({
   completePreRegistration: driverProcedure
     .input(
-      z.object({
-        fullName: z.string().min(3),
-        phone: z.string().min(8),
-        cpf: z.string().min(11).max(14),
-        cnh: z.string().min(5),
-        cnhCategory: z.string().min(1),
-        cnhValidity: z.string().min(8),
-        cnhYears: z.coerce.number().int().positive(),
-        cnhHasEar: z.boolean(),
-        criminalAttestation: z.boolean(),
-        uberRegistered: z.boolean(),
-        cep: z.string().min(8).max(9),
-        logradouro: z.string().min(1),
-        bairro: z.string().min(1),
-        cidade: z.string().min(1),
-        uf: z.string().length(2),
-        numero: z.string().min(1),
-        complemento: z.string().optional(),
-      })
+      z
+        .object({
+          fullName: z.string().min(3),
+          phone: z.string().min(8),
+          cpf: z.string().min(11).max(14),
+          cnh: z.string().min(5),
+          cnhCategory: z.string().min(1),
+          cnhValidity: z.string().min(8),
+          cnhYears: z.coerce.number().int().positive(),
+          cnhHasEar: z.boolean(),
+          criminalAttestation: z.boolean(),
+          uberRegistered: z.boolean(),
+          cep: z.string().min(8).max(9),
+          logradouro: z.string().min(1),
+          bairro: z.string().min(1),
+          cidade: z.string().min(1),
+          uf: z.string().length(2),
+          numero: z.string().min(1),
+          complemento: z.string().optional(),
+        })
+        .superRefine((data, ctx) => {
+          const msg = cpfValidationMessage(data.cpf);
+          if (msg) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msg,
+              path: ["cpf"],
+            });
+          }
+        })
     )
     .mutation(async ({ ctx, input }) => {
       if (!input.cnhHasEar) {
@@ -47,7 +59,7 @@ export const driverRouter = router({
         data: {
           fullName: input.fullName,
           phone: input.phone,
-          cpf: input.cpf,
+          cpf: input.cpf.replace(/\D/g, ""),
           cnh: input.cnh,
           cnhCategory: input.cnhCategory,
           cnhValidity: input.cnhValidity,

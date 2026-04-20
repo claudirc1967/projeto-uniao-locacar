@@ -5,7 +5,10 @@ import { z } from "zod";
 import { signJwt } from "../auth/jwt.js";
 import type { AuthedContext } from "../context.js";
 import { prisma } from "../db.js";
+import { PRIVACY_POLICY_VERSION } from "../privacy.js";
+import { deleteUserAccountData } from "../services/deleteUserAccount.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
+import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
 
 const emailPassword = z.object({
   email: z.string().email(),
@@ -28,18 +31,22 @@ const ownerSignupFields = {
 const signupInput = z.union([
   emailPassword.extend({
     role: z.literal("DRIVER"),
+    privacyPolicyAcceptedVersion: z.literal(PRIVACY_POLICY_VERSION),
   }),
   emailPassword
     .extend({
       role: z.literal("OWNER"),
     })
     .extend(ownerSignupFields)
+    .extend({
+      privacyPolicyAcceptedVersion: z.literal(PRIVACY_POLICY_VERSION),
+    })
     .superRefine((data, ctx) => {
-      const d = data.cpfCnpj.replace(/\D/g, "");
-      if (d.length !== 11 && d.length !== 14) {
+      const msg = cpfCnpjValidationMessage(data.cpfCnpj);
+      if (msg) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "CPF deve ter 11 dígitos ou CNPJ 14 dígitos",
+          message: msg,
           path: ["cpfCnpj"],
         });
       }
@@ -63,6 +70,8 @@ export const authRouter = router({
           email: input.email.toLowerCase(),
           passwordHash,
           role: input.role,
+          privacyPolicyVersion: input.privacyPolicyAcceptedVersion,
+          privacyPolicyAcceptedAt: new Date(),
           ...(input.role === "OWNER"
             ? {
                 ownerProfile: {
@@ -162,14 +171,53 @@ export const authRouter = router({
 
   me: protectedProcedure.query(async ({ ctx }) => {
     const u = (ctx as AuthedContext).user;
+    const needsPrivacyPolicyAcceptance =
+      !u.privacyPolicyAcceptedAt ||
+      u.privacyPolicyVersion !== PRIVACY_POLICY_VERSION;
     return {
       id: u.id,
       email: u.email,
       role: u.role,
       driverProfile: u.driverProfile,
       ownerProfile: u.ownerProfile,
+      privacyPolicyVersion: u.privacyPolicyVersion,
+      privacyPolicyAcceptedAt: u.privacyPolicyAcceptedAt,
+      needsPrivacyPolicyAcceptance,
+      currentPrivacyPolicyVersion: PRIVACY_POLICY_VERSION,
     };
   }),
+
+  acceptPrivacyPolicy: protectedProcedure
+    .input(
+      z.object({
+        version: z.literal(PRIVACY_POLICY_VERSION),
+      })
+    )
+    .mutation(async ({ ctx }) => {
+      const userId = (ctx as AuthedContext).user.id;
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+          privacyPolicyAcceptedAt: new Date(),
+        },
+      });
+      return { ok: true as const };
+    }),
+
+  deleteAccount: protectedProcedure
+    .input(z.object({ password: z.string().min(6).max(128) }))
+    .mutation(async ({ ctx, input }) => {
+      const u = (ctx as AuthedContext).user;
+      if (!(await bcrypt.compare(input.password, u.passwordHash))) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Senha incorreta",
+        });
+      }
+      await deleteUserAccountData(u.id);
+      return { ok: true as const };
+    }),
 
   /** Valida token atual (útil após cold start do app). */
   pingSession: protectedProcedure.query(() => ({ ok: true as const })),

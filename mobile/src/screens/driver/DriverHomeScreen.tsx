@@ -68,6 +68,13 @@ export function DriverHomeScreen({ navigation }: Props) {
             icon: "car-key",
             onPress: () => navigation.navigate("DriverRentals"),
           },
+          {
+            key: "privacy",
+            title: "Privacidade e conta",
+            subtitle: "Política e exclusão de conta",
+            icon: "shield-account-outline",
+            onPress: () => navigation.navigate("AccountPrivacy"),
+          },
         ]}
       />
 

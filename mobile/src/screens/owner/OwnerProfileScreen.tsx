@@ -74,6 +74,14 @@ export function OwnerProfileScreen({ navigation }: Props) {
       >
         Editar meus dados
       </Button>
+      <Button
+        mode="outlined"
+        icon="shield-account-outline"
+        onPress={() => navigation.navigate("AccountPrivacy")}
+        style={styles.btn}
+      >
+        Privacidade e conta
+      </Button>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>

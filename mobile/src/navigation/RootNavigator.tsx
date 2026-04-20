@@ -27,6 +27,10 @@ import { RentalInstructionsScreen } from "../screens/owner/RentalInstructionsScr
 import { VehicleFormScreen } from "../screens/owner/VehicleFormScreen";
 import { VehiclePhotosScreen } from "../screens/owner/VehiclePhotosScreen";
 import { RentalDetailScreen } from "../screens/rental/RentalDetailScreen";
+import { AccountDeletionScreen } from "../screens/legal/AccountDeletionScreen";
+import { AccountPrivacyScreen } from "../screens/legal/AccountPrivacyScreen";
+import { PrivacyAcceptanceScreen } from "../screens/legal/PrivacyAcceptanceScreen";
+import { PrivacyPolicyScreen } from "../screens/legal/PrivacyPolicyScreen";
 import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -44,11 +48,15 @@ export function RootNavigator() {
 
   const authed = !!(token && user);
   const navKey = authed ? `${user!.role}-${user!.id}` : "guest";
+  const needsPrivacy =
+    authed && user?.needsPrivacyPolicyAcceptance === true;
   const initialRouteName = !authed
     ? "Login"
-    : user!.role === "OWNER"
-      ? "OwnerHome"
-      : "DriverHome";
+    : needsPrivacy
+      ? "PrivacyAcceptance"
+      : user!.role === "OWNER"
+        ? "OwnerHome"
+        : "DriverHome";
 
   return (
     <NavigationContainer key={navKey}>
@@ -61,6 +69,30 @@ export function RootNavigator() {
       >
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
+        <Stack.Screen
+          name="PrivacyPolicy"
+          component={PrivacyPolicyScreen}
+          options={{ title: "Política de Privacidade" }}
+        />
+        <Stack.Screen
+          name="PrivacyAcceptance"
+          component={PrivacyAcceptanceScreen}
+          options={{
+            title: "Privacidade",
+            headerBackVisible: false,
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="AccountPrivacy"
+          component={AccountPrivacyScreen}
+          options={{ title: "Privacidade e conta" }}
+        />
+        <Stack.Screen
+          name="AccountDeletion"
+          component={AccountDeletionScreen}
+          options={{ title: "Excluir conta" }}
+        />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         <Stack.Screen name="OwnerHome" component={OwnerHomeScreen} />

@@ -18,6 +18,7 @@ import { fillRentalContract } from "../contracts/fillRentalContract.js";
 import { rentalContractTemplate } from "../contracts/rentalContractTemplate.js";
 import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
 import { putObjectBuffer } from "../storage/s3.js";
+import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
 
 const contentTypeSchema = z.enum(
   ALLOWED_CONTENT_TYPES as unknown as [string, ...string[]]
@@ -54,11 +55,11 @@ const ownerProfileInput = z
     complemento: z.string().max(200),
   })
   .superRefine((data, ctx) => {
-    const d = data.cpfCnpj.replace(/\D/g, "");
-    if (d.length !== 11 && d.length !== 14) {
+    const msg = cpfCnpjValidationMessage(data.cpfCnpj);
+    if (msg) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "CPF deve ter 11 dígitos ou CNPJ 14 dígitos",
+        message: msg,
         path: ["cpfCnpj"],
       });
     }

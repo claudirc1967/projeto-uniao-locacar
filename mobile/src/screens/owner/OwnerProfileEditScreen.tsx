@@ -24,6 +24,7 @@ import {
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
+import { cpfCnpjValidationMessage } from "../../utils/cpfCnpj";
 import { maskCpfCnpj, maskPhone, onlyDigits } from "../../utils/masks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerProfileEdit">;
@@ -90,6 +91,8 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLocador.trim()))
       return setErr("Informe um e-mail locador válido.");
     if (!onlyDigits(cpfCnpj).trim()) return setErr("CPF/CNPJ é obrigatório.");
+    const docErr = cpfCnpjValidationMessage(onlyDigits(cpfCnpj));
+    if (docErr) return setErr(docErr);
     if (!onlyDigits(phone) || onlyDigits(phone).length < 8)
       return setErr("Telefone/WhatsApp é obrigatório.");
     if (!addr.cep.trim()) return setErr("CEP é obrigatório.");

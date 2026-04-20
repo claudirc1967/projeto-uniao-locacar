@@ -18,6 +18,10 @@ export type SessionUser = {
   id: string;
   email: string;
   role: "OWNER" | "DRIVER";
+  needsPrivacyPolicyAcceptance?: boolean;
+  privacyPolicyVersion?: string;
+  privacyPolicyAcceptedAt?: string | Date | null;
+  currentPrivacyPolicyVersion?: string;
   driverProfile: {
     status: string;
     fullName: string | null;

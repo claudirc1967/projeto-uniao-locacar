@@ -59,6 +59,9 @@ model User {
   passwordHash String
   role         Role
   createdAt    DateTime @default(now())
+  /** Versão da política de privacidade aceita pelo usuário (ex.: "1"). */
+  privacyPolicyVersion    String    @default("")
+  privacyPolicyAcceptedAt DateTime?
 
   ownerProfile  OwnerProfile?
   driverProfile DriverProfile?

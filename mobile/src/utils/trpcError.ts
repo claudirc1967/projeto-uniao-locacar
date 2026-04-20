@@ -15,6 +15,7 @@ const FIELD_PT: Record<string, string> = {
   token: "Token",
   nomeRazaoSocial: "Nome / Razão Social",
   cpfCnpj: "CPF ou CNPJ",
+  cpf: "CPF",
   phone: "Telefone",
   cep: "CEP",
   logradouro: "Logradouro",
@@ -63,7 +64,10 @@ export function formatZodIssue(issue: ZodIssueParsed): string {
   if (code === "invalid_type") {
     return `${label}: preenchimento obrigatório.`;
   }
-  if (code === "custom" && lastKey === "cpfCnpj") {
+  if (
+    code === "custom" &&
+    (lastKey === "cpfCnpj" || lastKey === "cpf")
+  ) {
     return issue.message?.trim()
       ? `${label}: ${issue.message.trim()}`
       : `${label}: verifique o documento.`;

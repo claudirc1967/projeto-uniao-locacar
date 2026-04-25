@@ -33,6 +33,19 @@ enum RentalSituation {
   PENDENTE
 }
 
+enum RentalInspectionType {
+  CHECKOUT
+  CHECKIN
+}
+
+enum FuelLevel {
+  EMPTY
+  QUARTER
+  HALF
+  THREE_QUARTERS
+  FULL
+}
+
 enum ContractTime {
   DIARIO
   SEMANAL
@@ -72,6 +85,7 @@ model User {
   partners      Partner[]
   reviewsFrom   RentalReview[] @relation("ReviewFrom")
   reviewsTo     RentalReview[] @relation("ReviewTo")
+  createdInspections RentalInspection[] @relation("InspectionCreatedBy")
 }
 
 model Partner {
@@ -249,6 +263,44 @@ model Rental {
   updatedAt          DateTime     @updatedAt
 
   reviews RentalReview[]
+  inspections RentalInspection[]
+}
+
+model RentalInspection {
+  id              String               @id @default(cuid())
+  rentalId        String
+  rental          Rental               @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  type            RentalInspectionType
+  odometerKm      Int
+  fuelLevel       FuelLevel
+  notes           String?
+  createdByUserId String
+  createdBy       User                 @relation("InspectionCreatedBy", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  ownerAckAt      DateTime?
+  ownerAckUserId  String?
+  driverAckAt     DateTime?
+  driverAckUserId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  photos RentalInspectionPhoto[]
+
+  @@unique([rentalId, type])
+  @@index([rentalId])
+  @@index([createdByUserId])
+}
+
+model RentalInspectionPhoto {
+  id           String           @id @default(cuid())
+  inspectionId String
+  inspection   RentalInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  key          String           @unique
+  contentType  String
+  byteSize     Int
+  sortOrder    Int              @default(0)
+  createdAt    DateTime         @default(now())
+
+  @@index([inspectionId])
 }
 
 model RentalReview {

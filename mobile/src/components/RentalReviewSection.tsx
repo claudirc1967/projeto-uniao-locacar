@@ -30,6 +30,7 @@ type Props = {
   review: RentalReviewState;
   role: "OWNER" | "DRIVER";
   title: string;
+  onCommentFocus?: () => void;
 };
 
 export function RentalReviewSection({
@@ -37,6 +38,7 @@ export function RentalReviewSection({
   review,
   role,
   title,
+  onCommentFocus,
 }: Props) {
   const utils = trpc.useUtils();
   const [stars, setStars] = useState<number | null>(null);
@@ -176,6 +178,7 @@ export function RentalReviewSection({
           label="Comentário (opcional)"
           value={comment}
           onChangeText={setComment}
+          onFocus={onCommentFocus}
           multiline
           style={styles.commentInput}
         />

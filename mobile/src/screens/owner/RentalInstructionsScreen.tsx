@@ -31,6 +31,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
   const detail = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
+  const inspections = trpc.rentalInspection.list.useQuery({ rentalId });
   const [pickupInstructions, setPickup] = useState("");
   const [contractText, setContractText] = useState("");
   const [contractUrl, setContractUrl] = useState("");
@@ -95,6 +96,36 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
     },
     onError: (e) => setErr(trpcErrorMessage(e)),
   });
+
+  const runSave = () => {
+    setErr(null);
+    const instr = pickupInstructions.trim();
+    if (instr.length < 3) {
+      setErr("Informe as instruções de retirada (mínimo 3 caracteres).");
+      return;
+    }
+    save.mutate({
+      rentalId,
+      pickupInstructions: instr,
+      contractText: contractText || null,
+      contractUrl: contractUrl.trim() || null,
+    });
+  };
+
+  const confirmSave = () => {
+    if (!inspections.data?.items.some((inspection) => inspection.type === "CHECKOUT")) {
+      Alert.alert(
+        "Vistoria recomendada",
+        "A vistoria de retirada ainda não foi feita. Deseja ativar a locação mesmo assim?",
+        [
+          { text: "Voltar", style: "cancel" },
+          { text: "Ativar mesmo assim", onPress: runSave },
+        ]
+      );
+      return;
+    }
+    runSave();
+  };
 
   if (detail.isLoading) {
     return (
@@ -174,22 +205,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
           mode="contained"
           loading={save.isPending}
           disabled={save.isPending}
-          onPress={() => {
-            setErr(null);
-            const instr = pickupInstructions.trim();
-            if (instr.length < 3) {
-              setErr(
-                "Informe as instruções de retirada (mínimo 3 caracteres)."
-              );
-              return;
-            }
-            save.mutate({
-              rentalId,
-              pickupInstructions: instr,
-              contractText: contractText || null,
-              contractUrl: contractUrl.trim() || null,
-            });
-          }}
+          onPress={confirmSave}
         >
           Salvar e ativar locação
         </Button>

@@ -9,7 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_TRPC_URL": "https://evangelistic-nonqualifying-thatcher.ngrok-free.dev/trpc"
+      }
     },
     "production": {
       "autoIncrement": true

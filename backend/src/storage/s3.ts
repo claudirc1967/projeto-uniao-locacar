@@ -35,6 +35,15 @@ export function buildVehiclePhotoKey(vehicleId: string, fileName?: string) {
   return `vehicles/${vehicleId}/${randomUUID()}-${safe}`;
 }
 
+export function buildRentalInspectionPhotoKey(
+  rentalId: string,
+  type: "CHECKOUT" | "CHECKIN",
+  fileName?: string
+) {
+  const safe = (fileName ?? "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+  return `rentals/${rentalId}/inspections/${type}/${randomUUID()}-${safe}`;
+}
+
 export async function presignPutUpload(
   key: string,
   contentType: AllowedContentType

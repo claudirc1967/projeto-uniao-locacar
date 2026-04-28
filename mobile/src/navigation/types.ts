@@ -21,6 +21,7 @@ export type RootStackParamList = {
   OwnerRentalDetail: { rentalId: string };
   RentalInstructions: { rentalId: string; contractTextDraft?: string };
   RentalContractEdit: { rentalId: string; initialContractText: string };
+  RentalInspectionForm: { rentalId: string; type: "CHECKOUT" | "CHECKIN" };
   DriverHome: undefined;
   DriverPreRegister: undefined;
   DriverStatus: undefined;

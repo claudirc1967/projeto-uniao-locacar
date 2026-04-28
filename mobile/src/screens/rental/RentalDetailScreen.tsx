@@ -2,10 +2,13 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Keyboard,
   Linking,
   Platform,
   ScrollView,
@@ -14,6 +17,7 @@ import {
 } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { RentalInspectionSection } from "../../components/RentalInspectionSection";
 import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
@@ -121,7 +125,31 @@ export function RentalDetailScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
+  const scrollRef = useRef<ScrollView>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const q = trpc.driver.getRentalDetail.useQuery({ rentalId });
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () => {
+      setKeyboardVisible(true);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 80);
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const scrollReviewIntoView = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  };
 
   if (q.isLoading) {
     return (
@@ -151,12 +179,19 @@ export function RentalDetailScreen({ navigation, route }: Props) {
     r.status === "ACTIVE" || r.status === "COMPLETED";
 
   return (
-    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.flex, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+    >
       <ScrollView
+        ref={scrollRef}
         style={{ backgroundColor: theme.colors.background }}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: 20 + insets.bottom },
+          { paddingBottom: Math.max(insets.bottom, 20) + 140 },
         ]}
       >
       <Text variant="headlineSmall">{r.vehicle.title}</Text>
@@ -255,19 +290,28 @@ export function RentalDetailScreen({ navigation, route }: Props) {
       ) : null}
       <VehicleLocationActions vehicle={r.vehicle} />
 
+      <RentalInspectionSection
+        rentalId={rentalId}
+        rentalStatus={r.status}
+        role="DRIVER"
+      />
+
       <RentalReviewSection
         rentalId={rentalId}
         review={r.review}
         role="DRIVER"
         title="Como foi com o locador?"
+        onCommentFocus={scrollReviewIntoView}
       />
       </ScrollView>
-      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
-        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
-          Voltar
-        </Button>
-      </View>
-    </View>
+      {!keyboardVisible ? (
+        <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+          <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+            Voltar
+          </Button>
+        </View>
+      ) : null}
+    </KeyboardAvoidingView>
   );
 }
 

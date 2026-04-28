@@ -24,7 +24,6 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { OwnerRentalFinanceSection } from "../../components/OwnerRentalFinanceSection";
 import { RentalInspectionSection } from "../../components/RentalInspectionSection";
 import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";
@@ -90,19 +89,6 @@ function parseDdMmYyyy(s: string): Date | null {
     return null;
   }
   return dt;
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text variant="bodySmall" style={styles.infoLabel}>
-        {label}
-      </Text>
-      <Text variant="bodyMedium" style={styles.infoValue}>
-        {value}
-      </Text>
-    </View>
-  );
 }
 
 export function OwnerRentalDetailScreen({ navigation, route }: Props) {
@@ -294,40 +280,43 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           <Text variant="titleMedium" style={styles.sectionTitle}>
             Solicitação
           </Text>
-          <InfoRow label="Data solicitação" value={formatDateTimeDisplay(row.requestedAt)} />
+          <Text variant="bodySmall" style={styles.meta}>
+            Data solicitação: {formatDateTimeDisplay(row.requestedAt)}
+          </Text>
           {showApprovalOrRejection ? (
-            <InfoRow
-              label={
-                row.status === "REJECTED"
-                  ? "Data recusa"
-                  : row.status === "COMPLETED"
-                    ? "Data conclusão"
-                    : "Data aprovação"
-              }
-              value={formatDateTimeDisplay(row.updatedAt)}
-            />
+            <Text variant="bodySmall" style={styles.meta}>
+              {row.status === "REJECTED"
+                ? "Data recusa: "
+                : row.status === "COMPLETED"
+                  ? "Data conclusão: "
+                  : "Data aprovação: "}
+              {formatDateTimeDisplay(row.updatedAt)}
+            </Text>
           ) : null}
-          <InfoRow label="Status" value={statusLabel[row.status] ?? row.status} />
+          <Text variant="bodySmall" style={styles.meta}>
+            Status: {statusLabel[row.status] ?? row.status}
+          </Text>
           {showSituationBlock ? (
             <>
-              <InfoRow
-                label="Situação"
-                value={situationLabel[row.situation] ?? row.situation}
-              />
+              <Text variant="bodySmall" style={styles.meta}>
+                Situação:{" "}
+                {situationLabel[row.situation] ?? row.situation}
+              </Text>
               {row.returnDate ? (
-                <InfoRow
-                  label="Data devolução"
-                  value={formatDateDisplay(row.returnDate)}
-                />
+                <Text variant="bodySmall" style={styles.meta}>
+                  Data devolução: {formatDateDisplay(row.returnDate)}
+                </Text>
               ) : null}
               {row.situation === "PENDENTE" && row.pendingReason ? (
-                <InfoRow label="Motivo da pendência" value={row.pendingReason} />
+                <Text variant="bodySmall" style={styles.meta}>
+                  Motivo da pendência: {row.pendingReason}
+                </Text>
               ) : null}
               {row.situation === "PENDENTE" && row.pendingResolutionExpectedAt ? (
-                <InfoRow
-                  label="Previsão da solução"
-                  value={formatDateDisplay(row.pendingResolutionExpectedAt)}
-                />
+                <Text variant="bodySmall" style={styles.meta}>
+                  Previsão da solução:{" "}
+                  {formatDateDisplay(row.pendingResolutionExpectedAt)}
+                </Text>
               ) : null}
             </>
           ) : null}
@@ -338,6 +327,8 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           ) : null}
         </Card.Content>
       </Card>
+
+      <View style={styles.divider} />
 
       {(row.status === "ACTIVE" || row.status === "APPROVED") &&
       (row.pickupInstructions || row.contractUrl) ? (
@@ -387,11 +378,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         </Card>
       ) : null}
 
-      <OwnerRentalFinanceSection
-        rentalId={rentalId}
-        finance={row.financial}
-        defaultAmountCents={row.vehicle.dailyRateCents}
-      />
+      <View style={styles.divider} />
 
       <RentalInspectionSection
         rentalId={rentalId}
@@ -405,6 +392,8 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         }
       />
 
+      <View style={styles.divider} />
+
       <Card mode="outlined" style={styles.cardWrap}>
         <Card.Content style={styles.cardContent}>
           <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -413,26 +402,28 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           <Text variant="titleMedium" style={styles.vehicleTitle}>
             {row.vehicle.title}
           </Text>
-          <InfoRow label="Placa" value={row.vehicle.plate} />
+          <Text variant="bodySmall" style={styles.meta}>
+            Placa: {row.vehicle.plate}
+          </Text>
           {row.vehicle.brand || row.vehicle.model || row.vehicle.year ? (
-            <InfoRow
-              label="Modelo"
-              value={`${row.vehicle.brand ? row.vehicle.brand : ""}${
-                row.vehicle.brand && row.vehicle.model ? " · " : ""
-              }${row.vehicle.model ? row.vehicle.model : ""}${
-                row.vehicle.year ? ` (${row.vehicle.year})` : ""
-              }`}
-            />
+            <Text variant="bodySmall" style={styles.meta}>
+              {row.vehicle.brand ? row.vehicle.brand : ""}
+              {row.vehicle.brand && row.vehicle.model ? " · " : ""}
+              {row.vehicle.model ? row.vehicle.model : ""}
+              {row.vehicle.year ? ` (${row.vehicle.year})` : ""}
+            </Text>
           ) : null}
-          <InfoRow label="Cor" value={row.vehicle.cor?.trim() || "—"} />
-          <InfoRow
-            label="Capacidade"
-            value={`Portas: ${row.vehicle.portas ?? 4} · Lugares: ${
-              row.vehicle.lugares ?? 5
-            }`}
-          />
+          <Text variant="bodySmall" style={styles.meta}>
+            Cor: {row.vehicle.cor?.trim() || "—"}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            Portas: {row.vehicle.portas ?? 4} · Lugares:{" "}
+            {row.vehicle.lugares ?? 5}
+          </Text>
         </Card.Content>
       </Card>
+
+      <View style={styles.divider} />
 
       <Card mode="outlined" style={styles.cardWrap}>
         <Card.Content style={styles.cardContent}>
@@ -442,93 +433,71 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           <Text variant="titleSmall" style={styles.valueTitle}>
             {driverProfile?.fullName ?? "—"}
           </Text>
-          <InfoRow label="E-mail" value={row.driver.email} />
-          <InfoRow
-            label="Telefone"
-            value={driverProfile?.phone ? maskPhone(driverProfile.phone) : "—"}
-          />
-          <InfoRow
-            label="CPF"
-            value={driverProfile?.cpf ? maskCpf(driverProfile.cpf) : "—"}
-          />
+          <Text variant="bodySmall" style={styles.meta}>
+            E-mail: {row.driver.email}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            Telefone: {driverProfile?.phone ? maskPhone(driverProfile.phone) : "—"}
+          </Text>
+          <Text variant="bodySmall" style={styles.meta}>
+            CPF: {driverProfile?.cpf ? maskCpf(driverProfile.cpf) : "—"}
+          </Text>
 
           <View style={styles.subBlock}>
             <Text variant="labelLarge" style={styles.subTitle}>
               CNH
             </Text>
-            <InfoRow label="Número" value={driverProfile?.cnh ?? "—"} />
-            <InfoRow label="Categoria" value={driverProfile?.cnhCategory ?? "—"} />
-            <InfoRow
-              label="Validade"
-              value={
-                driverProfile?.cnhValidity
-                  ? maskDate(driverProfile.cnhValidity)
-                  : "—"
-              }
-            />
-            <InfoRow
-              label="Anos de habilitação"
-              value={
-                driverProfile?.cnhYears != null
-                  ? String(driverProfile.cnhYears)
-                  : "—"
-              }
-            />
-            <InfoRow
-              label="CNH com EAR"
-              value={
-                driverProfile?.cnhHasEar == null
-                  ? "—"
-                  : driverProfile.cnhHasEar
-                    ? "Sim"
-                    : "Não"
-              }
-            />
-            <InfoRow
-              label="Antecedentes criminais"
-              value={
-                driverProfile?.criminalAttestation == null
-                  ? "—"
-                  : driverProfile.criminalAttestation
-                    ? "Sim"
-                    : "Não"
-              }
-            />
-            <InfoRow
-              label="Cadastro em app"
-              value={
-                driverProfile?.uberRegistered == null
-                  ? "—"
-                  : driverProfile.uberRegistered
-                    ? "Sim"
-                    : "Não"
-              }
-            />
+            <Text variant="bodySmall" style={styles.meta}>
+              Número: {driverProfile?.cnh ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Categoria: {driverProfile?.cnhCategory ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Validade: {driverProfile?.cnhValidity ? maskDate(driverProfile.cnhValidity) : "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Anos de habilitação:{" "}
+              {driverProfile?.cnhYears != null ? String(driverProfile.cnhYears) : "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+            CNH com EAR (Exerce Atividade Remunerada): {driverProfile?.cnhHasEar == null ? "—" : driverProfile.cnhHasEar ? "Sim" : "Não"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Atestado de Antecedentes Criminais *:{" "}
+              {driverProfile?.criminalAttestation == null
+                ? "—"
+                : driverProfile.criminalAttestation
+                  ? "Sim"
+                  : "Não"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+            Cadastrado no aplicativo (Uber, 99, etc.): {driverProfile?.uberRegistered == null ? "—" : driverProfile.uberRegistered ? "Sim" : "Não"}
+            </Text>
           </View>
 
           <View style={styles.subBlock}>
             <Text variant="labelLarge" style={styles.subTitle}>
               Endereço
             </Text>
-            <InfoRow label="CEP" value={driverProfile?.cep ?? "—"} />
-            <InfoRow
-              label="Logradouro"
-              value={driverProfile?.logradouro ?? "—"}
-            />
-            <InfoRow label="Número" value={driverProfile?.numero ?? "—"} />
-            <InfoRow
-              label="Complemento"
-              value={driverProfile?.complemento ?? "—"}
-            />
-            <InfoRow label="Bairro" value={driverProfile?.bairro ?? "—"} />
-            <InfoRow
-              label="Cidade/UF"
-              value={
-                [driverProfile?.cidade, driverProfile?.uf]
-                  .filter(Boolean)
-                  .join(" / ") || "—"
-              }
-            />
+            <Text variant="bodySmall" style={styles.meta}>
+              CEP: {driverProfile?.cep ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Logradouro: {driverProfile?.logradouro ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Número: {driverProfile?.numero ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Complemento: {driverProfile?.complemento ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Bairro: {driverProfile?.bairro ?? "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Cidade/UF: {[driverProfile?.cidade, driverProfile?.uf].filter(Boolean).join(" / ") || "—"}
+            </Text>
           </View>
         </Card.Content>
       </Card>
@@ -680,17 +649,15 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 16 },
-  container: { padding: 20, paddingBottom: 20, gap: 16 },
+  container: { padding: 20, paddingBottom: 20, gap: 14 },
   footer: { paddingHorizontal: 20, paddingTop: 8 },
   title: { marginBottom: 2 },
-  cardWrap: { marginBottom: 0, borderRadius: 18, backgroundColor: "#fff" },
-  cardContent: { gap: 10 },
-  sectionTitle: { marginBottom: 2 },
+  cardWrap: { marginBottom: 0 },
+  cardContent: { gap: 6 },
+  sectionTitle: { marginBottom: 6 },
   vehicleTitle: { marginBottom: 4 },
+  divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 2 },
   meta: { opacity: 0.85 },
-  infoRow: { gap: 2 },
-  infoLabel: { color: "#64748b" },
-  infoValue: { color: "#0f172a", lineHeight: 21 },
   longText: { lineHeight: 22, marginTop: 4 },
   unlockedHint: {
     marginTop: 4,
@@ -703,11 +670,11 @@ const styles = StyleSheet.create({
   },
   valueTitle: { marginBottom: 4 },
   subBlock: {
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-    gap: 8,
+    borderTopColor: "#f1f5f9",
+    gap: 4,
   },
   subTitle: { marginBottom: 4 },
   modalRoot: {

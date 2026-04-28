@@ -88,7 +88,7 @@ export function RentalReviewSection({
     const s = review.submitted;
     return (
       <Card mode="outlined" style={styles.card}>
-        <Card.Content>
+        <Card.Content style={styles.content}>
           <Text variant="titleMedium">Sua avaliação</Text>
           <View style={styles.starRow}>
             {[1, 2, 3, 4, 5].map((n) => (
@@ -126,8 +126,8 @@ export function RentalReviewSection({
   const tagList = stars != null && stars >= 4 ? TAGS_HIGH : TAGS_LOW;
 
   return (
-    <Card mode="elevated" style={styles.card}>
-      <Card.Content>
+    <Card mode="outlined" style={styles.card}>
+      <Card.Content style={styles.content}>
         <Text variant="titleMedium">{title}</Text>
         <Text variant="bodySmall" style={styles.hint}>
           Avaliação rápida: estrelas obrigatórias; chips e texto são opcionais.
@@ -203,7 +203,8 @@ export function RentalReviewSection({
 }
 
 const styles = StyleSheet.create({
-  card: { marginTop: 16, borderRadius: 16 },
+  card: { marginTop: 0, borderRadius: 18, backgroundColor: "#fff" },
+  content: { gap: 8 },
   hint: { marginTop: 6, opacity: 0.85, marginBottom: 8 },
   starRow: {
     flexDirection: "row",

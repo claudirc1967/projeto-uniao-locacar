@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="União LocaCar conecta locadores e motoristas para simplificar solicitações, contratos, vistorias e acompanhamento de locações de veículos."
+    />
+    <title>União LocaCar | Locação de veículos com praticidade</title>
+    <link rel="icon" href="mobile/assets/icon.png" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #07111f;
+        --bg-soft: #0f1f35;
+        --primary: #2563eb;
+        --primary-light: #60a5fa;
+        --accent: #f59e0b;
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --card: rgba(255, 255, 255, 0.1);
+        --border: rgba(255, 255, 255, 0.18);
+        --shadow: rgba(2, 6, 23, 0.45);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% 16%, rgba(37, 99, 235, 0.5), transparent 28%),
+          radial-gradient(circle at 84% 12%, rgba(245, 158, 11, 0.32), transparent 26%),
+          linear-gradient(135deg, var(--bg), var(--bg-soft) 48%, #111827);
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+        background-size: 42px 42px;
+        mask-image: linear-gradient(to bottom, black, transparent 80%);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        position: relative;
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 32px;
+        align-items: center;
+        min-height: calc(100vh - 80px);
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        background: var(--card);
+        box-shadow: 0 28px 90px var(--shadow);
+        backdrop-filter: blur(18px);
+      }
+
+      .intro {
+        border-radius: 34px;
+        padding: clamp(28px, 6vw, 58px);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 34px;
+      }
+
+      .logo {
+        width: 72px;
+        height: 72px;
+        border-radius: 22px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.36);
+      }
+
+      .brand-name {
+        display: block;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .brand-status {
+        display: block;
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      h1 {
+        max-width: 760px;
+        margin: 0;
+        font-size: clamp(2.6rem, 7vw, 5.7rem);
+        line-height: 0.96;
+        letter-spacing: -0.065em;
+      }
+
+      .highlight {
+        color: var(--primary-light);
+      }
+
+      .lead {
+        max-width: 680px;
+        margin: 28px 0 0;
+        color: var(--muted);
+        font-size: clamp(1.05rem, 2vw, 1.3rem);
+        line-height: 1.75;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 34px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .button.primary {
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--primary), #1d4ed8);
+        box-shadow: 0 16px 36px rgba(37, 99, 235, 0.35);
+      }
+
+      .button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .side {
+        display: grid;
+        gap: 18px;
+      }
+
+      .card {
+        border-radius: 28px;
+        padding: 26px;
+      }
+
+      .card strong {
+        display: block;
+        margin-bottom: 10px;
+        font-size: 1.15rem;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .tag {
+        display: inline-flex;
+        width: fit-content;
+        margin-bottom: 18px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.14);
+        color: #fde68a;
+        font-size: 0.85rem;
+        font-weight: 800;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .feature {
+        min-height: 100%;
+        border-radius: 24px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .feature span {
+        display: inline-grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        margin-bottom: 16px;
+        border-radius: 14px;
+        background: rgba(96, 165, 250, 0.16);
+        color: #bfdbfe;
+        font-weight: 900;
+      }
+
+      .feature h2 {
+        margin: 0 0 10px;
+        font-size: 1.12rem;
+      }
+
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        margin-top: 28px;
+        padding: 22px 0 0;
+        color: rgba(226, 232, 240, 0.78);
+        font-size: 0.95rem;
+      }
+
+      @media (max-width: 880px) {
+        .hero,
+        .features {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: auto;
+          padding-top: 28px;
+        }
+
+        .footer {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .page {
+          width: min(100% - 20px, 1120px);
+          padding: 10px 0 28px;
+        }
+
+        .intro,
+        .card,
+        .feature {
+          border-radius: 22px;
+          padding: 22px;
+        }
+
+        .brand {
+          margin-bottom: 26px;
+        }
+
+        .logo {
+          width: 58px;
+          height: 58px;
+          border-radius: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero" aria-labelledby="titulo">
+        <div class="intro panel">
+          <div class="brand" aria-label="União LocaCar">
+            <img
+              class="logo"
+              src="mobile/assets/icon.png"
+              alt="Ícone do União LocaCar"
+            />
+            <span>
+              <span class="brand-name">União LocaCar</span>
+              <span class="brand-status">Aplicativo em desenvolvimento</span>
+            </span>
+          </div>
+
+          <h1 id="titulo">
+            Locação de veículos com mais
+            <span class="highlight">organização</span> e praticidade.
+          </h1>
+
+          <p class="lead">
+            O União LocaCar aproxima proprietários de veículos e motoristas que
+            buscam oportunidades de locação. A plataforma nasceu para centralizar
+            solicitações, contratos, vistorias e acompanhamento financeiro em uma
+            experiência simples, clara e segura.
+          </p>
+
+          <div class="actions" aria-label="Contatos e status">
+            <a class="button primary" href="mailto:contato@uniaolocacar.com.br">
+              Fale conosco
+            </a>
+            <a class="button secondary" href="#proposito">
+              Conheça o propósito
+            </a>
+          </div>
+        </div>
+
+        <aside class="side" id="proposito" aria-label="Propósito do aplicativo">
+          <article class="card panel">
+            <span class="tag">Em breve</span>
+            <strong>Uma ponte entre locadores e motoristas</strong>
+            <p>
+              Menos mensagens soltas, menos papelada e mais controle em cada
+              etapa da locação, desde o interesse inicial até a entrega do
+              veículo.
+            </p>
+          </article>
+
+          <article class="card panel">
+            <strong>Para quem tem veículo</strong>
+            <p>
+              Cadastre veículos, receba solicitações, aprove ou recuse pedidos,
+              acompanhe contratos, vistorias e dados importantes da operação.
+            </p>
+          </article>
+
+          <article class="card panel">
+            <strong>Para quem precisa locar</strong>
+            <p>
+              Encontre veículos disponíveis, envie solicitações e acompanhe o
+              andamento da locação com mais transparência.
+            </p>
+          </article>
+        </aside>
+      </section>
+
+      <section class="features" aria-label="Benefícios">
+        <article class="feature">
+          <span>1</span>
+          <h2>Solicitações centralizadas</h2>
+          <p>
+            Locadores recebem pedidos em um só lugar e motoristas acompanham o
+            status da solicitação sem perder informações importantes.
+          </p>
+        </article>
+
+        <article class="feature">
+          <span>2</span>
+          <h2>Contratos e vistorias</h2>
+          <p>
+            O processo de locação fica mais organizado com registros digitais,
+            orientações de retirada, entrega e histórico da negociação.
+          </p>
+        </article>
+
+        <article class="feature">
+          <span>3</span>
+          <h2>Gestão mais simples</h2>
+          <p>
+            Acompanhe veículos, motoristas, dados financeiros e documentos com
+            uma solução pensada para o dia a dia da locação.
+          </p>
+        </article>
+      </section>
+
+      <footer class="footer">
+        <span>© 2026 União LocaCar. Todos os direitos reservados.</span>
+        <span>uniaolocacar.com.br</span>
+      </footer>
+    </main>
+  </body>
+</html>

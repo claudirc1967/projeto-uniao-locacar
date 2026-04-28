@@ -98,6 +98,23 @@ type FilterDraft = {
   priceMax: string;
 };
 
+function toOwnerMinStarsOption(value: number | undefined): OwnerMinStarsOption {
+  switch (value) {
+    case 1:
+      return "1";
+    case 2:
+      return "2";
+    case 3:
+      return "3";
+    case 4:
+      return "4";
+    case 5:
+      return "5";
+    default:
+      return "ANY";
+  }
+}
+
 function emptyDraft(): FilterDraft {
   return {
     ownerMinStars: "ANY",
@@ -118,17 +135,8 @@ function emptyDraft(): FilterDraft {
 }
 
 function draftFromApplied(a: MarketplaceListFilters): FilterDraft {
-  const minStars = a.ownerMinAverageStars;
-  const ownerMinStars: OwnerMinStarsOption =
-    minStars === 1 ||
-    minStars === 2 ||
-    minStars === 3 ||
-    minStars === 4 ||
-    minStars === 5
-      ? String(minStars)
-      : "ANY";
   return {
-    ownerMinStars,
+    ownerMinStars: toOwnerMinStarsOption(a.ownerMinAverageStars),
     brand: a.brandContains ?? "",
     model: a.modelContains ?? "",
     cor: a.corContains ?? "",

@@ -101,8 +101,8 @@ export function RentalInspectionSection({
       role === "OWNER" ? !!inspection?.ownerAckAt : !!inspection?.driverAckAt;
 
     return (
-      <Card mode="outlined" style={styles.inspectionCard} key={type}>
-        <Card.Content style={styles.inspectionContent}>
+      <View style={styles.inspectionBlock} key={type}>
+        <View style={styles.inspectionContent}>
           <View style={styles.headerRow}>
             <View style={styles.headerText}>
               <Text variant="titleSmall">{inspectionTitle[type]}</Text>
@@ -165,8 +165,8 @@ export function RentalInspectionSection({
               Recomendada para registrar fotos, combustível e hodômetro.
             </Text>
           )}
-        </Card.Content>
-      </Card>
+        </View>
+      </View>
     );
   };
 
@@ -203,6 +203,7 @@ export function RentalInspectionSection({
                 </View>
               ) : null}
               {renderInspection("CHECKOUT")}
+              <View style={styles.innerDivider} />
               {renderInspection("CHECKIN")}
             </>
           )}
@@ -220,9 +221,9 @@ export function RentalInspectionSection({
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 0 },
+  card: { marginBottom: 0, borderRadius: 18, backgroundColor: "#fff" },
   content: { gap: 10 },
-  inspectionCard: { backgroundColor: "#fff" },
+  inspectionBlock: { paddingVertical: 2 },
   inspectionContent: { gap: 6 },
   headerRow: {
     flexDirection: "row",
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
   meta: { opacity: 0.85 },
   notes: { marginTop: 2, lineHeight: 19 },
   emptyText: { opacity: 0.75, lineHeight: 19 },
+  innerDivider: { height: 1, backgroundColor: "#e2e8f0" },
   photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   photoWrap: {
     width: 58,
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
   ackButton: { marginTop: 4, alignSelf: "flex-start" },
   mileageBox: {
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: "#f0fdf4",
     gap: 2,
   },

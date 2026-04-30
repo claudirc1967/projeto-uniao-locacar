@@ -22,7 +22,7 @@ import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
-import { formatDateDisplay } from "../../utils/masks";
+import { formatDateDisplay, maskPhone, onlyDigits } from "../../utils/masks";
 import {
   buildVehiclePickupSearchQuery,
   googleMapsSearchUrl,
@@ -172,6 +172,13 @@ export function RentalDetailScreen({ navigation, route }: Props) {
     r.vehicle.owner?.ownerProfile?.nomeRazaoSocial?.trim() ||
     r.vehicle.owner?.email ||
     "—";
+  const ownerPhone = r.vehicle.owner?.ownerProfile?.phone?.trim() || "";
+  const ownerPhoneDigits = onlyDigits(ownerPhone);
+  const whatsappPhone = ownerPhoneDigits
+    ? ownerPhoneDigits.startsWith("55")
+      ? ownerPhoneDigits
+      : `55${ownerPhoneDigits}`
+    : "";
   const showPickup =
     (r.status === "ACTIVE" || r.status === "APPROVED") && r.pickupInstructions;
 
@@ -216,6 +223,21 @@ export function RentalDetailScreen({ navigation, route }: Props) {
       <Text variant="titleSmall" style={styles.ownerLabel}>
         Locador: {ownerName}
       </Text>
+      {ownerPhoneDigits ? (
+        <>
+          <Text variant="bodyMedium" style={styles.ownerPhone}>
+            Telefone/WhatsApp: {maskPhone(ownerPhone)}
+          </Text>
+          <Button
+            mode="outlined"
+            icon="whatsapp"
+            style={styles.whatsappButton}
+            onPress={() => void Linking.openURL(`https://wa.me/${whatsappPhone}`)}
+          >
+            Chamar no WhatsApp
+          </Button>
+        </>
+      ) : null}
 
       {showReturnInfo ? (
         <Card mode="elevated" style={[styles.card, styles.infoCard]}>
@@ -326,6 +348,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "700",
   },
+  ownerPhone: { marginTop: 6, textAlign: "center", opacity: 0.85 },
+  whatsappButton: { marginTop: 10 },
   card: { marginTop: 16, borderRadius: 16 },
   infoCard: {
     backgroundColor: "#f0fdf4",

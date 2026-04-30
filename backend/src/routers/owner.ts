@@ -761,6 +761,7 @@ export const ownerRouter = router({
     .mutation(async ({ input }) => {
       const p = await prisma.driverProfile.findUnique({
         where: { userId: input.driverUserId },
+        include: { user: { select: { email: true } } },
       });
       if (!p) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Motorista não encontrado" });
@@ -775,6 +776,30 @@ export const ownerRouter = router({
         where: { userId: input.driverUserId },
         data: { status: "APPROVED", rejectionReason: null },
       });
+
+      const to = p.user.email?.trim();
+      if (to) {
+        const driverName = p.fullName?.trim() || "motorista";
+        void sendEmail({
+          to,
+          subject: "Cadastro aprovado na União Locacar",
+          text: [
+            `Olá, ${driverName}.`,
+            "",
+            "Bem-vindo(a) à União Locacar!",
+            "",
+            "Seu cadastro de motorista foi aprovado na plataforma.",
+            "A partir de agora, você já pode acessar o app, ver os veículos disponíveis e solicitar locações.",
+            "",
+            "Atenciosamente,",
+            "Equipe União Locacar",
+            "",
+            "Este é um e-mail automático. Por favor, não responda.",
+          ].join("\n"),
+        }).catch(() => {
+          /* não falha a aprovação por e-mail */
+        });
+      }
       return { ok: true as const };
     }),
 
@@ -861,7 +886,15 @@ export const ownerRouter = router({
   }),
 
   approveRental: ownerProcedure
-    .input(z.object({ rentalId: z.string() }))
+    .input(
+      z.object({
+        rentalId: z.string(),
+        pickupInstructions: z.string().min(3, {
+          message:
+            "Informe as instruções de retirada (mínimo 3 caracteres).",
+        }),
+      })
+    )
     .mutation(async ({ ctx, input }) => {
       const r = await prisma.rental.findFirst({
         where: {
@@ -882,6 +915,7 @@ export const ownerRouter = router({
       }
 
       const owner = (ctx as AuthedContext).user;
+      const pickupInstructions = input.pickupInstructions.trim();
       const baseTemplate =
         owner.ownerProfile?.contractTemplateText?.trim() || rentalContractTemplate;
       const contractText = fillRentalContract(baseTemplate, {
@@ -911,7 +945,7 @@ export const ownerRouter = router({
       await prisma.$transaction([
         prisma.rental.update({
           where: { id: r.id },
-          data: { status: "APPROVED", contractText },
+          data: { status: "APPROVED", contractText, pickupInstructions },
         }),
         // Ao aprovar a locação, impedimos que o motorista solicite novamente
         // o mesmo veículo enquanto essa locação estiver em andamento.
@@ -930,6 +964,10 @@ export const ownerRouter = router({
             "Sua solicitação de locação foi aprovada.",
             "",
             `Veículo: ${r.vehicle.title ?? "—"} (${r.vehicle.plate})`,
+            "",
+            "Instruções de retirada:",
+            pickupInstructions,
+            "",
             `Rental ID: ${r.id}`,
           ].join("\n"),
         }).catch(() => {

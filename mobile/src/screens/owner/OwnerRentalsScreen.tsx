@@ -11,7 +11,15 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Card, HelperText, Text, TextInput, useTheme } from "react-native-paper";
+import {
+  Button,
+  Card,
+  Chip,
+  HelperText,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
@@ -44,7 +52,14 @@ export function OwnerRentalsScreen({ navigation }: Props) {
   const q = trpc.owner.listIncomingRentals.useQuery();
   const utils = trpc.useUtils();
   const approve = trpc.owner.approveRental.useMutation({
-    onSuccess: () => void utils.owner.listIncomingRentals.invalidate(),
+    onSuccess: () => {
+      void utils.owner.listIncomingRentals.invalidate();
+      setApproveModalOpen(false);
+      setApproveRentalId(null);
+      setPickupInstructions("");
+      setApproveErr(null);
+    },
+    onError: (e) => setApproveErr(trpcErrorMessage(e)),
   });
   const reject = trpc.owner.rejectRental.useMutation({
     onSuccess: () => {
@@ -68,16 +83,46 @@ export function OwnerRentalsScreen({ navigation }: Props) {
     onError: () => setDeletingRentalId(null),
   });
 
+  const [approveModalOpen, setApproveModalOpen] = useState(false);
+  const [approveRentalId, setApproveRentalId] = useState<string | null>(null);
+  const [pickupInstructions, setPickupInstructions] = useState("");
+  const [approveErr, setApproveErr] = useState<string | null>(null);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectRentalId, setRejectRentalId] = useState<string | null>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
   const [modalErr, setModalErr] = useState<string | null>(null);
+
+  const openApproveModal = (rentalId: string) => {
+    setApproveRentalId(rentalId);
+    setPickupInstructions("");
+    setApproveErr(null);
+    setApproveModalOpen(true);
+  };
+
+  const closeApproveModal = () => {
+    if (approve.isPending) return;
+    setApproveModalOpen(false);
+    setApproveRentalId(null);
+    setPickupInstructions("");
+    setApproveErr(null);
+  };
 
   const openRejectModal = (rentalId: string) => {
     setRejectRentalId(rentalId);
     setMotivoRecusa("");
     setModalErr(null);
     setRejectModalOpen(true);
+  };
+
+  const confirmApprove = () => {
+    const instructions = pickupInstructions.trim();
+    if (instructions.length < 3) {
+      setApproveErr("Informe as instruções de retirada (mínimo 3 caracteres).");
+      return;
+    }
+    if (!approveRentalId) return;
+    setApproveErr(null);
+    approve.mutate({ rentalId: approveRentalId, pickupInstructions: instructions });
   };
 
   const confirmReject = () => {
@@ -129,24 +174,38 @@ export function OwnerRentalsScreen({ navigation }: Props) {
         renderItem={({ item }) => (
           <Card mode="elevated" style={styles.card}>
             <Card.Content style={styles.cardGap}>
-              <Pressable
+              <View style={styles.cardHeader}>
+                <View style={styles.cardTitleWrap}>
+                  <Text variant="titleMedium">{item.vehicle.title}</Text>
+                  <Text variant="bodySmall" style={styles.meta}>
+                    Motorista: {driverDisplayName(item)}
+                  </Text>
+                </View>
+                <Chip compact mode="flat" style={styles.statusChip}>
+                  {statusLabel[item.status] ?? item.status}
+                </Chip>
+              </View>
+              <Text variant="bodySmall" style={styles.detailHint}>
+                Veja dados do motorista, veículo, contrato, vistoria e financeiro.
+              </Text>
+              <Button
+                mode="outlined"
+                icon="eye-outline"
                 onPress={() =>
                   navigation.navigate("OwnerRentalDetail", { rentalId: item.id })
                 }
+                style={styles.detailsButton}
               >
-                <Text variant="titleMedium">{item.vehicle.title}</Text>
-                <Text variant="bodySmall" style={styles.meta}>
-                  Motorista: {driverDisplayName(item)} ·{" "}
-                  {statusLabel[item.status] ?? item.status}
-                </Text>
-              </Pressable>
+                Ver detalhes da solicitação
+              </Button>
               {item.status === "PENDING_OWNER" ? (
-                <View style={styles.row}>
+                <View style={styles.primaryActionsRow}>
                   <Button
                     mode="contained"
                     compact
-                    onPress={() => approve.mutate({ rentalId: item.id })}
-                    loading={approve.isPending}
+                    style={styles.actionButton}
+                    onPress={() => openApproveModal(item.id)}
+                    loading={approve.isPending && approveRentalId === item.id}
                   >
                     Aprovar
                   </Button>
@@ -155,6 +214,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                     buttonColor={theme.colors.error}
                     textColor={theme.colors.onError}
                     compact
+                    style={styles.actionButton}
                     onPress={() => openRejectModal(item.id)}
                     loading={reject.isPending && rejectRentalId === item.id}
                   >
@@ -171,7 +231,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                     })
                   }
                 >
-                  Definir retirada e contrato
+                  Contrato e ativação
                 </Button>
               ) : null}
               {item.status === "REJECTED" ? (
@@ -231,6 +291,60 @@ export function OwnerRentalsScreen({ navigation }: Props) {
           Voltar
         </Button>
       </View>
+
+      <Modal
+        visible={approveModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeApproveModal}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={closeApproveModal}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={[styles.modalKeyboard, { paddingBottom: 20 + insets.bottom }]}
+          >
+            <View style={[styles.modalBox, { backgroundColor: theme.colors.surface }]}>
+              <Text variant="titleLarge">Aprovar solicitação</Text>
+              <Text variant="bodySmall" style={styles.modalHint}>
+                Informe onde, quando e como o motorista deve retirar o veículo.
+                Essas instruções aparecerão para ele assim que a solicitação for aprovada.
+              </Text>
+              <TextInput
+                mode="outlined"
+                placeholder="Ex.: Retirar na garagem da Rua X, nº 123, amanhã às 10h. Levar CNH original."
+                value={pickupInstructions}
+                onChangeText={(t) => {
+                  setPickupInstructions(t);
+                  setApproveErr(null);
+                }}
+                multiline
+                editable={!approve.isPending}
+                style={styles.modalInput}
+              />
+              <HelperText type="error" visible={!!approveErr}>
+                {approveErr ?? ""}
+              </HelperText>
+              <View style={styles.modalRow}>
+                <Button mode="text" onPress={closeApproveModal}>
+                  Cancelar
+                </Button>
+                <Button
+                  mode="contained"
+                  loading={approve.isPending}
+                  disabled={approve.isPending}
+                  onPress={confirmApprove}
+                >
+                  Aprovar e enviar instruções
+                </Button>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
 
       <Modal
         visible={rejectModalOpen}
@@ -319,8 +433,20 @@ const styles = StyleSheet.create({
   list: { paddingBottom: 16 },
   listTitle: { marginBottom: 16 },
   card: { marginBottom: 12, borderRadius: 16 },
-  cardGap: { gap: 8 },
+  cardGap: { gap: 10 },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  cardTitleWrap: { flex: 1 },
   meta: { marginTop: 4, opacity: 0.85 },
+  statusChip: { alignSelf: "flex-start" },
+  detailHint: { color: "#64748b", lineHeight: 18 },
+  detailsButton: { alignSelf: "stretch" },
+  primaryActionsRow: { flexDirection: "row", gap: 8, marginTop: 2 },
+  actionButton: { flex: 1 },
   row: { flexDirection: "row", gap: 8, marginTop: 4, flexWrap: "wrap", alignItems: "center" },
   empty: { marginTop: 24, opacity: 0.7 },
   unlockedHint: { color: "#64748b" },

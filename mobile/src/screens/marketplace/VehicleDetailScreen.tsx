@@ -80,7 +80,7 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
       await utils.driver.myRentals.invalidate();
       navigation.navigate("DriverRentals");
     },
-    onError: (e) => {
+    onError: () => {
       /* shown below */
     },
   });
@@ -116,6 +116,12 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
   const showDescription =
     !!descriptionText &&
     descriptionText.toLocaleLowerCase() !== brandModel.toLocaleLowerCase();
+  const driverStatus = user?.driverProfile?.status;
+  const driverCanRequest = user?.role === "DRIVER" && driverStatus === "APPROVED";
+  const driverApprovalMessage =
+    user?.role === "DRIVER" && !driverCanRequest
+      ? "Cadastro de motorista deve estar aprovado"
+      : null;
 
   return (
     <>
@@ -219,6 +225,15 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
               <Text variant="bodySmall" style={styles.blockedHint}>
                 Você não pode solicitar novamente este veículo após uma recusa. O
                 proprietário pode permitir uma nova solicitação quando quiser.
+              </Text>
+              <Button mode="contained" disabled style={styles.requestBtn}>
+                Solicitar locação
+              </Button>
+            </>
+          ) : !driverCanRequest ? (
+            <>
+              <Text style={{ color: theme.colors.error, marginVertical: 8 }}>
+                {driverApprovalMessage}
               </Text>
               <Button mode="contained" disabled style={styles.requestBtn}>
                 Solicitar locação

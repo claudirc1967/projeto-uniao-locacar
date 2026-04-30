@@ -217,6 +217,7 @@ export const driverRouter = router({
                   ownerProfile: {
                     select: {
                       nomeRazaoSocial: true,
+                      phone: true,
                     },
                   },
                 },

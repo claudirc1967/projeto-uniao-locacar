@@ -11,7 +11,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_TRPC_URL": "https://evangelistic-nonqualifying-thatcher.ngrok-free.dev/trpc"
+        "EXPO_PUBLIC_TRPC_URL": "https://projeto-uniao-locacar-production.up.railway.app/trpc"
       }
     },
     "production": {

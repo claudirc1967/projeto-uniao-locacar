@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink } from "@trpc/client";
+import { TRPCClientError, httpBatchLink } from "@trpc/client";
 import { useState } from "react";
 import superjson from "superjson";
 import { getTrpcNgrokHeaders, getTrpcUrl } from "../utils/trpcUrl";
@@ -10,6 +10,14 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
+        logger: {
+          log: console.log,
+          warn: console.warn,
+          error: (error) => {
+            if (error instanceof TRPCClientError) return;
+            console.error(error);
+          },
+        },
         defaultOptions: {
           queries: {
             staleTime: 20_000,

@@ -14,6 +14,13 @@ import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { ownerProcedure, router } from "../trpc.js";
 import { sendEmail } from "../email/consoleEmail.js";
+import {
+  driverApprovedEmail,
+  driverRejectedEmail,
+  rentalApprovedEmail,
+  rentalRejectedEmail,
+  rentalReviewReminderEmail,
+} from "../email/templates.js";
 import { fillRentalContract } from "../contracts/fillRentalContract.js";
 import { rentalContractTemplate } from "../contracts/rentalContractTemplate.js";
 import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
@@ -779,24 +786,10 @@ export const ownerRouter = router({
 
       const to = p.user.email?.trim();
       if (to) {
-        const driverName = p.fullName?.trim() || "motorista";
-        void sendEmail({
-          to,
-          subject: "Cadastro aprovado na União Locacar",
-          text: [
-            `Olá, ${driverName}.`,
-            "",
-            "Bem-vindo(a) à União Locacar!",
-            "",
-            "Seu cadastro de motorista foi aprovado na plataforma.",
-            "A partir de agora, você já pode acessar o app, ver os veículos disponíveis e solicitar locações.",
-            "",
-            "Atenciosamente,",
-            "Equipe União Locacar",
-            "",
-            "Este é um e-mail automático. Por favor, não responda.",
-          ].join("\n"),
-        }).catch(() => {
+        const email = driverApprovedEmail({
+          driver: { name: p.fullName },
+        });
+        void sendEmail({ to, ...email }).catch(() => {
           /* não falha a aprovação por e-mail */
         });
       }
@@ -813,6 +806,7 @@ export const ownerRouter = router({
     .mutation(async ({ input }) => {
       const p = await prisma.driverProfile.findUnique({
         where: { userId: input.driverUserId },
+        include: { user: { select: { email: true } } },
       });
       if (!p) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Motorista não encontrado" });
@@ -830,6 +824,16 @@ export const ownerRouter = router({
           rejectionReason: input.motivo.trim(),
         },
       });
+      const to = p.user.email?.trim();
+      if (to) {
+        const email = driverRejectedEmail({
+          driver: { name: p.fullName },
+          rejectionReason: input.motivo.trim(),
+        });
+        void sendEmail({ to, ...email }).catch(() => {
+          /* não falha a recusa por e-mail */
+        });
+      }
       return { ok: true as const };
     }),
 
@@ -957,20 +961,17 @@ export const ownerRouter = router({
 
       const to = r.driver.email?.trim();
       if (to) {
-        void sendEmail({
-          to,
-          subject: "Solicitação de locação aprovada",
-          text: [
-            "Sua solicitação de locação foi aprovada.",
-            "",
-            `Veículo: ${r.vehicle.title ?? "—"} (${r.vehicle.plate})`,
-            "",
-            "Instruções de retirada:",
-            pickupInstructions,
-            "",
-            `Rental ID: ${r.id}`,
-          ].join("\n"),
-        }).catch(() => {
+        const email = rentalApprovedEmail({
+          driver: { name: r.driver.driverProfile?.fullName },
+          owner: {
+            name: owner.ownerProfile?.nomeRazaoSocial,
+            phone: owner.ownerProfile?.phone,
+            email: owner.ownerProfile?.emailLocador ?? owner.email,
+          },
+          vehicle: r.vehicle,
+          pickupInstructions,
+        });
+        void sendEmail({ to, ...email }).catch(() => {
           /* não falha a aprovação por e-mail */
         });
       }
@@ -992,8 +993,10 @@ export const ownerRouter = router({
           status: "PENDING_OWNER",
         },
         include: {
-          driver: { select: { email: true } },
-          vehicle: { select: { title: true, plate: true } },
+          driver: { select: { email: true, driverProfile: true } },
+          vehicle: {
+            select: { brand: true, model: true, year: true, plate: true, cor: true },
+          },
         },
       });
       if (!r) {
@@ -1028,17 +1031,18 @@ export const ownerRouter = router({
 
       const to = r.driver.email?.trim();
       if (to) {
-        void sendEmail({
-          to,
-          subject: "Solicitação de locação recusada",
-          text: [
-            "Sua solicitação de locação foi recusada.",
-            "",
-            `Veículo: ${r.vehicle.title ?? "—"} (${r.vehicle.plate})`,
-            `Motivo: ${input.motivoRecusa.trim()}`,
-            `Rental ID: ${r.id}`,
-          ].join("\n"),
-        }).catch(() => {
+        const owner = (ctx as AuthedContext).user;
+        const email = rentalRejectedEmail({
+          driver: { name: r.driver.driverProfile?.fullName },
+          owner: {
+            name: owner.ownerProfile?.nomeRazaoSocial,
+            phone: owner.ownerProfile?.phone,
+            email: owner.ownerProfile?.emailLocador ?? owner.email,
+          },
+          vehicle: r.vehicle,
+          rejectionReason: input.motivoRecusa.trim(),
+        });
+        void sendEmail({ to, ...email }).catch(() => {
           /* não falha a recusa por e-mail */
         });
       }
@@ -1414,6 +1418,12 @@ export const ownerRouter = router({
           vehicle: { ownerUserId: (ctx as AuthedContext).user.id },
           status: "ACTIVE",
         },
+        include: {
+          driver: { select: { email: true, driverProfile: true } },
+          vehicle: {
+            select: { id: true, brand: true, model: true, plate: true },
+          },
+        },
       });
       if (!r) {
         throw new TRPCError({
@@ -1441,6 +1451,31 @@ export const ownerRouter = router({
             data: { available: true },
           }),
         ]);
+        const owner = (ctx as AuthedContext).user;
+        const ownerTo = owner.ownerProfile?.emailLocador?.trim() || owner.email.trim();
+        if (ownerTo) {
+          const email = rentalReviewReminderEmail({
+            recipient: { name: owner.ownerProfile?.nomeRazaoSocial },
+            reviewedPerson: { name: r.driver.driverProfile?.fullName },
+            reviewedPersonLabel: "locatário",
+            vehicle: r.vehicle,
+          });
+          void sendEmail({ to: ownerTo, ...email }).catch(() => {
+            /* não falha a conclusão por e-mail */
+          });
+        }
+        const driverTo = r.driver.email?.trim();
+        if (driverTo) {
+          const email = rentalReviewReminderEmail({
+            recipient: { name: r.driver.driverProfile?.fullName },
+            reviewedPerson: { name: owner.ownerProfile?.nomeRazaoSocial },
+            reviewedPersonLabel: "locador",
+            vehicle: r.vehicle,
+          });
+          void sendEmail({ to: driverTo, ...email }).catch(() => {
+            /* não falha a conclusão por e-mail */
+          });
+        }
         return { ok: true as const };
       }
 

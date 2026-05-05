@@ -136,6 +136,32 @@ export function driverRejectedEmail(input: {
   };
 }
 
+export function passwordResetEmail(input: {
+  token: string;
+  expiresInMinutes: number;
+  resetLink?: string;
+}): EmailTemplate {
+  return {
+    subject: "Recuperação de senha - União Locacar",
+    text: [
+      "Olá,",
+      "",
+      "Recebemos uma solicitação para redefinir a senha da sua conta na União Locacar.",
+      "",
+      input.resetLink
+        ? `Acesse o link abaixo para criar uma nova senha:\n${input.resetLink}`
+        : "Use o código abaixo na tela de nova senha do app:",
+      "",
+      `Código: ${input.token}`,
+      "",
+      `Este código expira em ${input.expiresInMinutes} minutos.`,
+      "Se você não solicitou a recuperação de senha, ignore este e-mail.",
+      "",
+      ...signatureLines(),
+    ].join("\n"),
+  };
+}
+
 export function rentalApprovedEmail(input: {
   driver: Pick<PersonEmailData, "name">;
   owner: PersonEmailData;

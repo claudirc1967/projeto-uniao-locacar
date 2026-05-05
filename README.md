@@ -20,6 +20,12 @@ npm run dev
 
 API: `http://localhost:4000/trpc` (health: `GET /health`).
 
+Para recuperação de senha em produção, configure o envio por Amazon SES com
+`SES_FROM_EMAIL`, `AWS_REGION`, `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`.
+Defina `PASSWORD_RESET_URL` apontando para a rota estática do backend, por
+exemplo `https://seu-app.up.railway.app/reset-password`. Sem essa variável, o
+e-mail envia apenas o código para colar no app.
+
 ## App mobile
 
 ```bash

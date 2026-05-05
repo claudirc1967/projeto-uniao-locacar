@@ -5,15 +5,36 @@ import { z } from "zod";
 import { signJwt } from "../auth/jwt.js";
 import type { AuthedContext } from "../context.js";
 import { prisma } from "../db.js";
+import { sendEmail } from "../email/consoleEmail.js";
+import { passwordResetEmail } from "../email/templates.js";
 import { PRIVACY_POLICY_VERSION } from "../privacy.js";
 import { deleteUserAccountData } from "../services/deleteUserAccount.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
 
+const PASSWORD_RESET_EXPIRES_IN_MINUTES = 60;
+
 const emailPassword = z.object({
   email: z.string().email(),
   password: z.string().min(6).max(128),
 });
+
+function buildPasswordResetLink(token: string): string | undefined {
+  const configured = process.env.PASSWORD_RESET_URL?.trim();
+  if (!configured) return undefined;
+
+  if (configured.includes("{{token}}")) {
+    return configured.replaceAll("{{token}}", encodeURIComponent(token));
+  }
+
+  try {
+    const url = new URL(configured);
+    url.searchParams.set("token", token);
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
 
 const ownerSignupFields = {
   nomeRazaoSocial: z.string().min(1),
@@ -130,14 +151,27 @@ export const authRouter = router({
         return { ok: true as const };
       }
       const token = randomBytes(32).toString("hex");
-      const expiresAt = new Date(Date.now() + 1000 * 60 * 60);
-      await prisma.passwordResetToken.create({
-        data: { userId: user.id, token, expiresAt },
-      });
-      // Em produção: enviar e-mail. Aqui retornamos o token só em dev.
+      const expiresAt = new Date(
+        Date.now() + 1000 * 60 * PASSWORD_RESET_EXPIRES_IN_MINUTES
+      );
+      await prisma.$transaction([
+        prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
+        prisma.passwordResetToken.create({
+          data: { userId: user.id, token, expiresAt },
+        }),
+      ]);
+
       if (process.env.NODE_ENV !== "production") {
         return { ok: true as const, devResetToken: token };
       }
+
+      const email = passwordResetEmail({
+        token,
+        expiresInMinutes: PASSWORD_RESET_EXPIRES_IN_MINUTES,
+        resetLink: buildPasswordResetLink(token),
+      });
+      await sendEmail({ to: user.email, ...email }).catch(() => undefined);
+
       return { ok: true as const };
     }),
 

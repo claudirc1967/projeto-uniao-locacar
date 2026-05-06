@@ -24,6 +24,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { OwnerRentalFinanceSection } from "../../components/OwnerRentalFinanceSection";
 import { RentalInspectionSection } from "../../components/RentalInspectionSection";
 import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";

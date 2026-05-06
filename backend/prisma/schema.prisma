@@ -46,6 +46,31 @@ enum FuelLevel {
   FULL
 }
 
+enum RentalPaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum RentalFinancialEntryType {
+  RENT_PAYMENT
+  SECURITY_DEPOSIT
+  DISCOUNT
+  EXTRA_CHARGE
+  REFUND
+}
+
+enum RentalPaymentMethod {
+  PIX
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  DEBIT_CARD
+  OTHER
+}
+
 enum ContractTime {
   DIARIO
   SEMANAL
@@ -264,6 +289,39 @@ model Rental {
 
   reviews RentalReview[]
   inspections RentalInspection[]
+  financialSummary RentalFinancialSummary?
+  financialEntries RentalFinancialEntry[]
+}
+
+model RentalFinancialSummary {
+  id                   String              @id @default(cuid())
+  rentalId             String              @unique
+  rental               Rental              @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  agreedAmountCents    Int
+  securityDepositCents Int?
+  status               RentalPaymentStatus @default(PENDING)
+  dueDate              DateTime?
+  notes                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  @@index([status])
+}
+
+model RentalFinancialEntry {
+  id          String                   @id @default(cuid())
+  rentalId    String
+  rental      Rental                   @relation(fields: [rentalId], references: [id], onDelete: Cascade)
+  type        RentalFinancialEntryType
+  amountCents Int
+  method      RentalPaymentMethod?
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime                 @default(now())
+
+  @@index([rentalId])
+  @@index([type])
+  @@index([paidAt])
 }
 
 model RentalInspection {

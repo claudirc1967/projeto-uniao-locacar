@@ -125,7 +125,7 @@ function draftFromApplied(a: MarketplaceListFilters): FilterDraft {
     minStars === 3 ||
     minStars === 4 ||
     minStars === 5
-      ? String(minStars)
+      ? (`${minStars}` as OwnerMinStarsOption)
       : "ANY";
   return {
     ownerMinStars,

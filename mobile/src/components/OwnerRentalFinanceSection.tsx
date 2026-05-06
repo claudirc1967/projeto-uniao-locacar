@@ -62,8 +62,21 @@ type Finance = {
 
 type Props = {
   rentalId: string;
-  finance: Finance;
+  finance?: Finance;
   defaultAmountCents: number;
+};
+
+const emptyFinance: Finance = {
+  summary: null,
+  entries: [],
+  totals: {
+    rentPaidAmountCents: 0,
+    securityDepositPaidCents: 0,
+    discountCents: 0,
+    extraChargeCents: 0,
+    refundCents: 0,
+    balanceCents: 0,
+  },
 };
 
 const statusLabels: Record<PaymentStatus, string> = {
@@ -150,6 +163,8 @@ export function OwnerRentalFinanceSection({
 }: Props) {
   const theme = useTheme();
   const utils = trpc.useUtils();
+  const financeUnavailable = !finance;
+  const financeData = finance ?? emptyFinance;
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [entryOpen, setEntryOpen] = useState(false);
   const [summaryErr, setSummaryErr] = useState<string | null>(null);
@@ -195,13 +210,13 @@ export function OwnerRentalFinanceSection({
   });
 
   useEffect(() => {
-    const summary = finance.summary;
+    const summary = financeData.summary;
     setAgreedAmount(centsToInput(summary?.agreedAmountCents ?? defaultAmountCents));
     setSecurityDeposit(centsToInput(summary?.securityDepositCents));
     setStatus(summary?.status ?? "PENDING");
     setDueDate(dateToDdMmYyyy(summary?.dueDate));
     setSummaryNotes(summary?.notes ?? "");
-  }, [defaultAmountCents, finance.summary]);
+  }, [defaultAmountCents, financeData.summary]);
 
   const openSummary = () => {
     setSummaryErr(null);
@@ -274,7 +289,7 @@ export function OwnerRentalFinanceSection({
     ]);
   };
 
-  const summary = finance.summary;
+  const summary = financeData.summary;
 
   return (
     <>
@@ -287,12 +302,21 @@ export function OwnerRentalFinanceSection({
                 Controle manual de valores e pagamentos da locação.
               </Text>
             </View>
-            <Button mode="outlined" compact onPress={openSummary}>
-              {summary ? "Editar" : "Configurar"}
-            </Button>
+            {!financeUnavailable ? (
+              <Button mode="outlined" compact onPress={openSummary}>
+                {summary ? "Editar" : "Configurar"}
+              </Button>
+            ) : null}
           </View>
 
-          {summary ? (
+          {financeUnavailable ? (
+            <Text variant="bodyMedium" style={styles.emptyText}>
+              Financeiro indisponível. Atualize o backend para a versão que retorna
+              os dados financeiros da locação.
+            </Text>
+          ) : null}
+
+          {!financeUnavailable && summary ? (
             <>
               <View style={styles.grid}>
                 <FinanceRow
@@ -302,11 +326,11 @@ export function OwnerRentalFinanceSection({
                 <FinanceRow label="Status" value={statusLabels[summary.status]} />
                 <FinanceRow
                   label="Pago em aluguel"
-                  value={formatMoneyFromCents(finance.totals.rentPaidAmountCents)}
+                  value={formatMoneyFromCents(financeData.totals.rentPaidAmountCents)}
                 />
                 <FinanceRow
                   label="Saldo"
-                  value={formatMoneyFromCents(finance.totals.balanceCents)}
+                  value={formatMoneyFromCents(financeData.totals.balanceCents)}
                 />
                 <FinanceRow
                   label="Caução registrada"
@@ -318,7 +342,7 @@ export function OwnerRentalFinanceSection({
                 />
                 <FinanceRow
                   label="Caução recebida"
-                  value={formatMoneyFromCents(finance.totals.securityDepositPaidCents)}
+                  value={formatMoneyFromCents(financeData.totals.securityDepositPaidCents)}
                 />
                 <FinanceRow
                   label="Vencimento"
@@ -331,22 +355,24 @@ export function OwnerRentalFinanceSection({
                 </Text>
               ) : null}
             </>
-          ) : (
+          ) : !financeUnavailable ? (
             <Text variant="bodyMedium" style={styles.emptyText}>
               Nenhum valor financeiro foi registrado para esta locação.
             </Text>
-          )}
+          ) : null}
 
-          <View style={styles.actions}>
-            <Button mode="contained-tonal" onPress={openEntry}>
-              Registrar lançamento
-            </Button>
-          </View>
+          {!financeUnavailable ? (
+            <View style={styles.actions}>
+              <Button mode="contained-tonal" onPress={openEntry}>
+                Registrar lançamento
+              </Button>
+            </View>
+          ) : null}
 
-          {finance.entries.length > 0 ? (
+          {financeData.entries.length > 0 ? (
             <View style={styles.entries}>
               <Text variant="labelLarge">Histórico</Text>
-              {finance.entries.map((entry) => (
+              {financeData.entries.map((entry) => (
                 <View key={entry.id} style={styles.entryRow}>
                   <View style={styles.entryText}>
                     <Text variant="bodyMedium">

@@ -299,24 +299,34 @@ export function OwnerPartnersScreen({ navigation }: Props) {
       />
 
       <Portal>
-        <Dialog
-          visible={dialogOpen}
-          onDismiss={() => {
-            if (!busy) {
-              setDialogOpen(false);
-              resetForm();
-            }
-          }}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+          style={styles.dialogKeyboard}
         >
-          <Dialog.Title>
-            {editingId ? "Editar parceiro" : "Novo parceiro"}
-          </Dialog.Title>
-          <Dialog.ScrollArea>
-            <ScrollView keyboardShouldPersistTaps="handled">
-              <Dialog.Content>
-                <KeyboardAvoidingView
-                  behavior={Platform.OS === "ios" ? "padding" : undefined}
-                >
+          <Dialog
+            visible={dialogOpen}
+            onDismiss={() => {
+              if (!busy) {
+                setDialogOpen(false);
+                resetForm();
+              }
+            }}
+            style={styles.dialog}
+          >
+            <Dialog.Title>
+              {editingId ? "Editar parceiro" : "Novo parceiro"}
+            </Dialog.Title>
+            <Dialog.ScrollArea style={styles.dialogScrollArea}>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+                contentContainerStyle={[
+                  styles.dialogScrollContent,
+                  { paddingBottom: Math.max(insets.bottom, 16) + 96 },
+                ]}
+              >
+                <Dialog.Content>
                   <Text variant="labelLarge" style={styles.fieldLabel}>
                     Tipo
                   </Text>
@@ -371,27 +381,32 @@ export function OwnerPartnersScreen({ navigation }: Props) {
                   <HelperText type="error" visible={!!formErr}>
                     {formErr ?? ""}
                   </HelperText>
-                </KeyboardAvoidingView>
-              </Dialog.Content>
-            </ScrollView>
-          </Dialog.ScrollArea>
-          <Divider />
-          <Dialog.Actions>
-            <Button
-              onPress={() => {
-                if (!busy) {
-                  setDialogOpen(false);
-                  resetForm();
-                }
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button mode="contained" onPress={onSave} loading={busy} disabled={busy}>
-              Salvar
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+                </Dialog.Content>
+              </ScrollView>
+            </Dialog.ScrollArea>
+            <Divider />
+            <Dialog.Actions>
+              <Button
+                onPress={() => {
+                  if (!busy) {
+                    setDialogOpen(false);
+                    resetForm();
+                  }
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                mode="contained"
+                onPress={onSave}
+                loading={busy}
+                disabled={busy}
+              >
+                Salvar
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </KeyboardAvoidingView>
       </Portal>
 
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
@@ -423,6 +438,10 @@ const styles = StyleSheet.create({
   meta: { marginTop: 2, opacity: 0.9 },
   notes: { marginTop: 8, opacity: 0.85 },
   footer: { paddingHorizontal: 16, paddingTop: 8 },
+  dialogKeyboard: { flex: 1, justifyContent: "center" },
+  dialog: { maxHeight: "88%" },
+  dialogScrollArea: { maxHeight: 460 },
+  dialogScrollContent: { flexGrow: 1 },
   fieldLabel: { marginBottom: 8 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   chip: { marginRight: 0 },

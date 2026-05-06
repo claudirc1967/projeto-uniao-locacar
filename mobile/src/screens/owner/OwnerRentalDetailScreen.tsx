@@ -254,6 +254,8 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
 
   const showSituationBlock =
     row.status === "ACTIVE" || row.status === "COMPLETED";
+  const showOperationalSections =
+    row.status !== "PENDING_OWNER" && row.status !== "REJECTED";
 
   return (
     <KeyboardAvoidingView
@@ -378,19 +380,27 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         </Card>
       ) : null}
 
-      <View style={styles.divider} />
+      {showOperationalSections ? (
+        <>
+          <OwnerRentalFinanceSection
+            rentalId={rentalId}
+            finance={row.financial}
+            defaultAmountCents={row.vehicle.dailyRateCents}
+          />
 
-      <RentalInspectionSection
-        rentalId={rentalId}
-        rentalStatus={row.status}
-        role="OWNER"
-        onEditInspection={(inspectionType) =>
-          navigation.navigate("RentalInspectionForm", {
-            rentalId,
-            type: inspectionType,
-          })
-        }
-      />
+          <RentalInspectionSection
+            rentalId={rentalId}
+            rentalStatus={row.status}
+            role="OWNER"
+            onEditInspection={(inspectionType) =>
+              navigation.navigate("RentalInspectionForm", {
+                rentalId,
+                type: inspectionType,
+              })
+            }
+          />
+        </>
+      ) : null}
 
       <View style={styles.divider} />
 

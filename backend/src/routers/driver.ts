@@ -4,6 +4,7 @@ import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
 import { sendEmail } from "../email/consoleEmail.js";
+import { rentalRequestedEmail } from "../email/templates.js";
 import { driverProcedure, router } from "../trpc.js";
 import { cpfValidationMessage } from "../validation/cpfCnpj.js";
 
@@ -146,7 +147,9 @@ export const driverRouter = router({
       const owner = await prisma.user.findUnique({
         where: { id: vehicle.ownerUserId },
         select: {
-          ownerProfile: { select: { emailLocador: true, nomeRazaoSocial: true } },
+          ownerProfile: {
+            select: { emailLocador: true, nomeRazaoSocial: true, phone: true },
+          },
         },
       });
       const rental = await prisma.rental.create({
@@ -159,18 +162,20 @@ export const driverRouter = router({
 
       const to = owner?.ownerProfile?.emailLocador?.trim();
       if (to) {
-        void sendEmail({
-          to,
-          subject: "Nova solicitação de locação",
-          text: [
-            "Você recebeu uma nova solicitação de locação.",
-            "",
-            `Veículo: ${vehicle.title ?? "—"} (${vehicle.plate})`,
-            `Motorista: ${profile.fullName ?? "—"} (${(ctx as AuthedContext).user.email})`,
-            "",
-            `Rental ID: ${rental.id}`,
-          ].join("\n"),
-        }).catch(() => {
+        const email = rentalRequestedEmail({
+          owner: {
+            name: owner?.ownerProfile?.nomeRazaoSocial,
+            phone: owner?.ownerProfile?.phone,
+            email: owner?.ownerProfile?.emailLocador,
+          },
+          driver: {
+            name: profile.fullName,
+            phone: profile.phone,
+            email: (ctx as AuthedContext).user.email,
+          },
+          vehicle,
+        });
+        void sendEmail({ to, ...email }).catch(() => {
           /* não falha a solicitação por e-mail */
         });
       }
@@ -217,6 +222,7 @@ export const driverRouter = router({
                   ownerProfile: {
                     select: {
                       nomeRazaoSocial: true,
+                      phone: true,
                     },
                   },
                 },

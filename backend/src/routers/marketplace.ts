@@ -26,6 +26,14 @@ const listFiltersSchema = z.object({
   ownerMinAverageStars: z.number().int().min(1).max(5).optional(),
 });
 
+async function safePresignGetRead(key: string): Promise<string | null> {
+  try {
+    return await presignGetRead(key, 3600);
+  } catch {
+    return null;
+  }
+}
+
 function buildVehicleWhere(
   f: z.infer<typeof listFiltersSchema>
 ): Prisma.VehicleWhereInput {
@@ -159,7 +167,7 @@ export const marketplaceRouter = router({
           list.map(async (v) => {
             const thumb = v.photos[0];
             const coverUrl = thumb
-              ? await presignGetRead(thumb.key, 3600)
+              ? await safePresignGetRead(thumb.key)
               : null;
             const u = ctx as AuthedContext;
             let driverRequestBlocked: boolean | undefined;
@@ -228,14 +236,17 @@ export const marketplaceRouter = router({
         });
       }
       try {
-        const photos = await Promise.all(
+        const photosWithMaybeUrls = await Promise.all(
           v.photos.map(async (p) => ({
             id: p.id,
             key: p.key,
             contentType: p.contentType,
             sortOrder: p.sortOrder,
-            photoUrl: await presignGetRead(p.key, 3600),
+            photoUrl: await safePresignGetRead(p.key),
           }))
+        );
+        const photos = photosWithMaybeUrls.filter(
+          (p): p is typeof p & { photoUrl: string } => Boolean(p.photoUrl)
         );
         const u = ctx as AuthedContext;
         let driverRequestBlocked: boolean | undefined;

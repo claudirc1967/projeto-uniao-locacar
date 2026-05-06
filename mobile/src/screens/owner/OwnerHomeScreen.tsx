@@ -1,7 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Button, Text, useTheme } from "react-native-paper";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { trpc } from "../../api/trpc";
 import { HomeMixedMenuGrid } from "../../components/HomeMixedMenuGrid";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
@@ -12,6 +13,10 @@ export function OwnerHomeScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
+  const pendingDriversQ = trpc.owner.listPendingDrivers.useQuery(undefined, {
+    staleTime: 30_000,
+  });
+  const pendingDriversCount = pendingDriversQ.data?.length ?? 0;
 
   const greeting =
     user?.ownerProfile?.nomeRazaoSocial ??
@@ -48,6 +53,45 @@ export function OwnerHomeScreen({ navigation }: Props) {
           >
             {user.email}
           </Text>
+        ) : null}
+
+        {pendingDriversCount > 0 ? (
+          <Card
+            mode="elevated"
+            style={[
+              styles.pendingCard,
+              { backgroundColor: theme.colors.secondaryContainer },
+            ]}
+          >
+            <Card.Content style={styles.pendingCardContent}>
+              <View style={styles.pendingTextWrap}>
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSecondaryContainer }}
+                >
+                  {pendingDriversCount === 1
+                    ? "1 motorista aguardando aprovação"
+                    : `${pendingDriversCount} motoristas aguardando aprovação`}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.pendingHint,
+                    { color: theme.colors.onSecondaryContainer },
+                  ]}
+                >
+                  Analise os cadastros pendentes para liberar solicitações de locação.
+                </Text>
+              </View>
+              <Button
+                mode="contained"
+                icon="account-check-outline"
+                onPress={() => navigation.navigate("OwnerPendingDrivers")}
+              >
+                Analisar agora
+              </Button>
+            </Card.Content>
+          </Card>
         ) : null}
 
         <HomeMixedMenuGrid
@@ -135,6 +179,10 @@ const styles = StyleSheet.create({
   greeting: { fontWeight: "600" },
   sub: { opacity: 0.9, marginTop: 4 },
   email: { marginTop: -4, marginBottom: 8 },
+  pendingCard: { borderRadius: 16, marginBottom: 4 },
+  pendingCardContent: { gap: 12 },
+  pendingTextWrap: { gap: 4 },
+  pendingHint: { opacity: 0.85, lineHeight: 18 },
   footerBar: {
     paddingHorizontal: 24,
     paddingTop: 12,

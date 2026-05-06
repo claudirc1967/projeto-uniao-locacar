@@ -38,28 +38,6 @@ const fileMeta = z.object({
 });
 
 const contractTimeSchema = z.enum(["DIARIO", "SEMANAL", "MENSAL"]);
-const rentalPaymentStatusSchema = z.enum([
-  "PENDING",
-  "PARTIAL",
-  "PAID",
-  "OVERDUE",
-  "CANCELLED",
-]);
-const rentalFinancialEntryTypeSchema = z.enum([
-  "RENT_PAYMENT",
-  "SECURITY_DEPOSIT",
-  "DISCOUNT",
-  "EXTRA_CHARGE",
-  "REFUND",
-]);
-const rentalPaymentMethodSchema = z.enum([
-  "PIX",
-  "CASH",
-  "BANK_TRANSFER",
-  "CREDIT_CARD",
-  "DEBIT_CARD",
-  "OTHER",
-]);
 const partnerCategorySchema = z.enum([
   "INSURANCE",
   "WORKSHOP",
@@ -107,20 +85,6 @@ async function assertOwnsVehicle(ownerUserId: string, vehicleId: string) {
   return v;
 }
 
-async function assertOwnsRental(ownerUserId: string, rentalId: string) {
-  const rental = await prisma.rental.findFirst({
-    where: { id: rentalId, vehicle: { ownerUserId } },
-    select: { id: true },
-  });
-  if (!rental) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Locação não encontrada para este locador",
-    });
-  }
-  return rental;
-}
-
 async function assertPartnersBelongToOwner(
   ownerUserId: string,
   partnerIds: Array<string | null | undefined>
@@ -166,40 +130,6 @@ async function withPhotoUrls<T extends { key: string }>(
       photoUrl: await presignGetRead(p.key, 3600),
     }))
   );
-}
-
-function financialTotals(
-  summary: { agreedAmountCents: number } | null,
-  entries: Array<{ type: string; amountCents: number }>
-) {
-  const sumByType = (type: string) =>
-    entries
-      .filter((entry) => entry.type === type)
-      .reduce((total, entry) => total + entry.amountCents, 0);
-
-  const rentPaidAmountCents = sumByType("RENT_PAYMENT");
-  const securityDepositPaidCents = sumByType("SECURITY_DEPOSIT");
-  const discountCents = sumByType("DISCOUNT");
-  const extraChargeCents = sumByType("EXTRA_CHARGE");
-  const refundCents = sumByType("REFUND");
-  const balanceCents = summary
-    ? Math.max(
-        0,
-        summary.agreedAmountCents +
-          extraChargeCents -
-          discountCents -
-          rentPaidAmountCents
-      )
-    : 0;
-
-  return {
-    rentPaidAmountCents,
-    securityDepositPaidCents,
-    discountCents,
-    extraChargeCents,
-    refundCents,
-    balanceCents,
-  };
 }
 
 export const ownerRouter = router({
@@ -1154,8 +1084,6 @@ export const ownerRouter = router({
               },
             },
           },
-        financialSummary: true,
-        financialEntries: { orderBy: { createdAt: "desc" } },
         },
       });
 
@@ -1207,11 +1135,6 @@ export const ownerRouter = router({
         pendingResolutionExpectedAt: r.pendingResolutionExpectedAt,
         vehicle: r.vehicle,
         driver: r.driver,
-        financial: {
-          summary: r.financialSummary,
-          entries: r.financialEntries,
-          totals: financialTotals(r.financialSummary, r.financialEntries),
-        },
         review: {
           canSubmit: r.status === "COMPLETED" && !myReview,
           submitted: myReview
@@ -1224,94 +1147,6 @@ export const ownerRouter = router({
             : null,
         },
       };
-    }),
-
-  upsertRentalFinancialSummary: ownerProcedure
-    .input(
-      z.object({
-        rentalId: z.string(),
-        agreedAmountCents: z.number().int().min(0).max(100_000_000),
-        securityDepositCents: z
-          .number()
-          .int()
-          .min(0)
-          .max(100_000_000)
-          .optional()
-          .nullable(),
-        status: rentalPaymentStatusSchema.default("PENDING"),
-        dueDate: z.date().optional().nullable(),
-        notes: z.string().max(4000).optional().nullable(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const ownerUserId = (ctx as AuthedContext).user.id;
-      await assertOwnsRental(ownerUserId, input.rentalId);
-      const notes = input.notes?.trim() ? input.notes.trim() : null;
-      const summary = await prisma.rentalFinancialSummary.upsert({
-        where: { rentalId: input.rentalId },
-        create: {
-          rentalId: input.rentalId,
-          agreedAmountCents: input.agreedAmountCents,
-          securityDepositCents: input.securityDepositCents ?? null,
-          status: input.status,
-          dueDate: input.dueDate ?? null,
-          notes,
-        },
-        update: {
-          agreedAmountCents: input.agreedAmountCents,
-          securityDepositCents: input.securityDepositCents ?? null,
-          status: input.status,
-          dueDate: input.dueDate ?? null,
-          notes,
-        },
-      });
-      return { summary };
-    }),
-
-  addRentalFinancialEntry: ownerProcedure
-    .input(
-      z.object({
-        rentalId: z.string(),
-        type: rentalFinancialEntryTypeSchema,
-        amountCents: z.number().int().positive().max(100_000_000),
-        method: rentalPaymentMethodSchema.optional().nullable(),
-        paidAt: z.date().optional().nullable(),
-        notes: z.string().max(4000).optional().nullable(),
-      })
-    )
-    .mutation(async ({ ctx, input }) => {
-      const ownerUserId = (ctx as AuthedContext).user.id;
-      await assertOwnsRental(ownerUserId, input.rentalId);
-      const entry = await prisma.rentalFinancialEntry.create({
-        data: {
-          rentalId: input.rentalId,
-          type: input.type,
-          amountCents: input.amountCents,
-          method: input.method ?? null,
-          paidAt: input.paidAt ?? null,
-          notes: input.notes?.trim() ? input.notes.trim() : null,
-        },
-      });
-      return { entry };
-    }),
-
-  deleteRentalFinancialEntry: ownerProcedure
-    .input(z.object({ rentalId: z.string(), entryId: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      const ownerUserId = (ctx as AuthedContext).user.id;
-      await assertOwnsRental(ownerUserId, input.rentalId);
-      const entry = await prisma.rentalFinancialEntry.findFirst({
-        where: { id: input.entryId, rentalId: input.rentalId },
-        select: { id: true },
-      });
-      if (!entry) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Lançamento financeiro não encontrado.",
-        });
-      }
-      await prisma.rentalFinancialEntry.delete({ where: { id: input.entryId } });
-      return { ok: true as const };
     }),
 
   setRentalPickupAndContract: ownerProcedure

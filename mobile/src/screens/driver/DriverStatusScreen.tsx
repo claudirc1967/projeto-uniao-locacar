@@ -47,9 +47,6 @@ export function DriverStatusScreen({ navigation }: Props) {
           { paddingBottom: 8 + insets.bottom },
         ]}
       >
-      <Text variant="headlineSmall" style={styles.title}>
-        Status
-      </Text>
       <Text variant="titleMedium" style={[styles.badge, { color: theme.colors.primary }]}>
         {map[q.data!.status] ?? q.data!.status}
       </Text>

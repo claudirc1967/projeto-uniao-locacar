@@ -19,9 +19,6 @@ export function PrivacyPolicyScreen(_props: Props) {
           { paddingBottom: 24 + insets.bottom },
         ]}
       >
-        <Text variant="headlineSmall" style={styles.title}>
-          Política de Privacidade
-        </Text>
         <PrivacyPolicyBody />
       </ScrollView>
     </View>

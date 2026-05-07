@@ -61,9 +61,6 @@ export function AccountDeletionScreen({ navigation }: Props) {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        <Text variant="headlineSmall" style={styles.title}>
-          Excluir minha conta
-        </Text>
         <Text variant="bodyMedium" style={styles.warn}>
           Esta ação é permanente: seu cadastro, veículos, locações e dados
           associados serão removidos do sistema, na medida em que a lei permitir.

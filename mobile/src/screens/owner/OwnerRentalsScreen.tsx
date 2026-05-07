@@ -161,11 +161,6 @@ export function OwnerRentalsScreen({ navigation }: Props) {
           styles.list,
           { paddingBottom: 8 + insets.bottom },
         ]}
-        ListHeaderComponent={
-          <Text variant="headlineSmall" style={styles.listTitle}>
-            Solicitações de locação
-          </Text>
-        }
         ListEmptyComponent={
           <Text variant="bodyMedium" style={styles.empty}>
             Nenhuma solicitação.

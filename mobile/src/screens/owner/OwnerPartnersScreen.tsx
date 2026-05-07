@@ -231,7 +231,6 @@ export function OwnerPartnersScreen({ navigation }: Props) {
         ]}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text variant="headlineSmall">Parceiros</Text>
             <Text variant="bodySmall" style={styles.sub}>
               Cadastre fornecedores (seguradora, oficina, etc.). No veículo você
               pode vincular a seguradora.

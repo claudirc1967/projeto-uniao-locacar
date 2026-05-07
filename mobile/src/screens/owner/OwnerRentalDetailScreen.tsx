@@ -274,10 +274,6 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           { paddingBottom: Math.max(insets.bottom, 20) + 180 },
         ]}
       >
-      <Text variant="headlineSmall" style={styles.title}>
-        Detalhes da solicitação
-      </Text>
-
       <Card mode="outlined" style={styles.cardWrap}>
         <Card.Content style={styles.cardContent}>
           <Text variant="titleMedium" style={styles.sectionTitle}>

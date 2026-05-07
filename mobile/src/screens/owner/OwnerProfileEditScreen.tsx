@@ -135,10 +135,6 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text variant="headlineSmall" style={styles.title}>
-          Editar dados do proprietário
-        </Text>
-
         <TextInput
           mode="outlined"
           label="Nome/Razão Social *"

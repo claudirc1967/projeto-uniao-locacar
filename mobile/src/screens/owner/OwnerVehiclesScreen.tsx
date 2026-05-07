@@ -56,7 +56,6 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
         ]}
         ListHeaderComponent={
           <View style={styles.header}>
-            <Text variant="headlineSmall">Veículos</Text>
             <Button
               mode="contained"
               icon="plus"

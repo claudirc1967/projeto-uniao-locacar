@@ -18,9 +18,6 @@ export function AccountPrivacyScreen({ navigation }: Props) {
           { paddingBottom: 24 + insets.bottom },
         ]}
       >
-        <Text variant="headlineSmall" style={styles.title}>
-          Privacidade e conta
-        </Text>
         <Text variant="bodyMedium" style={styles.sub}>
           Consulte como tratamos seus dados ou exclua sua conta neste
           dispositivo.

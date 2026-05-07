@@ -24,9 +24,6 @@ export function OwnerProfileScreen({ navigation }: Props) {
           { paddingBottom: 8 + insets.bottom },
         ]}
       >
-      <Text variant="headlineSmall" style={styles.title}>
-        Perfil
-      </Text>
 
       <Card mode="elevated" style={styles.card}>
         <Card.Content style={styles.gap}>

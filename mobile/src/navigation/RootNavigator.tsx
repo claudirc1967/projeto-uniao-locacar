@@ -94,38 +94,40 @@ export function RootNavigator() {
           component={AccountDeletionScreen}
           options={{ title: "Excluir conta" }}
         />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-        <Stack.Screen name="OwnerHome" component={OwnerHomeScreen} />
-        <Stack.Screen name="OwnerProfile" component={OwnerProfileScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: "Esqueci a senha" }} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ title: "Redefinir senha" }} />
+        <Stack.Screen name="OwnerHome" component={OwnerHomeScreen} options={{ title: "Início" }} />
+        <Stack.Screen name="OwnerProfile" component={OwnerProfileScreen} options={{ title: "Perfil" }} />
         <Stack.Screen
           name="OwnerProfileEdit"
           component={OwnerProfileEditScreen}
+          options={{ title: "Editar perfil" }}
         />
         <Stack.Screen
           name="OwnerContractTemplate"
           component={OwnerContractTemplateScreen}
           options={{ title: "Template de contrato" }}
         />
-        <Stack.Screen name="OwnerVehicles" component={OwnerVehiclesScreen} />
+        <Stack.Screen name="OwnerVehicles" component={OwnerVehiclesScreen} options={{ title: "Veículos" }}  />
         <Stack.Screen
           name="OwnerPartners"
           component={OwnerPartnersScreen}
           options={{ title: "Parceiros" }}
         />
-        <Stack.Screen name="VehicleForm" component={VehicleFormScreen} />
-        <Stack.Screen name="VehiclePhotos" component={VehiclePhotosScreen} />
+        <Stack.Screen name="VehicleForm" component={VehicleFormScreen} options={{ title: "Cadastrar veículo" }} />
+        <Stack.Screen name="VehiclePhotos" component={VehiclePhotosScreen} options={{ title: "Fotos do veículo" }} />
         <Stack.Screen
           name="OwnerPendingDrivers"
           component={OwnerPendingDriversScreen}
+          options={{ title: "Motoristas pendentes" }}
         />
         <Stack.Screen
           name="OwnerDriverProfile"
           component={OwnerDriverProfileScreen}
           options={{ title: "Análise do cadastro" }}
         />
-        <Stack.Screen name="OwnerRentals" component={OwnerRentalsScreen} />
-        <Stack.Screen name="OwnerRentalDetail" component={OwnerRentalDetailScreen} />
+        <Stack.Screen name="OwnerRentals" component={OwnerRentalsScreen} options={{ title: "Solicitações de locação" }}   />
+        <Stack.Screen name="OwnerRentalDetail" component={OwnerRentalDetailScreen} options={{ title: "Detalhes da solicitação" }} />
         <Stack.Screen
           name="RentalInstructions"
           component={RentalInstructionsScreen}
@@ -141,16 +143,17 @@ export function RootNavigator() {
           component={RentalInspectionFormScreen}
           options={{ title: "Vistoria" }}
         />
-        <Stack.Screen name="DriverHome" component={DriverHomeScreen} />
+        <Stack.Screen name="DriverHome" component={DriverHomeScreen} options={{ title: "Início" }} />
         <Stack.Screen
           name="DriverPreRegister"
           component={DriverPreRegisterScreen}
+          options={{ title: "Cadastro de motorista" }}
         />
-        <Stack.Screen name="DriverStatus" component={DriverStatusScreen} />
-        <Stack.Screen name="DriverRentals" component={DriverRentalsScreen} />
-        <Stack.Screen name="Marketplace" component={MarketplaceScreen} />
-        <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
-        <Stack.Screen name="RentalDetail" component={RentalDetailScreen} />
+        <Stack.Screen name="DriverStatus" component={DriverStatusScreen} options={{ title: "Situação motorista" }} />
+        <Stack.Screen name="DriverRentals" component={DriverRentalsScreen} options={{ title: "Solicitações de locação" }} />
+        <Stack.Screen name="Marketplace" component={MarketplaceScreen} options={{ title: "Marketplace" }} />
+        <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} options={{ title: "Detalhes do veículo" }} />
+        <Stack.Screen name="RentalDetail" component={RentalDetailScreen} options={{ title: "Detalhes da locação" }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

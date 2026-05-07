@@ -152,9 +152,6 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text variant="headlineSmall" style={styles.title}>
-          Retirada e contrato
-        </Text>
         <Text variant="labelLarge" style={styles.label}>
           Instruções (como / onde / quando retirar o veículo)
         </Text>

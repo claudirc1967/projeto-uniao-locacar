@@ -71,9 +71,6 @@ export function OwnerPendingDriversScreen({ navigation }: Props) {
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       {emptyAll ? (
         <View style={styles.emptyWrap}>
-          <Text variant="headlineSmall" style={styles.screenTitle}>
-            Motoristas
-          </Text>
           <Text variant="bodyMedium" style={styles.hint}>
             Toque em um motorista para ver os dados e aprovar, rejeitar ou
             recolocar na análise.

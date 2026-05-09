@@ -1,3 +1,16 @@
+# Deploy do app web (Expo export estático) para GitHub Pages.
+#
+# Primeira vez no repositório:
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions" (obrigatório).
+#   Sem isso o job deploy pode falhar ao publicar.
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   EXPO_PUBLIC_TRPC_URL — URL pública do tRPC no Railway (ex.: https://xxx.up.railway.app/trpc)
+#   EXPO_BASE_URL — opcional; use "/" se o site usar domínio customizado na raiz (sem /repo/ no path).
+#
+# Nota: o passo "configure-pages" foi omitido de propósito — ele falha com 404 até Pages existir
+# e não é necessário para upload-pages-artifact + deploy-pages com arquivos estáticos.
+#
 name: Deploy Expo Web to GitHub Pages
 
 on:
@@ -30,10 +43,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Warn if API URL missing
+        env:
+          TRPC: ${{ secrets.EXPO_PUBLIC_TRPC_URL }}
+        run: |
+          if [ -z "$TRPC" ]; then
+            echo "::warning::Defina o secret EXPO_PUBLIC_TRPC_URL (URL do tRPC no Railway) para o app web funcionar."
+          fi
+
       - name: Export web build
         env:
-          # Used by mobile/app.config.js → experiments.baseUrl for assets on Project Pages
           GITHUB_REPOSITORY: ${{ github.repository }}
+          EXPO_PUBLIC_TRPC_URL: ${{ secrets.EXPO_PUBLIC_TRPC_URL }}
+          EXPO_BASE_URL: ${{ secrets.EXPO_BASE_URL }}
         run: npm run predeploy -w mobile
 
       - name: SPA fallback (GitHub Pages)
@@ -41,9 +63,6 @@ jobs:
 
       - name: Disable Jekyll
         run: touch mobile/dist/.nojekyll
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
@@ -60,4 +79,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-

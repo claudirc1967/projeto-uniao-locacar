@@ -1,21 +1,23 @@
-// Dynamic Expo config: GitHub Pages serves project sites at https://<user>.github.io/<repo>/
-// so asset paths must use that prefix. GITHUB_REPOSITORY is set automatically in Actions ("owner/repo").
-// Local `expo start --web` / export without env keeps base "/".
+// GitHub Pages — experiments.baseUrl:
+// - https://<user>.github.io/<repo>/ → "/<repo>/"
+// - Domínio customizado na raiz → secret EXPO_BASE_URL=/ no CI
+// - Local: "/"
 
 const appJson = require("./app.json");
 
-/**
- * @returns {string} e.g. "/" locally or "/projeto-uniao-locacar/" on GitHub Actions
- */
+function normalizeBasePath(raw) {
+  const noTrail = raw.trim().replace(/\/+$/, "");
+  return noTrail.startsWith("/") ? `${noTrail}/` : `/${noTrail}/`;
+}
+
 function getBaseUrl() {
+  const explicit = process.env.EXPO_BASE_URL?.trim();
+  if (explicit) {
+    return normalizeBasePath(explicit);
+  }
   if (process.env.GITHUB_REPOSITORY) {
     const repo = process.env.GITHUB_REPOSITORY.split("/")[1];
     if (repo) return `/${repo}/`;
-  }
-  const explicit = process.env.EXPO_BASE_URL?.trim();
-  if (explicit) {
-    const noTrail = explicit.replace(/\/+$/, "");
-    return noTrail.startsWith("/") ? `${noTrail}/` : `/${noTrail}/`;
   }
   return "/";
 }

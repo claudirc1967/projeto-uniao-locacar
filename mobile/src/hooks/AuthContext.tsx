@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import * as SecureStore from "expo-secure-store";
+import { TRPCClientError } from "@trpc/client";
 import React, {
   createContext,
   useCallback,
@@ -11,6 +11,7 @@ import React, {
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { setAuthToken } from "../api/authToken";
 import { trpc } from "../api/trpc";
+import { secureStorage } from "../utils/secureStorage";
 
 const JWT_KEY = "jwt";
 
@@ -63,11 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [hydrated, setHydrated] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const t = await SecureStore.getItemAsync(JWT_KEY);
+        const t = await secureStorage.getItemAsync(JWT_KEY);
         setAuthToken(t);
         setToken(t);
       } finally {
@@ -81,41 +83,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     retry: false,
   });
 
+  useEffect(() => {
+    if (me.data) {
+      setUser(me.data as SessionUser);
+    }
+  }, [me.data]);
+
   const logout = useCallback(async () => {
     try {
-      await SecureStore.deleteItemAsync(JWT_KEY);
+      await secureStorage.deleteItemAsync(JWT_KEY);
     } catch {
       /* ignore */
     }
     setAuthToken(null);
     setToken(null);
+    setUser(null);
     queryClient.clear();
   }, [queryClient]);
 
   useEffect(() => {
     if (hydrated && token && me.isError) {
-      void logout();
+      const err = me.error;
+      const unauthorized =
+        err instanceof TRPCClientError &&
+        ((err.data as any)?.code === "UNAUTHORIZED" ||
+          (err.data as any)?.httpStatus === 401);
+      if (unauthorized) {
+        void logout();
+      }
     }
-  }, [hydrated, token, me.isError, logout]);
+  }, [hydrated, token, me.isError, me.error, logout]);
 
   const loginWithToken = useCallback(async (jwt: string) => {
-    await SecureStore.setItemAsync(JWT_KEY, jwt);
+    await secureStorage.setItemAsync(JWT_KEY, jwt);
     setAuthToken(jwt);
     setToken(jwt);
   }, []);
 
-  const sessionLoading = Boolean(token && (me.isLoading || me.isFetching));
+  const sessionLoading = Boolean(token && !user && (me.isLoading || me.isFetching));
 
   const value = useMemo<AuthCtx>(
     () => ({
       hydrated,
       token,
-      user: me.data ? (me.data as SessionUser) : null,
+      user,
       sessionLoading,
       loginWithToken,
       logout,
     }),
-    [hydrated, token, me.data, sessionLoading, loginWithToken, logout]
+    [hydrated, token, user, sessionLoading, loginWithToken, logout]
   );
 
   if (!hydrated) {

@@ -7,6 +7,8 @@
     "android": "npx expo start --android --host lan",
     "ios": "npx expo start --ios",
     "web": "npx expo start --web",
+    "predeploy": "npx expo export -p web",
+    "deploy": "gh-pages --nojekyll -d dist",
     "eas:android": "eas build -p android --profile preview",
     "eas:ios": "eas build -p ios --profile preview"
   },
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "gh-pages": "^6.3.0",
     "typescript": "~5.9.2"
   },
   "private": true

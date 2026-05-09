@@ -5,9 +5,11 @@ import {
   Alert,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
   View,
 } from "react-native";
 import {
@@ -25,6 +27,7 @@ import {
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
+import { maskPhone, onlyDigits } from "../../utils/masks";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -60,10 +63,123 @@ function categoryLabel(c: PartnerCategory): string {
   }
 }
 
+function PartnerFormFields({
+  category,
+  setCategory,
+  name,
+  setName,
+  email,
+  setEmail,
+  phone,
+  setPhone,
+  notes,
+  setNotes,
+  formErr,
+}: {
+  category: PartnerCategory;
+  setCategory: (c: PartnerCategory) => void;
+  name: string;
+  setName: (s: string) => void;
+  email: string;
+  setEmail: (s: string) => void;
+  phone: string;
+  setPhone: (s: string) => void;
+  notes: string;
+  setNotes: (s: string) => void;
+  formErr: string | null;
+}) {
+  const { width } = useWindowDimensions();
+  const contactSideBySide = width >= 560;
+
+  return (
+    <View style={styles.formInner}>
+      <Text variant="labelLarge" style={styles.fieldLabel}>
+        Tipo de parceiro
+      </Text>
+      <View style={styles.chipRow}>
+        {CATEGORIES.map((c) => (
+          <Chip
+            key={c}
+            selected={category === c}
+            onPress={() => setCategory(c)}
+            style={styles.chip}
+            compact
+            mode="outlined"
+          >
+            {categoryLabel(c)}
+          </Chip>
+        ))}
+      </View>
+
+      <Text variant="titleSmall" style={styles.sectionHeading}>
+        Identificação
+      </Text>
+      <TextInput
+        mode="outlined"
+        label="Nome ou razão social"
+        value={name}
+        onChangeText={setName}
+        style={styles.input}
+      />
+
+      <Text variant="titleSmall" style={styles.sectionHeading}>
+        Contato{" "}
+        <Text variant="bodySmall" style={styles.optionalHint}>
+          opcional
+        </Text>
+      </Text>
+      <View
+        style={contactSideBySide ? styles.contactRow : styles.contactCol}
+      >
+        <TextInput
+          mode="outlined"
+          label="Telefone"
+          value={phone}
+          onChangeText={(t) => setPhone(maskPhone(t))}
+          keyboardType="phone-pad"
+          style={[styles.input, contactSideBySide && styles.inputHalf]}
+        />
+        <TextInput
+          mode="outlined"
+          label="E-mail"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={[styles.input, contactSideBySide && styles.inputHalf]}
+        />
+      </View>
+
+      <Text variant="titleSmall" style={styles.sectionHeading}>
+        Observações{" "}
+        <Text variant="bodySmall" style={styles.optionalHint}>
+          opcional
+        </Text>
+      </Text>
+      <TextInput
+        mode="outlined"
+        label="Notas internas"
+        value={notes}
+        onChangeText={setNotes}
+        multiline
+        style={styles.input}
+        contentStyle={styles.notesInputContent}
+      />
+
+      <HelperText type="error" visible={!!formErr}>
+        {formErr ?? ""}
+      </HelperText>
+    </View>
+  );
+}
+
 export function OwnerPartnersScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const utils = trpc.useUtils();
+  const isWeb = Platform.OS === "web";
+  const dialogScrollMaxHeight = Math.min(windowHeight * 0.66, 560);
 
   const listQ = trpc.owner.listMyPartners.useQuery({});
 
@@ -103,7 +219,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
     setName(p.name);
     setCategory(p.category);
     setEmail(p.email ?? "");
-    setPhone(p.phone ?? "");
+    setPhone(maskPhone(p.phone ?? ""));
     setNotes(p.notes ?? "");
     setFormErr(null);
     setDialogOpen(true);
@@ -156,8 +272,8 @@ export function OwnerPartnersScreen({ navigation }: Props) {
       setFormErr("E-mail inválido.");
       return;
     }
-    const ph = phone.trim();
-    if (ph && ph.length < 8) {
+    const phDigits = onlyDigits(phone);
+    if (phDigits && phDigits.length < 10) {
       setFormErr("Telefone muito curto.");
       return;
     }
@@ -168,7 +284,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
         name: n,
         category,
         email: em ? em.toLowerCase() : null,
-        phone: ph || null,
+        phone: phDigits || null,
         notes: notes.trim() || null,
       });
     } else {
@@ -176,7 +292,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
         name: n,
         category,
         email: em ? em.toLowerCase() : null,
-        phone: ph || null,
+        phone: phDigits || null,
         notes: notes.trim() || null,
       });
     }
@@ -223,6 +339,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <FlatList
+        style={styles.flex}
         data={data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[
@@ -257,7 +374,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
                   </Text>
                   {item.phone ? (
                     <Text variant="bodySmall" style={styles.meta}>
-                      Tel.: {item.phone}
+                      Tel.: {maskPhone(item.phone)}
                     </Text>
                   ) : null}
                   {item.email ? (
@@ -297,116 +414,152 @@ export function OwnerPartnersScreen({ navigation }: Props) {
         )}
       />
 
-      <Portal>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
-          style={styles.dialogKeyboard}
+      {isWeb ? (
+        <Modal
+          transparent
+          visible={dialogOpen}
+          animationType="fade"
+          onRequestClose={() => {
+            if (!busy) {
+              setDialogOpen(false);
+              resetForm();
+            }
+          }}
         >
-          <Dialog
-            visible={dialogOpen}
-            onDismiss={() => {
-              if (!busy) {
-                setDialogOpen(false);
-                resetForm();
-              }
-            }}
-            style={styles.dialog}
-          >
-            <Dialog.Title>
-              {editingId ? "Editar parceiro" : "Novo parceiro"}
-            </Dialog.Title>
-            <Dialog.ScrollArea style={styles.dialogScrollArea}>
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
-                contentContainerStyle={[
-                  styles.dialogScrollContent,
-                  { paddingBottom: Math.max(insets.bottom, 16) + 96 },
+          <View style={styles.webModalBackdrop}>
+            <View
+              style={[
+                styles.webModalCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.outlineVariant,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.webModalHeader,
+                  { borderBottomColor: theme.colors.outlineVariant },
                 ]}
               >
-                <Dialog.Content>
-                  <Text variant="labelLarge" style={styles.fieldLabel}>
-                    Tipo
-                  </Text>
-                  <View style={styles.chipRow}>
-                    {CATEGORIES.map((c) => (
-                      <Chip
-                        key={c}
-                        selected={category === c}
-                        onPress={() => setCategory(c)}
-                        style={styles.chip}
-                        mode="outlined"
-                      >
-                        {categoryLabel(c)}
-                      </Chip>
-                    ))}
-                  </View>
-
-                  <TextInput
-                    mode="outlined"
-                    label="Nome"
-                    value={name}
-                    onChangeText={setName}
-                    style={styles.input}
-                  />
-                  <TextInput
-                    mode="outlined"
-                    label="Telefone (opcional)"
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                    style={styles.input}
-                  />
-                  <TextInput
-                    mode="outlined"
-                    label="E-mail (opcional)"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                  />
-                  <TextInput
-                    mode="outlined"
-                    label="Observações (opcional)"
-                    value={notes}
-                    onChangeText={setNotes}
-                    multiline
-                    style={styles.input}
-                    contentStyle={{ minHeight: 72 }}
-                  />
-
-                  <HelperText type="error" visible={!!formErr}>
-                    {formErr ?? ""}
-                  </HelperText>
-                </Dialog.Content>
+                <Text variant="headlineSmall" style={styles.webModalTitle}>
+                  {editingId ? "Editar parceiro" : "Novo parceiro"}
+                </Text>                
+              </View>
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                style={{ maxHeight: dialogScrollMaxHeight }}
+                contentContainerStyle={styles.webModalScroll}
+              >
+                <PartnerFormFields
+                  category={category}
+                  setCategory={setCategory}
+                  name={name}
+                  setName={setName}
+                  email={email}
+                  setEmail={setEmail}
+                  phone={phone}
+                  setPhone={setPhone}
+                  notes={notes}
+                  setNotes={setNotes}
+                  formErr={formErr}
+                />
               </ScrollView>
-            </Dialog.ScrollArea>
-            <Divider />
-            <Dialog.Actions>
-              <Button
-                onPress={() => {
-                  if (!busy) {
-                    setDialogOpen(false);
-                    resetForm();
-                  }
-                }}
+
+              <View
+                style={[
+                  styles.webModalActions,
+                  { borderTopColor: theme.colors.outlineVariant },
+                ]}
               >
-                Cancelar
-              </Button>
-              <Button
-                mode="contained"
-                onPress={onSave}
-                loading={busy}
-                disabled={busy}
+                <Button
+                  onPress={() => {
+                    if (!busy) {
+                      setDialogOpen(false);
+                      resetForm();
+                    }
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button mode="contained" onPress={onSave} loading={busy} disabled={busy}>
+                  Salvar
+                </Button>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      ) : (
+        <Portal>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+            style={styles.dialogKeyboard}
+          >
+            <Dialog
+              visible={dialogOpen}
+              onDismiss={() => {
+                if (!busy) {
+                  setDialogOpen(false);
+                  resetForm();
+                }
+              }}
+              style={[styles.dialog, { borderRadius: 24, backgroundColor: theme.colors.surface }]}
+            >
+              <Dialog.Title style={styles.dialogTitle}>
+                {editingId ? "Editar parceiro" : "Novo parceiro"}
+              </Dialog.Title>
+              <Dialog.ScrollArea
+                style={[styles.dialogScrollArea, { maxHeight: dialogScrollMaxHeight }]}
               >
-                Salvar
-              </Button>
-            </Dialog.Actions>
-          </Dialog>
-        </KeyboardAvoidingView>
-      </Portal>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+                  contentContainerStyle={[
+                    styles.dialogScrollContent,
+                    { paddingBottom: Math.max(insets.bottom, 16) + 24 },
+                  ]}
+                >
+                  <PartnerFormFields
+                    category={category}
+                    setCategory={setCategory}
+                    name={name}
+                    setName={setName}
+                    email={email}
+                    setEmail={setEmail}
+                    phone={phone}
+                    setPhone={setPhone}
+                    notes={notes}
+                    setNotes={setNotes}
+                    formErr={formErr}
+                  />
+                </ScrollView>
+              </Dialog.ScrollArea>
+              <Divider />
+              <Dialog.Actions>
+                <Button
+                  onPress={() => {
+                    if (!busy) {
+                      setDialogOpen(false);
+                      resetForm();
+                    }
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  mode="contained"
+                  onPress={onSave}
+                  loading={busy}
+                  disabled={busy}
+                >
+                  Salvar
+                </Button>
+              </Dialog.Actions>
+            </Dialog>
+          </KeyboardAvoidingView>
+        </Portal>
+      )}
 
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
         <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
@@ -438,11 +591,76 @@ const styles = StyleSheet.create({
   notes: { marginTop: 8, opacity: 0.85 },
   footer: { paddingHorizontal: 16, paddingTop: 8 },
   dialogKeyboard: { flex: 1, justifyContent: "center" },
-  dialog: { maxHeight: "88%" },
-  dialogScrollArea: { maxHeight: 460 },
+  dialog: { maxHeight: "92%" },
+  dialogTitle: { letterSpacing: 0.15, paddingBottom: 4 },
+  dialogScrollArea: {},
   dialogScrollContent: { flexGrow: 1 },
+  formInner: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 8,
+  },
   fieldLabel: { marginBottom: 8 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
   chip: { marginRight: 0 },
-  input: { marginBottom: 8, backgroundColor: "transparent" },
+  sectionHeading: {
+    marginTop: 14,
+    marginBottom: 10,
+    letterSpacing: 0.1,
+  },
+  optionalHint: { opacity: 0.65 },
+  input: {
+    marginBottom: 12,
+    backgroundColor: "transparent",
+  },
+  notesInputContent: { minHeight: 88, paddingTop: 12, paddingBottom: 12 },
+  contactRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  contactCol: {},
+  inputHalf: {
+    flex: 1,
+    minWidth: 0,
+    marginBottom: 12,
+  },
+  webModalBackdrop: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  webModalCard: {
+    width: "100%",
+    maxWidth: 560,
+    maxHeight: "92%",
+    borderRadius: 20,
+    paddingBottom: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  webModalHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  webModalTitle: { fontWeight: "600", letterSpacing: 0.15 },
+  webModalScroll: { paddingBottom: 12 },
+  webModalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    marginTop: 4,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

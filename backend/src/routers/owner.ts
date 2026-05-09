@@ -745,6 +745,8 @@ export const ownerRouter = router({
         rejectionReason: profile.rejectionReason,
         fullName: profile.fullName,
         phone: profile.phone,
+        averageRating: profile.averageRating,
+        ratingCount: profile.ratingCount,
         cpf: profile.cpf,
         cnh: profile.cnh,
         cnhCategory: profile.cnhCategory,
@@ -870,7 +872,13 @@ export const ownerRouter = router({
           select: {
             id: true,
             email: true,
-            driverProfile: true,
+            driverProfile: {
+              select: {
+                fullName: true,
+                averageRating: true,
+                ratingCount: true,
+              },
+            },
           },
         },
       },

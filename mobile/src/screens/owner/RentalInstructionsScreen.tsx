@@ -30,6 +30,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
+  const isWeb = Platform.OS === "web";
   const detail = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
   const inspections = trpc.rentalInspection.list.useQuery({ rentalId });
   const [pickupInstructions, setPickup] = useState("");
@@ -63,6 +64,17 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
       }
 
       setContractUrl(url);
+      if (isWeb) {
+        // No Web o Alert nativo pode não aparecer; abrimos o link direto.
+        try {
+          globalThis.open?.(url, "_blank", "noopener,noreferrer");
+        } catch {
+          // ignore
+        }
+        navigation.goBack();
+        return;
+      }
+
       Alert.alert(
         "Locação ativada",
         "Contrato em PDF gerado. O que deseja fazer?",
@@ -114,6 +126,13 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
 
   const confirmSave = () => {
     if (!inspections.data?.items.some((inspection) => inspection.type === "CHECKOUT")) {
+      if (isWeb) {
+        const ok = globalThis.confirm?.(
+          "A vistoria de retirada ainda não foi feita. Deseja ativar a locação mesmo assim?"
+        );
+        if (ok) runSave();
+        return;
+      }
       Alert.alert(
         "Vistoria recomendada",
         "A vistoria de retirada ainda não foi feita. Deseja ativar a locação mesmo assim?",

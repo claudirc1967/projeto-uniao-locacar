@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import {
@@ -6,6 +7,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -52,6 +54,7 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const { vehicleId } = route.params;
   const insets = useSafeAreaInsets();
+  const isWeb = Platform.OS === "web";
   const [pending, setPending] = useState<Picked[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -93,36 +96,57 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
       Alert.alert("Limite", "Já existem 6 fotos para este veículo.");
       return;
     }
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      setErr("Permissão da galeria negada.");
-      return;
-    }
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      selectionLimit: maxSelectable,
-      quality: 0.85,
-    });
-    if (res.canceled) return;
-
     const next: Picked[] = [];
-    for (const a of res.assets) {
-      const mime = a.mimeType ?? "image/jpeg";
-      let size = a.fileSize ?? 0;
-      if (!size) {
-        try {
-          size = await getUriByteSize(a.uri);
-        } catch {
-          size = 0;
-        }
-      }
-      next.push({
-        uri: a.uri,
-        mime,
-        size,
-        name: a.fileName ?? undefined,
+
+    if (Platform.OS === "web") {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: "image/*",
+        copyToCacheDirectory: false,
+        multiple: true,
       });
+      if (res.canceled) return;
+      const assets = res.assets ?? [];
+      for (const a of assets.slice(0, maxSelectable)) {
+        const mime = a.mimeType ?? "image/jpeg";
+        const size = typeof a.size === "number" ? a.size : 0;
+        next.push({
+          uri: a.uri,
+          mime,
+          size,
+          name: a.name ?? undefined,
+        });
+      }
+    } else {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        setErr("Permissão da galeria negada.");
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsMultipleSelection: true,
+        selectionLimit: maxSelectable,
+        quality: 0.85,
+      });
+      if (res.canceled) return;
+
+      for (const a of res.assets) {
+        const mime = a.mimeType ?? "image/jpeg";
+        let size = a.fileSize ?? 0;
+        if (!size) {
+          try {
+            size = await getUriByteSize(a.uri);
+          } catch {
+            size = 0;
+          }
+        }
+        next.push({
+          uri: a.uri,
+          mime,
+          size,
+          name: a.fileName ?? undefined,
+        });
+      }
     }
 
     const check = validatePhotosForUpload(
@@ -150,6 +174,16 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
     const slot = viewerSlots[index];
     if (!slot) return;
     if (slot.kind === "pending") {
+      if (isWeb) {
+        const ok = globalThis.confirm?.(
+          "Descartar esta imagem da fila de envio?"
+        );
+        if (ok) {
+          removePending(slot.uri);
+          setViewerVisible(false);
+        }
+        return;
+      }
       Alert.alert("Remover foto", "Descartar esta imagem da fila de envio?", [
         { text: "Cancelar", style: "cancel" },
         {
@@ -161,6 +195,13 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
           },
         },
       ]);
+      return;
+    }
+    if (isWeb) {
+      const ok = globalThis.confirm?.(
+        "A foto será removida do veículo e do armazenamento. Excluir?"
+      );
+      if (ok) void runDeleteSaved(slot.id);
       return;
     }
     Alert.alert(

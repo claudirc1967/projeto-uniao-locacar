@@ -29,6 +29,9 @@ import {
   contractTimeSuffix,
   formatMoneyWithContractPeriod,
   maskCep,
+  maskMoneyInput,
+  moneyInputFromCents,
+  onlyDigits,
 } from "../../utils/masks";
 import {
   CepAddressForm,
@@ -78,6 +81,7 @@ function isValidPlate(raw: string) {
 export function VehicleFormScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const isWeb = Platform.OS === "web";
   const { user } = useAuth();
   const ownerProfile = user?.role === "OWNER" ? user.ownerProfile : null;
   const vehicleId = route.params?.vehicleId;
@@ -189,7 +193,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         ? v.insurancePartnerId
         : null
     );
-    setDailyReais((v.dailyRateCents / 100).toFixed(2));
+    setDailyReais(moneyInputFromCents(v.dailyRateCents));
     setAvailable(v.available);
     setRequirementsJson(v.requirementsJson ?? "");
     setPaymentNotes(
@@ -292,9 +296,11 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   });
 
   const parseCents = () => {
-    const n = Number(dailyReais.replace(",", "."));
-    if (!Number.isFinite(n) || n <= 0) return null;
-    return Math.round(n * 100);
+    const digits = onlyDigits(dailyReais);
+    if (!digits) return null;
+    const cents = parseInt(digits, 10);
+    if (!Number.isFinite(cents) || cents <= 0) return null;
+    return cents;
   };
 
   const onSubmit = () => {
@@ -500,7 +506,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         <Field
           label={`Valor do período (R$)${contractTimeSuffix(contractTime)}`}
           value={dailyReais}
-          onChangeText={setDailyReais}
+          onChangeText={(t) => setDailyReais(maskMoneyInput(t))}
           keyboardType="decimal-pad"
         />
 
@@ -652,17 +658,60 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         transparent
         onRequestClose={() => setInsurancePartnerPickerOpen(false)}
       >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setInsurancePartnerPickerOpen(false)}
-        >
+        {isWeb ? (
+          <View style={styles.modalBackdrop}>
+            <View
+              style={[styles.pickerSheet, { backgroundColor: theme.colors.surface }]}
+            >
+              <Text variant="titleMedium" style={styles.pickerTitle}>
+                Parceiro seguradora
+              </Text>
+              <FlatList
+                data={insurancePickerRows}
+                keyExtractor={(item) => (item.id == null ? "__none__" : item.id)}
+                renderItem={({ item }) => {
+                  const selected =
+                    (item.id == null && insurancePartnerId == null) ||
+                    (item.id != null && item.id === insurancePartnerId);
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        setInsurancePartnerId(item.id);
+                        setInsurancePartnerPickerOpen(false);
+                      }}
+                      style={({ pressed }) => [
+                        styles.pickerItem,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      <Text variant="bodyMedium">{item.label}</Text>
+                      {selected ? (
+                        <Text variant="labelMedium" style={styles.pickerSelected}>
+                          Selecionado
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                }}
+                ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+                style={{ maxHeight: 420 }}
+              />
+              <Button mode="text" onPress={() => setInsurancePartnerPickerOpen(false)}>
+                Fechar
+              </Button>
+            </View>
+          </View>
+        ) : (
           <Pressable
-            style={[
-              styles.pickerSheet,
-              { backgroundColor: theme.colors.surface },
-            ]}
-            onPress={(e) => e.stopPropagation()}
+            style={styles.modalBackdrop}
+            onPress={() => setInsurancePartnerPickerOpen(false)}
           >
+            <Pressable
+              style={[
+                styles.pickerSheet,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
             <Text variant="titleMedium" style={styles.pickerTitle}>
               Parceiro seguradora
             </Text>
@@ -705,8 +754,9 @@ export function VehicleFormScreen({ navigation, route }: Props) {
             >
               Fechar
             </Button>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        )}
       </Modal>
 
       <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>

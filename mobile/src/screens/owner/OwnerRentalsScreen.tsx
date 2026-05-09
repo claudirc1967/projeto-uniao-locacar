@@ -39,11 +39,26 @@ const statusLabel: Record<string, string> = {
 function driverDisplayName(item: {
   driver: {
     email: string;
-    driverProfile: { fullName: string | null } | null;
+    driverProfile:
+      | { fullName: string | null; averageRating: number | null; ratingCount: number }
+      | null;
   };
 }) {
   const n = item.driver.driverProfile?.fullName?.trim();
   return n ? n : "—";
+}
+
+function driverRatingLine(item: {
+  driver: {
+    driverProfile:
+      | { averageRating: number | null; ratingCount: number }
+      | null;
+  };
+}) {
+  const p = item.driver.driverProfile;
+  if (!p || !p.ratingCount || p.averageRating == null) return null;
+  const avg = p.averageRating.toFixed(1).replace(".", ",");
+  return `★ ${avg} (${p.ratingCount})`;
 }
 
 export function OwnerRentalsScreen({ navigation }: Props) {
@@ -175,6 +190,11 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                   <Text variant="bodySmall" style={styles.meta}>
                     Motorista: {driverDisplayName(item)}
                   </Text>
+                  {driverRatingLine(item) ? (
+                    <Text variant="bodySmall" style={styles.meta}>
+                      {driverRatingLine(item)}
+                    </Text>
+                  ) : null}
                 </View>
                 <Chip compact mode="flat" style={styles.statusChip}>
                   {statusLabel[item.status] ?? item.status}

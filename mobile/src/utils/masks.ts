@@ -123,3 +123,22 @@ export function formatMoneyWithContractPeriod(
 ): string {
   return `${formatMoneyFromCents(cents)}${contractTimeSuffix(contractTime)}`;
 }
+
+/**
+ * Máscara para entrada de dinheiro (pt-BR) sem o "R$".
+ * Ex.: "123456" -> "1.234,56"
+ */
+export function maskMoneyInput(raw: string) {
+  const digits = onlyDigits(raw);
+  if (!digits) return "";
+  const padded = digits.padStart(3, "0");
+  const cents = padded.slice(-2);
+  const ints = padded.slice(0, -2).replace(/^0+(?=\d)/, "");
+  const intWithSep = ints.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${intWithSep || "0"},${cents}`;
+}
+
+export function moneyInputFromCents(cents: number | null | undefined) {
+  if (cents == null) return "";
+  return maskMoneyInput(String(Math.max(0, Math.round(cents))));
+}

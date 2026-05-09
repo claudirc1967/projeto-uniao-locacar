@@ -13,7 +13,9 @@ import {
   formatDateDisplay,
   formatDateTimeDisplay,
   formatMoneyFromCents,
+  maskMoneyInput,
   maskDate,
+  moneyInputFromCents,
   onlyDigits,
 } from "../utils/masks";
 import { trpcErrorMessage } from "../utils/trpcError";
@@ -107,11 +109,6 @@ const methodLabels: Record<PaymentMethod, string> = {
 const statusOptions = Object.keys(statusLabels) as PaymentStatus[];
 const entryTypeOptions = Object.keys(entryTypeLabels) as EntryType[];
 const methodOptions = Object.keys(methodLabels) as PaymentMethod[];
-
-function centsToInput(cents: number | null | undefined) {
-  if (cents == null) return "";
-  return (cents / 100).toFixed(2).replace(".", ",");
-}
 
 function parseMoneyInput(raw: string): number | null {
   const cleaned = raw.trim().replace(/\./g, "").replace(",", ".");
@@ -211,8 +208,10 @@ export function OwnerRentalFinanceSection({
 
   useEffect(() => {
     const summary = financeData.summary;
-    setAgreedAmount(centsToInput(summary?.agreedAmountCents ?? defaultAmountCents));
-    setSecurityDeposit(centsToInput(summary?.securityDepositCents));
+    setAgreedAmount(
+      moneyInputFromCents(summary?.agreedAmountCents ?? defaultAmountCents)
+    );
+    setSecurityDeposit(moneyInputFromCents(summary?.securityDepositCents));
     setStatus(summary?.status ?? "PENDING");
     setDueDate(dateToDdMmYyyy(summary?.dueDate));
     setSummaryNotes(summary?.notes ?? "");
@@ -420,14 +419,14 @@ export function OwnerRentalFinanceSection({
                 mode="outlined"
                 label="Valor combinado (R$)"
                 value={agreedAmount}
-                onChangeText={setAgreedAmount}
+                onChangeText={(t) => setAgreedAmount(maskMoneyInput(t))}
                 keyboardType="decimal-pad"
               />
               <TextInput
                 mode="outlined"
                 label="Caução registrada (R$)"
                 value={securityDeposit}
-                onChangeText={setSecurityDeposit}
+                onChangeText={(t) => setSecurityDeposit(maskMoneyInput(t))}
                 keyboardType="decimal-pad"
               />
               <TextInput
@@ -509,7 +508,7 @@ export function OwnerRentalFinanceSection({
                 mode="outlined"
                 label="Valor (R$)"
                 value={entryAmount}
-                onChangeText={setEntryAmount}
+                onChangeText={(t) => setEntryAmount(maskMoneyInput(t))}
                 keyboardType="decimal-pad"
               />
               <TextInput

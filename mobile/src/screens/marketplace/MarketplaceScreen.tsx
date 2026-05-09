@@ -416,6 +416,13 @@ export function MarketplaceScreen({ navigation }: Props) {
                       Locador: {item.ownerName ?? "—"}
                     </Text>
                   ) : null}
+                  {user?.role === "DRIVER" ? (
+                    <Text variant="bodySmall" style={styles.ownerRatingLine}>
+                      {item.ownerRatingCount > 0 && item.ownerAverageRating != null
+                        ? `★ ${item.ownerAverageRating.toFixed(1).replace(".", ",")} (${item.ownerRatingCount})`
+                        : "Sem avaliações"}
+                    </Text>
+                  ) : null}
                   {user?.role === "DRIVER" && item.driverRequestBlocked ? (
                     <Text variant="labelSmall" style={styles.blockedTag}>
                       Solicitação bloqueada
@@ -743,6 +750,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: "700",
     opacity: 1,
+  },
+  ownerRatingLine: {
+    marginTop: 2,
+    opacity: 0.9,
   },
   empty: { marginTop: 24, opacity: 0.7 },
   blockedTag: {

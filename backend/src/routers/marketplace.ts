@@ -156,6 +156,8 @@ export const marketplaceRouter = router({
                   phone: true,
                   cidade: true,
                   uf: true,
+                  averageRating: true,
+                  ratingCount: true,
                 },
               },
             },
@@ -197,6 +199,8 @@ export const marketplaceRouter = router({
               ownerPhone: v.owner.ownerProfile?.phone || null,
               ownerCity: v.owner.ownerProfile?.cidade || null,
               ownerUf: v.owner.ownerProfile?.uf || null,
+              ownerAverageRating: v.owner.ownerProfile?.averageRating ?? null,
+              ownerRatingCount: v.owner.ownerProfile?.ratingCount ?? 0,
               coverPhotoUrl: coverUrl,
               driverRequestBlocked,
             };

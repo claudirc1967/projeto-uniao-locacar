@@ -135,6 +135,11 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
           <Card.Content style={styles.gap}>
             <Text variant="labelLarge">Nome</Text>
             <Text variant="bodyLarge">{p.fullName ?? "—"}</Text>
+            {p.ratingCount > 0 && p.averageRating != null ? (
+              <Text variant="bodyMedium" style={styles.ratingLine}>
+                ★ {p.averageRating.toFixed(1).replace(".", ",")} ({p.ratingCount})
+              </Text>
+            ) : null}
             <Divider style={styles.div} />
             <Text variant="labelLarge">E-mail</Text>
             <Text variant="bodyLarge">{p.email ?? "—"}</Text>
@@ -293,6 +298,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 24, paddingTop: 8 },
   lead: { marginBottom: 4, opacity: 0.9 },
   statusText: { marginTop: 4 },
+  ratingLine: { marginTop: 6, opacity: 0.85 },
   rejectionBox: {
     marginTop: 12,
     lineHeight: 22,

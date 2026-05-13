@@ -26,6 +26,14 @@ const listFiltersSchema = z.object({
   ownerMinAverageStars: z.number().int().min(1).max(5).optional(),
 });
 
+function tagsFromJson(json: unknown): string[] {
+  if (json == null) return [];
+  if (Array.isArray(json)) {
+    return json.filter((x): x is string => typeof x === "string");
+  }
+  return [];
+}
+
 async function safePresignGetRead(key: string): Promise<string | null> {
   try {
     return await presignGetRead(key, 3600);
@@ -227,7 +235,11 @@ export const marketplaceRouter = router({
               id: true,
               email: true,
               ownerProfile: {
-                select: { nomeRazaoSocial: true },
+                select: {
+                  nomeRazaoSocial: true,
+                  averageRating: true,
+                  ratingCount: true,
+                },
               },
             },
           },
@@ -286,6 +298,8 @@ export const marketplaceRouter = router({
           ownerUserId: v.owner.id,
           ownerName: v.owner.ownerProfile?.nomeRazaoSocial || null,
           ownerEmail: v.owner.email,
+          ownerAverageRating: v.owner.ownerProfile?.averageRating ?? null,
+          ownerRatingCount: v.owner.ownerProfile?.ratingCount ?? 0,
           photos,
           driverRequestBlocked,
         };
@@ -296,5 +310,58 @@ export const marketplaceRouter = router({
           message: msg,
         });
       }
+    }),
+
+  listOwnerReviews: protectedProcedure
+    .input(z.object({ ownerUserId: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const profile = await prisma.ownerProfile.findUnique({
+        where: { userId: input.ownerUserId },
+        select: {
+          nomeRazaoSocial: true,
+          averageRating: true,
+          ratingCount: true,
+        },
+      });
+      if (!profile) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Locador não encontrado.",
+        });
+      }
+
+      const reviews = await prisma.rentalReview.findMany({
+        where: {
+          toUserId: input.ownerUserId,
+          direction: "DRIVER_TO_OWNER",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          rental: {
+            select: {
+              id: true,
+              vehicle: { select: { title: true } },
+            },
+          },
+        },
+      });
+
+      return {
+        summary: {
+          displayName: profile.nomeRazaoSocial || null,
+          averageRating: profile.ratingCount > 0 ? profile.averageRating : null,
+          ratingCount: profile.ratingCount,
+        },
+        items: reviews.map((review) => ({
+          id: review.id,
+          rentalId: review.rentalId,
+          vehicleTitle: review.rental.vehicle.title,
+          stars: review.stars,
+          tags: tagsFromJson(review.tagsJson),
+          comment: review.comment,
+          createdAt: review.createdAt,
+        })),
+      };
     }),
 });

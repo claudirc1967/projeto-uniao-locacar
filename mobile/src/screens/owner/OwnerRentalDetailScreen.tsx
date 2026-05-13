@@ -440,6 +440,28 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           <Text variant="titleSmall" style={styles.valueTitle}>
             {driverProfile?.fullName ?? "—"}
           </Text>
+          {driverProfile?.ratingCount && driverProfile.averageRating != null ? (
+            <>
+              <Text variant="bodySmall" style={styles.meta}>
+                ★ {driverProfile.averageRating.toFixed(1).replace(".", ",")} ({driverProfile.ratingCount})
+              </Text>
+              <Button
+                mode="text"
+                compact
+                onPress={() =>
+                  navigation.navigate("UserReviews", {
+                    targetUserId: row.driver.id,
+                    targetRole: "DRIVER",
+                    title: "Avaliações do motorista",
+                    displayName: driverProfile.fullName ?? row.driver.email,
+                  })
+                }
+                style={styles.inlineReviewsBtn}
+              >
+                Ver avaliações do motorista
+              </Button>
+            </>
+          ) : null}
           <Text variant="bodySmall" style={styles.meta}>
             E-mail: {row.driver.email}
           </Text>
@@ -665,6 +687,7 @@ const styles = StyleSheet.create({
   vehicleTitle: { marginBottom: 4 },
   divider: { height: 1, backgroundColor: "#e2e8f0", marginVertical: 2 },
   meta: { opacity: 0.85 },
+  inlineReviewsBtn: { alignSelf: "flex-start", marginTop: -2 },
   longText: { lineHeight: 22, marginTop: 4 },
   unlockedHint: {
     marginTop: 4,

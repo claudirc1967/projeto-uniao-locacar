@@ -116,6 +116,8 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
   const showDescription =
     !!descriptionText &&
     descriptionText.toLocaleLowerCase() !== brandModel.toLocaleLowerCase();
+  const ownerHasReviews =
+    (v.ownerRatingCount ?? 0) > 0 && v.ownerAverageRating != null;
   const driverStatus = user?.driverProfile?.status;
   const driverCanRequest = user?.role === "DRIVER" && driverStatus === "APPROVED";
   const driverApprovalMessage =
@@ -216,6 +218,28 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
             <Text variant="titleSmall" style={styles.ownerLabel}>
               Locador: {ownerName}
             </Text>
+            {ownerHasReviews ? (
+              <>
+                <Text variant="bodySmall" style={styles.ownerRating}>
+                  ★ {v.ownerAverageRating.toFixed(1).replace(".", ",")} ({v.ownerRatingCount})
+                </Text>
+                <Button
+                  mode="text"
+                  compact
+                  onPress={() =>
+                    navigation.navigate("UserReviews", {
+                      targetUserId: v.ownerUserId,
+                      targetRole: "OWNER",
+                      title: "Avaliações do locador",
+                      displayName: ownerName,
+                    })
+                  }
+                  style={styles.ownerReviewsBtn}
+                >
+                  Ver avaliações do locador
+                </Button>
+              </>
+            ) : null}
             <VehicleLocationActions vehicle={v} />
           </>
         ) : null}
@@ -289,6 +313,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: "center",
     fontWeight: "700",
+  },
+  ownerRating: {
+    textAlign: "center",
+    opacity: 0.9,
+  },
+  ownerReviewsBtn: {
+    alignSelf: "center",
+    marginTop: 2,
   },
   locationBtn: { marginTop: 4 },
   requestBtn: { marginTop: 18 },

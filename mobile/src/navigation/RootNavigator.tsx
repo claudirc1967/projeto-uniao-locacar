@@ -32,6 +32,7 @@ import { AccountDeletionScreen } from "../screens/legal/AccountDeletionScreen";
 import { AccountPrivacyScreen } from "../screens/legal/AccountPrivacyScreen";
 import { PrivacyAcceptanceScreen } from "../screens/legal/PrivacyAcceptanceScreen";
 import { PrivacyPolicyScreen } from "../screens/legal/PrivacyPolicyScreen";
+import { UserReviewsScreen } from "../screens/reviews/UserReviewsScreen";
 import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -153,6 +154,11 @@ export function RootNavigator() {
         <Stack.Screen name="DriverRentals" component={DriverRentalsScreen} options={{ title: "Solicitações de locação" }} />
         <Stack.Screen name="Marketplace" component={MarketplaceScreen} options={{ title: "Marketplace" }} />
         <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} options={{ title: "Detalhes do veículo" }} />
+        <Stack.Screen
+          name="UserReviews"
+          component={UserReviewsScreen}
+          options={({ route }) => ({ title: route.params.title })}
+        />
         <Stack.Screen name="RentalDetail" component={RentalDetailScreen} options={{ title: "Detalhes da locação" }} />
       </Stack.Navigator>
     </NavigationContainer>

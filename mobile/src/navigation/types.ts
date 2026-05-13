@@ -28,5 +28,11 @@ export type RootStackParamList = {
   DriverRentals: undefined;
   Marketplace: undefined;
   VehicleDetail: { vehicleId: string };
+  UserReviews: {
+    targetUserId: string;
+    targetRole: "OWNER" | "DRIVER";
+    title: string;
+    displayName?: string | null;
+  };
   RentalDetail: { rentalId: string };
 };

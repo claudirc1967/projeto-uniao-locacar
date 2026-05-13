@@ -202,6 +202,14 @@ function financialTotals(
   };
 }
 
+function tagsFromJson(json: unknown): string[] {
+  if (json == null) return [];
+  if (Array.isArray(json)) {
+    return json.filter((x): x is string => typeof x === "string");
+  }
+  return [];
+}
+
 export const ownerRouter = router({
   listMyPartners: ownerProcedure
     .input(
@@ -765,6 +773,74 @@ export const ownerRouter = router({
       };
     }),
 
+  listDriverReviews: ownerProcedure
+    .input(z.object({ driverUserId: z.string().min(1) }))
+    .query(async ({ ctx, input }) => {
+      const ownerUserId = (ctx as AuthedContext).user.id;
+      const linkedRentalCount = await prisma.rental.count({
+        where: {
+          driverUserId: input.driverUserId,
+          vehicle: { ownerUserId },
+        },
+      });
+      if (!linkedRentalCount) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Você só pode ver avaliações de motoristas que já solicitaram seus veículos.",
+        });
+      }
+
+      const profile = await prisma.driverProfile.findUnique({
+        where: { userId: input.driverUserId },
+        select: {
+          fullName: true,
+          averageRating: true,
+          ratingCount: true,
+        },
+      });
+      if (!profile) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Motorista não encontrado.",
+        });
+      }
+
+      const reviews = await prisma.rentalReview.findMany({
+        where: {
+          toUserId: input.driverUserId,
+          direction: "OWNER_TO_DRIVER",
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: {
+          rental: {
+            select: {
+              id: true,
+              vehicle: { select: { title: true } },
+            },
+          },
+        },
+      });
+
+      return {
+        summary: {
+          displayName: profile.fullName || null,
+          averageRating: profile.ratingCount > 0 ? profile.averageRating : null,
+          ratingCount: profile.ratingCount,
+        },
+        items: reviews.map((review) => ({
+          id: review.id,
+          rentalId: review.rentalId,
+          vehicleTitle: review.rental.vehicle.title,
+          stars: review.stars,
+          tags: tagsFromJson(review.tagsJson),
+          comment: review.comment,
+          createdAt: review.createdAt,
+        })),
+      };
+    }),
+
   approveDriver: ownerProcedure
     .input(z.object({ driverUserId: z.string() }))
     .mutation(async ({ input }) => {
@@ -1142,6 +1218,8 @@ export const ownerRouter = router({
               driverProfile: {
                 select: {
                   fullName: true,
+                  averageRating: true,
+                  ratingCount: true,
                   phone: true,
                   cpf: true,
                   cnh: true,
@@ -1182,14 +1260,6 @@ export const ownerRouter = router({
           },
         },
       });
-
-      const tagsFromJson = (json: unknown): string[] => {
-        if (json == null) return [];
-        if (Array.isArray(json)) {
-          return json.filter((x): x is string => typeof x === "string");
-        }
-        return [];
-      };
 
       return {
         rentalId: r.id,

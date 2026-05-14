@@ -22,9 +22,15 @@ function getBaseUrl() {
   return "/";
 }
 
+const plugins = [...(appJson.expo.plugins || [])];
+if (!plugins.some((plugin) => plugin === "expo-secure-store")) {
+  plugins.push("expo-secure-store");
+}
+
 module.exports = {
   expo: {
     ...appJson.expo,
+    plugins,
     experiments: {
       ...(appJson.expo.experiments || {}),
       baseUrl: getBaseUrl(),

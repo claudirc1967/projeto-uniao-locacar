@@ -21,6 +21,13 @@ import {
   rentalRejectedEmail,
   rentalReviewReminderEmail,
 } from "../email/templates.js";
+import {
+  driverApprovedWhatsApp,
+  driverRejectedWhatsApp,
+  rentalApprovedWhatsApp,
+  rentalRejectedWhatsApp,
+  sendWhatsApp,
+} from "../whatsapp/sendWhatsApp.js";
 import { fillRentalContract } from "../contracts/fillRentalContract.js";
 import { rentalContractTemplate } from "../contracts/rentalContractTemplate.js";
 import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
@@ -871,6 +878,14 @@ export const ownerRouter = router({
           /* não falha a aprovação por e-mail */
         });
       }
+      if (p.phone) {
+        const whatsapp = driverApprovedWhatsApp({
+          driver: { name: p.fullName },
+        });
+        void sendWhatsApp({ to: p.phone, ...whatsapp }).catch(() => {
+          /* não falha a aprovação por WhatsApp */
+        });
+      }
       return { ok: true as const };
     }),
 
@@ -910,6 +925,15 @@ export const ownerRouter = router({
         });
         void sendEmail({ to, ...email }).catch(() => {
           /* não falha a recusa por e-mail */
+        });
+      }
+      if (p.phone) {
+        const whatsapp = driverRejectedWhatsApp({
+          driver: { name: p.fullName },
+          rejectionReason: input.motivo.trim(),
+        });
+        void sendWhatsApp({ to: p.phone, ...whatsapp }).catch(() => {
+          /* não falha a recusa por WhatsApp */
         });
       }
       return { ok: true as const };
@@ -1059,6 +1083,22 @@ export const ownerRouter = router({
           /* não falha a aprovação por e-mail */
         });
       }
+      const driverPhone = r.driver.driverProfile?.phone;
+      if (driverPhone) {
+        const whatsapp = rentalApprovedWhatsApp({
+          driver: { name: r.driver.driverProfile?.fullName },
+          owner: {
+            name: owner.ownerProfile?.nomeRazaoSocial,
+            phone: owner.ownerProfile?.phone,
+            email: owner.ownerProfile?.emailLocador ?? owner.email,
+          },
+          vehicle: r.vehicle,
+          pickupInstructions,
+        });
+        void sendWhatsApp({ to: driverPhone, ...whatsapp }).catch(() => {
+          /* não falha a aprovação por WhatsApp */
+        });
+      }
       return { ok: true as const };
     }),
 
@@ -1113,9 +1153,9 @@ export const ownerRouter = router({
         }),
       ]);
 
+      const owner = (ctx as AuthedContext).user;
       const to = r.driver.email?.trim();
       if (to) {
-        const owner = (ctx as AuthedContext).user;
         const email = rentalRejectedEmail({
           driver: { name: r.driver.driverProfile?.fullName },
           owner: {
@@ -1128,6 +1168,22 @@ export const ownerRouter = router({
         });
         void sendEmail({ to, ...email }).catch(() => {
           /* não falha a recusa por e-mail */
+        });
+      }
+      const driverPhone = r.driver.driverProfile?.phone;
+      if (driverPhone) {
+        const whatsapp = rentalRejectedWhatsApp({
+          driver: { name: r.driver.driverProfile?.fullName },
+          owner: {
+            name: owner.ownerProfile?.nomeRazaoSocial,
+            phone: owner.ownerProfile?.phone,
+            email: owner.ownerProfile?.emailLocador ?? owner.email,
+          },
+          vehicle: r.vehicle,
+          rejectionReason: input.motivoRecusa.trim(),
+        });
+        void sendWhatsApp({ to: driverPhone, ...whatsapp }).catch(() => {
+          /* não falha a recusa por WhatsApp */
         });
       }
       return { ok: true as const };

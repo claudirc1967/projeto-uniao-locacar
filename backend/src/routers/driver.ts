@@ -5,6 +5,10 @@ import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import { rentalRequestedEmail } from "../email/templates.js";
+import {
+  rentalRequestedWhatsApp,
+  sendWhatsApp,
+} from "../whatsapp/sendWhatsApp.js";
 import { driverProcedure, router } from "../trpc.js";
 import { cpfValidationMessage } from "../validation/cpfCnpj.js";
 
@@ -147,6 +151,7 @@ export const driverRouter = router({
       const owner = await prisma.user.findUnique({
         where: { id: vehicle.ownerUserId },
         select: {
+          email: true,
           ownerProfile: {
             select: { emailLocador: true, nomeRazaoSocial: true, phone: true },
           },
@@ -160,13 +165,14 @@ export const driverRouter = router({
         },
       });
 
-      const to = owner?.ownerProfile?.emailLocador?.trim();
-      if (to) {
+      const ownerEmail =
+        owner?.ownerProfile?.emailLocador?.trim() || owner?.email?.trim();
+      if (ownerEmail) {
         const email = rentalRequestedEmail({
           owner: {
             name: owner?.ownerProfile?.nomeRazaoSocial,
             phone: owner?.ownerProfile?.phone,
-            email: owner?.ownerProfile?.emailLocador,
+            email: ownerEmail,
           },
           driver: {
             name: profile.fullName,
@@ -175,8 +181,25 @@ export const driverRouter = router({
           },
           vehicle,
         });
-        void sendEmail({ to, ...email }).catch(() => {
+        void sendEmail({ to: ownerEmail, ...email }).catch(() => {
           /* não falha a solicitação por e-mail */
+        });
+      }
+      const ownerPhone = owner?.ownerProfile?.phone;
+      if (ownerPhone) {
+        const whatsapp = rentalRequestedWhatsApp({
+          owner: {
+            name: owner?.ownerProfile?.nomeRazaoSocial,
+          },
+          driver: {
+            name: profile.fullName,
+            phone: profile.phone,
+            email: (ctx as AuthedContext).user.email,
+          },
+          vehicle,
+        });
+        void sendWhatsApp({ to: ownerPhone, ...whatsapp }).catch(() => {
+          /* não falha a solicitação por WhatsApp */
         });
       }
       return { rentalId: rental.id };

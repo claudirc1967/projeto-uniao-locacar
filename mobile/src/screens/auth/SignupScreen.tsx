@@ -19,6 +19,7 @@ import {
 } from "react-native-paper";
 import { trpc } from "../../api/trpc";
 import { PRIVACY_POLICY_VERSION } from "../../constants/privacyPolicyVersion";
+import { TERMS_OF_USE_VERSION } from "../../constants/termsOfUseVersion";
 import {
   CepAddressForm,
   type CepAddressValue,
@@ -58,6 +59,7 @@ export function SignupScreen({ navigation }: Props) {
   const [addr, setAddr] = useState<CepAddressValue>(emptyAddr);
   const [err, setErr] = useState<string | null>(null);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const signup = trpc.auth.signup.useMutation({
     onSuccess: async (data) => {
@@ -107,6 +109,10 @@ export function SignupScreen({ navigation }: Props) {
       setErr("É necessário aceitar a Política de Privacidade.");
       return;
     }
+    if (!acceptTerms) {
+      setErr("É necessário aceitar os Termos de uso.");
+      return;
+    }
     const emailErr = validateEmailForAuth(email);
     if (emailErr) {
       setErr(emailErr);
@@ -125,6 +131,7 @@ export function SignupScreen({ navigation }: Props) {
         password,
         role: "DRIVER",
         privacyPolicyAcceptedVersion: PRIVACY_POLICY_VERSION,
+        termsOfUseAcceptedVersion: TERMS_OF_USE_VERSION,
       });
       return;
     }
@@ -144,6 +151,7 @@ export function SignupScreen({ navigation }: Props) {
       numero: addr.numero.trim(),
       complemento: addr.complemento.trim() || "",
       privacyPolicyAcceptedVersion: PRIVACY_POLICY_VERSION,
+      termsOfUseAcceptedVersion: TERMS_OF_USE_VERSION,
     });
   };
 
@@ -241,19 +249,38 @@ export function SignupScreen({ navigation }: Props) {
           </Card>
         ) : null}
 
-        <View style={styles.privacyRow}>
+        <View style={styles.legalRow}>
           <Checkbox.Android
             status={acceptPrivacy ? "checked" : "unchecked"}
             onPress={() => setAcceptPrivacy((v) => !v)}
           />
-          <View style={styles.privacyTextWrap}>
-            <Text variant="bodyMedium" style={styles.privacyLine}>
+          <View style={styles.legalTextWrap}>
+            <Text variant="bodyMedium" style={styles.legalLine}>
               Li e aceito a{" "}
               <Text
                 style={{ color: theme.colors.primary }}
                 onPress={() => navigation.navigate("PrivacyPolicy")}
               >
                 Política de Privacidade
+              </Text>
+              .
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.legalRow}>
+          <Checkbox.Android
+            status={acceptTerms ? "checked" : "unchecked"}
+            onPress={() => setAcceptTerms((v) => !v)}
+          />
+          <View style={styles.legalTextWrap}>
+            <Text variant="bodyMedium" style={styles.legalLine}>
+              Li e aceito os{" "}
+              <Text
+                style={{ color: theme.colors.primary }}
+                onPress={() => navigation.navigate("TermsOfUse")}
+              >
+                Termos de uso
               </Text>
               .
             </Text>
@@ -294,12 +321,12 @@ const styles = StyleSheet.create({
   hint: { marginBottom: 8, opacity: 0.85 },
   primaryBtn: { marginTop: 8 },
   spacer: { height: 24 },
-  privacyRow: {
+  legalRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginTop: 8,
     gap: 4,
   },
-  privacyTextWrap: { flex: 1, paddingTop: 6 },
-  privacyLine: { flexWrap: "wrap", lineHeight: 22 },
+  legalTextWrap: { flex: 1, paddingTop: 6 },
+  legalLine: { flexWrap: "wrap", lineHeight: 22 },
 });

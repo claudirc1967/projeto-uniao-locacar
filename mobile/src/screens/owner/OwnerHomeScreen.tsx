@@ -6,6 +6,7 @@ import { trpc } from "../../api/trpc";
 import { HomeMixedMenuGrid } from "../../components/HomeMixedMenuGrid";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import { firstNameFromDisplayName } from "../../utils/masks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerHome">;
 
@@ -19,8 +20,8 @@ export function OwnerHomeScreen({ navigation }: Props) {
   const pendingDriversCount = pendingDriversQ.data?.length ?? 0;
 
   const greeting =
-    user?.ownerProfile?.nomeRazaoSocial ??
-    user?.email?.split("@")[0] ??
+    firstNameFromDisplayName(user?.ownerProfile?.nomeRazaoSocial) ||
+    user?.email?.split("@")[0] ||
     "Proprietário";
 
   /**
@@ -39,7 +40,12 @@ export function OwnerHomeScreen({ navigation }: Props) {
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text variant="titleLarge" style={styles.greeting}>
+        <Text
+          variant="titleLarge"
+          style={styles.greeting}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           Olá, {greeting}
         </Text>
         <Text variant="bodyMedium" style={styles.sub}>
@@ -134,7 +140,7 @@ export function OwnerHomeScreen({ navigation }: Props) {
             },
             {
               key: "marketplace",
-              title: "Marketplace",
+              title: "Veículos disponíveis",
               subtitle: "Ver todos os veículos",
               icon: "store-outline",
               onPress: () => navigation.navigate("Marketplace"),

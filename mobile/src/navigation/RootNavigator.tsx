@@ -32,6 +32,8 @@ import { AccountDeletionScreen } from "../screens/legal/AccountDeletionScreen";
 import { AccountPrivacyScreen } from "../screens/legal/AccountPrivacyScreen";
 import { PrivacyAcceptanceScreen } from "../screens/legal/PrivacyAcceptanceScreen";
 import { PrivacyPolicyScreen } from "../screens/legal/PrivacyPolicyScreen";
+import { TermsAcceptanceScreen } from "../screens/legal/TermsAcceptanceScreen";
+import { TermsOfUseScreen } from "../screens/legal/TermsOfUseScreen";
 import { UserReviewsScreen } from "../screens/reviews/UserReviewsScreen";
 import type { RootStackParamList } from "./types";
 
@@ -52,13 +54,16 @@ export function RootNavigator() {
   const navKey = authed ? `${user!.role}-${user!.id}` : "guest";
   const needsPrivacy =
     authed && user?.needsPrivacyPolicyAcceptance === true;
+  const needsTerms = authed && user?.needsTermsOfUseAcceptance === true;
   const initialRouteName = !authed
     ? "Login"
     : needsPrivacy
       ? "PrivacyAcceptance"
-      : user!.role === "OWNER"
-        ? "OwnerHome"
-        : "DriverHome";
+      : needsTerms
+        ? "TermsAcceptance"
+        : user!.role === "OWNER"
+          ? "OwnerHome"
+          : "DriverHome";
 
   return (
     <NavigationContainer key={navKey}>
@@ -77,10 +82,24 @@ export function RootNavigator() {
           options={{ title: "Política de Privacidade" }}
         />
         <Stack.Screen
+          name="TermsOfUse"
+          component={TermsOfUseScreen}
+          options={{ title: "Termos de uso" }}
+        />
+        <Stack.Screen
           name="PrivacyAcceptance"
           component={PrivacyAcceptanceScreen}
           options={{
             title: "Privacidade",
+            headerBackVisible: false,
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="TermsAcceptance"
+          component={TermsAcceptanceScreen}
+          options={{
+            title: "Termos de uso",
             headerBackVisible: false,
             gestureEnabled: false,
           }}
@@ -107,7 +126,7 @@ export function RootNavigator() {
         <Stack.Screen
           name="OwnerContractTemplate"
           component={OwnerContractTemplateScreen}
-          options={{ title: "Template de contrato" }}
+          options={{ title: "Modelo de contrato" }}
         />
         <Stack.Screen name="OwnerVehicles" component={OwnerVehiclesScreen} options={{ title: "Veículos" }}  />
         <Stack.Screen
@@ -152,7 +171,7 @@ export function RootNavigator() {
         />
         <Stack.Screen name="DriverStatus" component={DriverStatusScreen} options={{ title: "Situação motorista" }} />
         <Stack.Screen name="DriverRentals" component={DriverRentalsScreen} options={{ title: "Solicitações de locação" }} />
-        <Stack.Screen name="Marketplace" component={MarketplaceScreen} options={{ title: "Marketplace" }} />
+        <Stack.Screen name="Marketplace" component={MarketplaceScreen} options={{ title: "Veículos disponíveis" }} />
         <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} options={{ title: "Detalhes do veículo" }} />
         <Stack.Screen
           name="UserReviews"

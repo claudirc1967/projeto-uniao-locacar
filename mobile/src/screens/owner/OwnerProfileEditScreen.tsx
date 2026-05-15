@@ -166,7 +166,7 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
         />
 
         <Text variant="labelLarge" style={styles.labelAbove}>
-          Template de contrato
+          Modelo de contrato
         </Text>
         <Text variant="bodySmall" style={styles.hint}>
           {current.contractTemplateText?.trim()
@@ -179,7 +179,7 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
           onPress={() => navigation.navigate("OwnerContractTemplate")}
           style={styles.btn}
         >
-          Editar template
+          Editar modelo
         </Button>
 
         <TextInput

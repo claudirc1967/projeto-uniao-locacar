@@ -4,35 +4,29 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
-import { PRIVACY_POLICY_VERSION } from "../../constants/privacyPolicyVersion";
+import { TERMS_OF_USE_VERSION } from "../../constants/termsOfUseVersion";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
-import { PrivacyPolicyBody } from "./PrivacyPolicyContent";
+import { TermsOfUseBody } from "./TermsOfUseContent";
 
-type Props = NativeStackScreenProps<RootStackParamList, "PrivacyAcceptance">;
+type Props = NativeStackScreenProps<RootStackParamList, "TermsAcceptance">;
 
-export function PrivacyAcceptanceScreen({ navigation }: Props) {
+export function TermsAcceptanceScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const utils = trpc.useUtils();
   const [err, setErr] = useState<string | null>(null);
 
-  const accept = trpc.auth.acceptPrivacyPolicy.useMutation({
+  const accept = trpc.auth.acceptTermsOfUse.useMutation({
     onSuccess: async () => {
       setErr(null);
-      const me = await utils.auth.me.fetch();
       await utils.auth.me.invalidate();
-      const role = me.role ?? user?.role ?? "DRIVER";
-      const home = role === "OWNER" ? "OwnerHome" : "DriverHome";
+      const role = user?.role ?? "DRIVER";
       navigation.reset({
         index: 0,
-        routes: [
-          {
-            name: me.needsTermsOfUseAcceptance ? "TermsAcceptance" : home,
-          },
-        ],
+        routes: [{ name: role === "OWNER" ? "OwnerHome" : "DriverHome" }],
       });
     },
     onError: (e) => setErr(trpcErrorMessage(e)),
@@ -47,12 +41,12 @@ export function PrivacyAcceptanceScreen({ navigation }: Props) {
         ]}
       >
         <Text variant="headlineSmall" style={styles.title}>
-          Política de privacidade atualizada
+          Termos de uso atualizados
         </Text>
         <Text variant="bodyMedium" style={styles.intro}>
-          Para continuar usando o aplicativo, leia e aceite a política abaixo.
+          Para continuar usando o aplicativo, leia e aceite os termos abaixo.
         </Text>
-        <PrivacyPolicyBody />
+        <TermsOfUseBody />
         {err ? (
           <Text variant="bodySmall" style={{ color: theme.colors.error }}>
             {err}
@@ -60,9 +54,7 @@ export function PrivacyAcceptanceScreen({ navigation }: Props) {
         ) : null}
         <Button
           mode="contained"
-          onPress={() =>
-            accept.mutate({ version: PRIVACY_POLICY_VERSION })
-          }
+          onPress={() => accept.mutate({ version: TERMS_OF_USE_VERSION })}
           loading={accept.isPending}
           disabled={accept.isPending}
           style={styles.btn}

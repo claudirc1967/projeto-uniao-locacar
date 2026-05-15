@@ -135,6 +135,13 @@ export function LoginScreen({ navigation }: Props) {
         >
           Política de Privacidade
         </Button>
+        <Button
+          mode="text"
+          onPress={() => navigation.navigate("TermsOfUse")}
+          style={styles.linkBtn}
+        >
+          Termos de uso
+        </Button>
 
         <View style={styles.spacer} />
       </ScrollView>

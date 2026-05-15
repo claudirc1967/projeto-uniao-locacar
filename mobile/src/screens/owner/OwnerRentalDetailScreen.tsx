@@ -293,7 +293,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
             </Text>
           ) : null}
           <Text variant="bodySmall" style={styles.meta}>
-            Status: {statusLabel[row.status] ?? row.status}
+            Situação: {statusLabel[row.status] ?? row.status}
           </Text>
           {showSituationBlock ? (
             <>

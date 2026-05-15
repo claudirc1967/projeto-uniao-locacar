@@ -2,9 +2,11 @@ export type RootStackParamList = {
   Login: undefined;
   Signup: undefined;
   PrivacyPolicy: undefined;
+  TermsOfUse: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token?: string } | undefined;
   PrivacyAcceptance: undefined;
+  TermsAcceptance: undefined;
   AccountPrivacy: undefined;
   AccountDeletion: undefined;
   OwnerHome: undefined;

@@ -8,6 +8,7 @@ import { prisma } from "../db.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import { passwordResetEmail } from "../email/templates.js";
 import { PRIVACY_POLICY_VERSION } from "../privacy.js";
+import { TERMS_OF_USE_VERSION } from "../terms.js";
 import { deleteUserAccountData } from "../services/deleteUserAccount.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
@@ -49,19 +50,22 @@ const ownerSignupFields = {
   complemento: z.string().max(200),
 } as const;
 
+const legalAcceptanceFields = {
+  privacyPolicyAcceptedVersion: z.literal(PRIVACY_POLICY_VERSION),
+  termsOfUseAcceptedVersion: z.literal(TERMS_OF_USE_VERSION),
+} as const;
+
 const signupInput = z.union([
   emailPassword.extend({
     role: z.literal("DRIVER"),
-    privacyPolicyAcceptedVersion: z.literal(PRIVACY_POLICY_VERSION),
+    ...legalAcceptanceFields,
   }),
   emailPassword
     .extend({
       role: z.literal("OWNER"),
     })
     .extend(ownerSignupFields)
-    .extend({
-      privacyPolicyAcceptedVersion: z.literal(PRIVACY_POLICY_VERSION),
-    })
+    .extend(legalAcceptanceFields)
     .superRefine((data, ctx) => {
       const msg = cpfCnpjValidationMessage(data.cpfCnpj);
       if (msg) {
@@ -93,6 +97,8 @@ export const authRouter = router({
           role: input.role,
           privacyPolicyVersion: input.privacyPolicyAcceptedVersion,
           privacyPolicyAcceptedAt: new Date(),
+          termsOfUseVersion: input.termsOfUseAcceptedVersion,
+          termsOfUseAcceptedAt: new Date(),
           ...(input.role === "OWNER"
             ? {
                 ownerProfile: {
@@ -208,6 +214,8 @@ export const authRouter = router({
     const needsPrivacyPolicyAcceptance =
       !u.privacyPolicyAcceptedAt ||
       u.privacyPolicyVersion !== PRIVACY_POLICY_VERSION;
+    const needsTermsOfUseAcceptance =
+      !u.termsOfUseAcceptedAt || u.termsOfUseVersion !== TERMS_OF_USE_VERSION;
     return {
       id: u.id,
       email: u.email,
@@ -218,6 +226,10 @@ export const authRouter = router({
       privacyPolicyAcceptedAt: u.privacyPolicyAcceptedAt,
       needsPrivacyPolicyAcceptance,
       currentPrivacyPolicyVersion: PRIVACY_POLICY_VERSION,
+      termsOfUseVersion: u.termsOfUseVersion,
+      termsOfUseAcceptedAt: u.termsOfUseAcceptedAt,
+      needsTermsOfUseAcceptance,
+      currentTermsOfUseVersion: TERMS_OF_USE_VERSION,
     };
   }),
 
@@ -234,6 +246,24 @@ export const authRouter = router({
         data: {
           privacyPolicyVersion: PRIVACY_POLICY_VERSION,
           privacyPolicyAcceptedAt: new Date(),
+        },
+      });
+      return { ok: true as const };
+    }),
+
+  acceptTermsOfUse: protectedProcedure
+    .input(
+      z.object({
+        version: z.literal(TERMS_OF_USE_VERSION),
+      })
+    )
+    .mutation(async ({ ctx }) => {
+      const userId = (ctx as AuthedContext).user.id;
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          termsOfUseVersion: TERMS_OF_USE_VERSION,
+          termsOfUseAcceptedAt: new Date(),
         },
       });
       return { ok: true as const };

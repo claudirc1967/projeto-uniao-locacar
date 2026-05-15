@@ -14,7 +14,6 @@ import {
   Button,
   Card,
   Chip,
-  IconButton,
   SegmentedButtons,
   Text,
   TextInput,
@@ -343,14 +342,14 @@ export function MarketplaceScreen({ navigation }: Props) {
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             <View style={styles.headerRow}>
-              <Text variant="headlineSmall" style={styles.headerTitle}>
-                Veículos disponíveis
-              </Text>
-              <IconButton
+              <Button
+                mode="outlined"
                 icon="filter-variant"
-                accessibilityLabel="Filtros"
                 onPress={openFilters}
-              />
+                style={styles.filterButton}
+              >
+                Filtrar veículos
+              </Button>
             </View>
             {activeCount > 0 ? (
               <Text variant="labelMedium" style={styles.filterHint}>
@@ -727,8 +726,9 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
   },
+  filterButton: { alignSelf: "flex-start" },
   headerTitle: { flex: 1 },
   filterHint: { marginTop: 4, opacity: 0.75 },
   card: { marginBottom: 12, borderRadius: 16, overflow: "hidden" },

@@ -146,7 +146,7 @@ export function OwnerContractTemplateScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <Text variant="headlineSmall" style={styles.title}>
-          Template de contrato
+          Modelo de contrato
         </Text>
         <Text variant="bodySmall" style={styles.hint}>
           {`Use placeholders no formato {{CHAVE}}. Ex.: {{LOCADOR_NOME_RAZAO}}, {{VEICULO_PLACA}}, {{LOCATARIO_CPF}}.`}

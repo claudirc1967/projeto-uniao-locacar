@@ -23,6 +23,10 @@ export type SessionUser = {
   privacyPolicyVersion?: string;
   privacyPolicyAcceptedAt?: string | Date | null;
   currentPrivacyPolicyVersion?: string;
+  needsTermsOfUseAcceptance?: boolean;
+  termsOfUseVersion?: string;
+  termsOfUseAcceptedAt?: string | Date | null;
+  currentTermsOfUseVersion?: string;
   driverProfile: {
     status: string;
     fullName: string | null;

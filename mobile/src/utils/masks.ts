@@ -39,6 +39,12 @@ function formatCnpjDigits(digits: string) {
   return `${p1}.${p2}.${p3}/${p4}-${p5}`;
 }
 
+export function firstNameFromDisplayName(name: string | null | undefined): string {
+  const trimmed = name?.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0] ?? trimmed;
+}
+
 /** Máscara genérica CPF/CNPJ (detecta por quantidade de dígitos). */
 export function maskCpfCnpj(raw: string) {
   const d = onlyDigits(raw);

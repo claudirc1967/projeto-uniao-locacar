@@ -78,7 +78,7 @@ export const driverRouter = router({
           cidade: input.cidade,
           uf: input.uf.toUpperCase(),
           numero: input.numero,
-          complemento: input.complemento,
+          complemento: input.complemento?.trim() ?? "",
         },
       });
       return { ok: true as const };

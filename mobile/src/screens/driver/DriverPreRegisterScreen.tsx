@@ -1,6 +1,8 @@
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -30,6 +32,10 @@ import { maskCep } from "../../utils/masks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DriverPreRegister">;
 
+type DriverProfileForm = NonNullable<
+  NonNullable<ReturnType<typeof trpc.driver.myStatus.useQuery>["data"]>["profile"]
+>;
+
 const emptyAddr: CepAddressValue = {
   cep: "",
   logradouro: "",
@@ -45,9 +51,13 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const statusQuery = trpc.driver.myStatus.useQuery(undefined, {
     retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const scrollRef = useRef<ScrollView>(null);
+  /** Evita sobrescrever o formulário quando myStatus refaz fetch (comum no iOS). */
+  const formHydratedRef = useRef(false);
+  const addrRef = useRef<CepAddressValue>(emptyAddr);
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -61,21 +71,11 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
   const [uberRegistered, setUberRegistered] = useState(false);
   const [addr, setAddr] = useState<CepAddressValue>(emptyAddr);
   const [err, setErr] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const utils = trpc.useUtils();
-  const save = trpc.driver.completePreRegistration.useMutation({
-    onSuccess: async () => {
-      await utils.auth.me.invalidate();
-      await utils.driver.myStatus.invalidate();
-      navigation.navigate("DriverStatus");
-    },
-    onError: (e) => setErr(trpcErrorMessage(e)),
-  });
 
-  useEffect(() => {
-    const p = statusQuery.data?.profile;
-    if (!p) return;
-
+  const applyProfileToForm = useCallback((p: DriverProfileForm) => {
     setFullName(p.fullName ?? "");
     setPhone(maskPhone(p.phone ?? ""));
     setCpf(maskCpf(p.cpf ?? ""));
@@ -86,8 +86,7 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
     setCnhHasEar(Boolean(p.cnhHasEar));
     setCriminalAttestation(Boolean(p.criminalAttestation));
     setUberRegistered(Boolean(p.uberRegistered));
-
-    setAddr({
+    const nextAddr: CepAddressValue = {
       cep: maskCep(p.cep ?? ""),
       logradouro: p.logradouro ?? "",
       bairro: p.bairro ?? "",
@@ -95,16 +94,92 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
       uf: p.uf ?? "",
       numero: p.numero ?? "",
       complemento: p.complemento ?? "",
-    });
-  }, [statusQuery.data]);
+    };
+    addrRef.current = nextAddr;
+    setAddr(nextAddr);
+  }, []);
 
-  const submit = () => {
+  const setAddrSynced = useCallback(
+    (next: CepAddressValue | ((prev: CepAddressValue) => CepAddressValue)) => {
+      setAddr((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        addrRef.current = resolved;
+        return resolved;
+      });
+    },
+    []
+  );
+
+  const save = trpc.driver.completePreRegistration.useMutation({
+    onSuccess: async () => {
+      setErr(null);
+      await utils.driver.myStatus.invalidate();
+      await utils.auth.me.invalidate();
+      const fresh = await utils.driver.myStatus.fetch();
+      if (fresh?.profile) {
+        applyProfileToForm(fresh.profile);
+      }
+      setSuccessMsg("Cadastro salvo.");
+    },
+    onError: (e) => {
+      setSuccessMsg(null);
+      setErr(trpcErrorMessage(e));
+    },
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      formHydratedRef.current = false;
+      return () => {
+        formHydratedRef.current = false;
+      };
+    }, [])
+  );
+
+  useEffect(() => {
+    const p = statusQuery.data?.profile;
+    if (!p || formHydratedRef.current) return;
+    formHydratedRef.current = true;
+    applyProfileToForm(p);
+  }, [statusQuery.data, applyProfileToForm]);
+
+  const runSubmit = () => {
+    const currentAddr = addrRef.current;
     const cpfErr = cpfValidationMessage(onlyDigits(cpf));
     if (cpfErr) {
       setErr(cpfErr);
       return;
     }
-    if (!addr.numero.trim()) {
+    if (!fullName.trim() || fullName.trim().length < 3) {
+      setErr("Informe o nome completo.");
+      return;
+    }
+    if (onlyDigits(phone).length < 8) {
+      setErr("Informe um telefone válido.");
+      return;
+    }
+    if (!cnhHasEar) {
+      setErr("Ative a opção de CNH com EAR.");
+      return;
+    }
+    if (!criminalAttestation) {
+      setErr("Ative a opção de Atestado de Antecedentes Criminais.");
+      return;
+    }
+    if (!currentAddr.cep.replace(/\D/g, "").length) {
+      setErr("Informe o CEP e use Buscar CEP.");
+      return;
+    }
+    if (
+      !currentAddr.logradouro.trim() ||
+      !currentAddr.bairro.trim() ||
+      !currentAddr.cidade.trim() ||
+      !currentAddr.uf.trim()
+    ) {
+      setErr("Busque o CEP para preencher o endereço.");
+      return;
+    }
+    if (!currentAddr.numero.trim()) {
       setErr("Informe o número do endereço.");
       return;
     }
@@ -124,25 +199,39 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
       setErr("Informe os anos de habilitação.");
       return;
     }
+    const years = Number(cnhYears);
+    if (!Number.isFinite(years) || years <= 0) {
+      setErr("Informe os anos de habilitação (número válido).");
+      return;
+    }
+    setSuccessMsg(null);
     save.mutate({
-      fullName,
+      fullName: fullName.trim(),
       phone: onlyDigits(phone),
       cpf: onlyDigits(cpf),
-      cnh,
-      cnhCategory,
-      cnhValidity,
-      cnhYears: Number(cnhYears),
+      cnh: cnh.trim(),
+      cnhCategory: cnhCategory.trim(),
+      cnhValidity: cnhValidity.trim(),
+      cnhYears: years,
       cnhHasEar,
       criminalAttestation,
       uberRegistered,
-      cep: addr.cep,
-      logradouro: addr.logradouro,
-      bairro: addr.bairro,
-      cidade: addr.cidade,
-      uf: addr.uf,
-      numero: addr.numero,
-      complemento: addr.complemento || undefined,
+      cep: currentAddr.cep,
+      logradouro: currentAddr.logradouro.trim(),
+      bairro: currentAddr.bairro.trim(),
+      cidade: currentAddr.cidade.trim(),
+      uf: currentAddr.uf.trim(),
+      numero: currentAddr.numero.trim(),
+      complemento: currentAddr.complemento.trim(),
     });
+  };
+
+  /** No iOS o último campo (complemento) pode não “commitar” antes do onPress. */
+  const submit = () => {
+    setErr(null);
+    Keyboard.dismiss();
+    const delayMs = Platform.OS === "ios" ? 280 : 0;
+    setTimeout(runSubmit, delayMs);
   };
 
   return (
@@ -255,7 +344,7 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
           <Card.Content style={styles.cardBody}>
             <CepAddressForm
               value={addr}
-              onChange={setAddr}
+              onChange={setAddrSynced}
               onNumeroFocus={() => {
                 setTimeout(
                   () => scrollRef.current?.scrollToEnd({ animated: true }),
@@ -274,6 +363,9 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
 
         <HelperText type="error" visible={!!err}>
           {err ?? ""}
+        </HelperText>
+        <HelperText type="info" visible={!!successMsg}>
+          {successMsg ?? ""}
         </HelperText>
         <Button
           mode="contained"

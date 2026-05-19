@@ -8,6 +8,7 @@
   "scripts": {
     "dev:backend": "npm run dev -w backend",
     "dev:mobile": "npm run start -w mobile",
+    "dev:mobile:ios": "npm run ios -w mobile",
     "db:push": "npm run db:push -w backend",
     "db:generate": "npm run db:generate -w backend",
     "db:backup": "npm run db:backup -w backend",

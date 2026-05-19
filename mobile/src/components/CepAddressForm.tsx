@@ -17,7 +17,9 @@ export type CepAddressValue = {
 
 type Props = {
   value: CepAddressValue;
-  onChange: (v: CepAddressValue) => void;
+  onChange: (
+    v: CepAddressValue | ((prev: CepAddressValue) => CepAddressValue)
+  ) => void;
   onNumeroFocus?: () => void;
   onComplementoFocus?: () => void;
   locked?: boolean;
@@ -64,14 +66,14 @@ export function CepAddressForm({
     setLoading(true);
     try {
       const data = await utils.address.lookupCep.fetch({ cep: digits });
-      onChange({
-        ...value,
+      onChange((prev) => ({
+        ...prev,
         cep: maskCep(digits),
         logradouro: data.logradouro,
         bairro: data.bairro,
         cidade: data.cidade,
         uf: data.uf,
-      });
+      }));
     } catch (e) {
       setCepError(trpcErrorMessage(e, "Não foi possível buscar o CEP."));
     } finally {
@@ -94,7 +96,7 @@ export function CepAddressForm({
         keyboardType="number-pad"
         value={value.cep}
         editable={!locked}
-        onChangeText={(t) => onChange({ ...value, cep: maskCep(t) })}
+        onChangeText={(t) => onChange((prev) => ({ ...prev, cep: maskCep(t) }))}
         style={styles.field}
       />
       <HelperText type="error" visible={!!cepError}>
@@ -136,7 +138,7 @@ export function CepAddressForm({
         label="Número"
         value={value.numero}
         editable={!locked}
-        onChangeText={(numero) => onChange({ ...value, numero })}
+        onChangeText={(numero) => onChange((prev) => ({ ...prev, numero }))}
         onFocus={() => onNumeroFocus?.()}
         placeholder="Número"
         style={styles.field}
@@ -146,8 +148,10 @@ export function CepAddressForm({
         label="Complemento"
         value={value.complemento}
         editable={!locked}
-        onChangeText={(complemento) => onChange({ ...value, complemento })}
+        onChangeText={(complemento) => onChange((prev) => ({ ...prev, complemento }))}
         onFocus={() => onComplementoFocus?.()}
+        blurOnSubmit
+        onSubmitEditing={() => Keyboard.dismiss()}
         placeholder="Opcional"
         style={styles.field}
       />

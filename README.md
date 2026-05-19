@@ -36,6 +36,9 @@ npm run start
 ```
 
 - **Android emulator:** se não definir `.env`, o app usa `http://10.0.2.2:4000/trpc`.
+- **Simulador iOS:** use `npm run dev:mobile:ios` (`EXPO_OFFLINE=1` evita o menu de login repetido; `--lan` + `127.0.0.1`). Se o menu aparecer mesmo assim: **↓** → **Proceed anonymously** → **Enter** (não cancele com Escape). Alternativa permanente: `npx expo login` uma vez. **Não** use `CI=1`.
+- Erro *Unable to lookup in current state: Shutdown*: o simulador estava desligado; `npm run dev:mobile:ios` agora liga o Simulator e espera o boot (`preios`) antes do Expo Go.
+- *Could not connect to the server*: **Ctrl+C**, `npm run dev:mobile:ios` de novo. Com Metro rodando: `xcrun simctl openurl booted \"exp://127.0.0.1:8081\"`.
 - **Dispositivo físico:** use o IP da máquina na LAN, ex. `http://192.168.x.x:4000/trpc`.
 
 ### Fotos (presigned PUT)

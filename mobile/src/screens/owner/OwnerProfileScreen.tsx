@@ -66,7 +66,6 @@ export function OwnerProfileScreen({ navigation }: Props) {
           <Card.Content style={styles.cardContent}>
             {o ? (
               <>
-                <Section title="Informações do proprietário">
                   <Field
                     label="Nome / Razão Social"
                     value={o.nomeRazaoSocial?.trim() || "—"}
@@ -88,13 +87,9 @@ export function OwnerProfileScreen({ navigation }: Props) {
                     label="Telefone / WhatsApp"
                     value={maskPhone(o.phone)}
                   />
-                </Section>
-
-                <Divider style={styles.divider} />
-                <Section title="Endereço">
+                
                   <Field label="Logradouro" value={addressLine1} />
-                  <Field label="Cidade / UF / CEP" value={addressLine2} />
-                </Section>
+                  <Field label="Cidade / UF / CEP" value={addressLine2} />                
               </>
             ) : null}
           </Card.Content>
@@ -143,7 +138,7 @@ const styles = StyleSheet.create({
   sectionTitle: { opacity: 0.85 },
   sectionFields: { gap: 16 },
   field: { gap: 4 },
-  fieldLabel: { opacity: 0.75 },
+  fieldLabel: { opacity: 0.85, fontWeight: "700" },
   divider: { marginVertical: 8 },
   btn: { borderRadius: 12 },
   footer: { paddingHorizontal: 24, paddingTop: 8 },

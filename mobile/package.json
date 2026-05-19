@@ -5,7 +5,8 @@
   "scripts": {
     "start": "npx expo start --host lan",
     "android": "npx expo start --android --host lan",
-    "preios": "open -a Simulator 2>/dev/null; xcrun simctl boot \"iPhone 17 Pro\" 2>/dev/null || xcrun simctl boot \"iPhone 17\" 2>/dev/null || true; xcrun simctl bootstatus booted -b",
+    "preios": "open -a Simulator 2>/dev/null; xcrun simctl boot \"iPhone 17 Pro\" 2>/dev/null || xcrun simctl boot \"iPhone 17\" 2>/dev/null || true; xcrun simctl bootstatus booted -b && sh scripts/ensure-expo-go-ios.sh",
+    "install-expo-go": "sh scripts/ensure-expo-go-ios.sh",
     "ios": "EXPO_OFFLINE=1 REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --ios --lan",
     "start:ios": "EXPO_OFFLINE=1 REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --lan",
     "web": "npx expo start --web",

@@ -39,6 +39,7 @@ npm run start
 - **Simulador iOS:** use `npm run dev:mobile:ios` (`EXPO_OFFLINE=1` evita o menu de login repetido; `--lan` + `127.0.0.1`). Se o menu aparecer mesmo assim: **↓** → **Proceed anonymously** → **Enter** (não cancele com Escape). Alternativa permanente: `npx expo login` uma vez. **Não** use `CI=1`.
 - Erro *Unable to lookup in current state: Shutdown*: o simulador estava desligado; `npm run dev:mobile:ios` agora liga o Simulator e espera o boot (`preios`) antes do Expo Go.
 - *Could not connect to the server*: **Ctrl+C**, `npm run dev:mobile:ios` de novo. Com Metro rodando: `xcrun simctl openurl booted \"exp://127.0.0.1:8081\"`.
+- *Expo Go is not installed* (modo offline): o `preios` tenta instalar do cache (`~/.expo`). Se falhar: `npm run install-expo-go -w mobile` ou, com internet, `cd mobile && REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --ios --lan` (sem `EXPO_OFFLINE`).
 - **Dispositivo físico:** use o IP da máquina na LAN, ex. `http://192.168.x.x:4000/trpc`.
 
 ### Fotos (presigned PUT)

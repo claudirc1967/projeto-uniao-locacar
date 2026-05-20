@@ -92,6 +92,7 @@ export function LoginScreen({ navigation }: Props) {
 
         <Button
           mode="contained"
+          icon="login"
           onPress={() => {
             setErr(null);
             const emailErr = validateEmailForAuth(email);
@@ -115,14 +116,17 @@ export function LoginScreen({ navigation }: Props) {
         </Button>
 
         <Button
-          mode="text"
+          mode="outlined"
+          icon="account-plus-outline"
           onPress={() => navigation.navigate("Signup")}
-          style={styles.linkBtn}
+          style={styles.secondaryBtn}
+          contentStyle={styles.btnContent}
         >
           Criar conta
         </Button>
         <Button
           mode="text"
+          icon="lock-question"
           onPress={() => navigation.navigate("ForgotPassword")}
           style={styles.linkBtn}
         >
@@ -130,6 +134,7 @@ export function LoginScreen({ navigation }: Props) {
         </Button>
         <Button
           mode="text"
+          icon="shield-lock-outline"
           onPress={() => navigation.navigate("PrivacyPolicy")}
           style={styles.linkBtn}
         >
@@ -137,6 +142,7 @@ export function LoginScreen({ navigation }: Props) {
         </Button>
         <Button
           mode="text"
+          icon="file-document-outline"
           onPress={() => navigation.navigate("TermsOfUse")}
           style={styles.linkBtn}
         >
@@ -162,6 +168,7 @@ const styles = StyleSheet.create({
   subtitle: { marginBottom: 20, opacity: 0.85 },
   field: { marginBottom: 4, backgroundColor: "#fff" },
   primaryBtn: { marginTop: 8 },
+  secondaryBtn: { marginTop: 8 },
   btnContent: { paddingVertical: 6 },
   linkBtn: { marginTop: 4 },
   spacer: { height: 24 },

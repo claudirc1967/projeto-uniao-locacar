@@ -98,6 +98,93 @@ Evitar começar com vários formatos (interstitial, rewarded) e vários placemen
 
 Base sólida: **inventário próprio no backend** + **`AdSlot` no app** + **AdMob como segunda camada**. O `Partner` do locador continua CRM; a promoção ao motorista passa por **campanha/placement** separados, com métricas e LGPD antes de ligar o SDK do Google.
 
+## FAQ (produto e implementação)
+
+Perguntas recorrentes alinhadas à discussão de produto sobre este documento. Use esta seção para retomar o assunto sem depender só do histórico de chat no Cursor.
+
+### CRM vs campanha: são a mesma coisa?
+
+**Não.** São domínios separados:
+
+| | `Partner` (CRM do locador) | `PromotedPartner` / `AdCampaign` (futuro) |
+|---|---------------------------|-------------------------------------------|
+| **Quem cadastra** | Cada proprietário | Plataforma (admin / contrato comercial) |
+| **Quem vê** | Só o locador | Motorista (e eventualmente outros papéis) |
+| **Para quê** | Seguradora/oficina do veículo, agenda interna | Banner, CTA, link, promoção |
+| **Vínculo** | `ownerUserId` + opcionalmente veículo | Campanha global ou segmentada |
+
+O parceiro que o locador cadastra em **Parceiros** **não vira anúncio automaticamente**. Opcionalmente uma campanha pode referenciar `sourcePartnerId` para reaproveitar **nome/categoria**, **sem** expor telefone, e-mail ou notas privadas do CRM.
+
+### Como os anúncios seriam mantidos e exibidos no app?
+
+**Manutenção (inventário):**
+
+1. A plataforma cadastra **campanhas** no backend (fase 2: painel/admin ou rotas internas).
+2. Cada campanha tem criativo (imagem, título, CTA, URL), vigência, placements permitidos, segmentação e prioridade.
+
+**Exibição (runtime):**
+
+1. A tela reserva um espaço fixo (`AdSlot`), ex.: abaixo do `HomeMixedMenuGrid` em `DriverHomeScreen`.
+2. O app chama `ads.decision` informando `placement`, `role`, `uf`/`cidade` (do perfil), plataforma e versão.
+3. O **servidor** filtra campanhas elegíveis (vigência, região, placement, frequência, prioridade) e responde `house` | `admob` | `none` + payload.
+4. O app **só renderiza** (`HouseAdCard`, `AdMobBanner` ou nada) — não escolhe campanha no cliente.
+5. Impressão/clique/erro vão para `ads.track` (métricas e auditoria).
+
+```
+Motorista abre a tela
+       → AdSlot chama ads.decision
+       → Backend escolhe campanha (ou admob / none)
+       → App exibe o criativo
+       → Usuário interage → ads.track
+```
+
+### Preciso colocar estado e município no `Partner` do locador para filtrar anúncios?
+
+**Não é o desenho recomendado.** Para anúncios por região:
+
+- **Público (quem vê):** `uf` / `cidade` do **perfil do motorista** (já existem em `DriverProfile`) entram na `decision`.
+- **Oferta (o que mostrar):** a **campanha** define alvos (`targetUfs`, `targetCidades`, ou `nationwide`).
+
+Colocar UF/município no `Partner` CRM só faria sentido para organização interna do locador ou para enriquecer `sourcePartnerId` — **não** como núcleo da segmentação de ads. No MVP de segmentação, começar só por **UF** é aceitável; município exige cuidado (cidades homônimas → sempre parear com UF).
+
+### O locador “publica” o parceiro dele para o motorista ver?
+
+**Não, no modelo atual.** Anúncios são **campanhas da plataforma** (possivelmente patrocinadas por um parceiro comercial com contrato). Evitar `owner.listMyPartners` no fluxo do motorista.
+
+### O que cada fase entrega?
+
+| Fase | Entrega | Estado no repo |
+|------|---------|----------------|
+| **0** | Documentação + `Partner` CRM | Atual |
+| **1** | House ads: Prisma, `ads.decision` / `ads.track`, `AdSlot` em 1–2 telas do motorista, métricas básicas | A implementar |
+| **2** | CRUD de campanhas (admin interno) | A implementar |
+| **3** | AdMob fallback + política de privacidade atualizada + build nativo (EAS) | A implementar |
+| **4** | Segmentação (UF, categoria, placement), frequência, depois A/B | A implementar |
+
+Evitar abrir a fase 1 com muitos placements ou formatos (interstitial, rewarded).
+
+### O que dá para implementar no Agent mode (Cursor)?
+
+| Escopo | Agent mode | Exige ação fora do repo |
+|--------|------------|-------------------------|
+| Modelos Prisma, router `ads`, regras no servidor | Sim | — |
+| `AdSlot`, `HouseAdCard`, telas do motorista | Sim | — |
+| CRUD admin de campanhas (rotas + telas simples) | Sim | — |
+| Segmentação UF/cidade, prioridade, vigência | Sim | — |
+| Rascunho de texto na política de privacidade | Sim (não substitui advogado) | Revisão jurídica |
+| **AdMob** | Código e config no projeto | Conta Google AdMob, app IDs, **EAS Build**, secrets |
+| Campanhas reais (imagem, link, contrato) | — | Negócio / design |
+| Deploy produção | — | GitHub, Railway, secrets |
+
+Pedido recomendado ao Agent: *“Implemente a fase 1 do docs/ANUNCIOS.md”* — escopo claro e entregável; fases 2–4 em sessões seguintes.
+
+### O que evitar (reforço)
+
+- Misturar CRM `Partner` com inventário exibido ao motorista.
+- Elegibilidade de campanha só no app (sempre no servidor).
+- Anúncios em login, contrato, pagamento ou vistoria no primeiro corte.
+- Assumir que repo público ou parceiro do locador substitui campanha + `decision`.
+
 ## Relacionado
 
 - `docs/PARCEIROS.md` — parceiros operacionais do locador (não confundir com inventário de ads).

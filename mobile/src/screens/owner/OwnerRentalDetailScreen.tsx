@@ -105,6 +105,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
     onSuccess: async () => {
       await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
       await utils.owner.listIncomingRentals.invalidate();
+      await utils.owner.countPendingIncomingRentals.invalidate();
     },
   });
 
@@ -114,6 +115,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       setReturnModalErr(null);
       await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
       await utils.owner.listIncomingRentals.invalidate();
+      await utils.owner.countPendingIncomingRentals.invalidate();
     },
     onError: (e) => setReturnModalErr(trpcErrorMessage(e)),
   });

@@ -1,4 +1,6 @@
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useCallback } from "react";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +20,19 @@ export function OwnerHomeScreen({ navigation }: Props) {
     staleTime: 30_000,
   });
   const pendingDriversCount = pendingDriversQ.data?.length ?? 0;
+
+  const pendingRentalsQ = trpc.owner.countPendingIncomingRentals.useQuery(
+    undefined,
+    { staleTime: 30_000 }
+  );
+  const pendingRentalsCount = pendingRentalsQ.data?.count ?? 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      void pendingDriversQ.refetch();
+      void pendingRentalsQ.refetch();
+    }, [pendingDriversQ, pendingRentalsQ])
+  );
 
   const greeting =
     firstNameFromDisplayName(user?.ownerProfile?.nomeRazaoSocial) ||
@@ -95,6 +110,45 @@ export function OwnerHomeScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate("OwnerPendingDrivers")}
               >
                 Analisar agora
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : null}
+
+        {pendingRentalsCount > 0 ? (
+          <Card
+            mode="elevated"
+            style={[
+              styles.pendingCard,
+              { backgroundColor: theme.colors.primaryContainer },
+            ]}
+          >
+            <Card.Content style={styles.pendingCardContent}>
+              <View style={styles.pendingTextWrap}>
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onPrimaryContainer }}
+                >
+                  {pendingRentalsCount === 1
+                    ? "1 solicitação de locação aguardando sua resposta"
+                    : `${pendingRentalsCount} solicitações de locação aguardando sua resposta`}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.pendingHint,
+                    { color: theme.colors.onPrimaryContainer },
+                  ]}
+                >
+                  Analise o pedido para aprovar ou recusar a locação do seu veículo.
+                </Text>
+              </View>
+              <Button
+                mode="contained"
+                icon="clipboard-check-outline"
+                onPress={() => navigation.navigate("OwnerRentals")}
+              >
+                Ver solicitações
               </Button>
             </Card.Content>
           </Card>

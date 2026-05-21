@@ -56,6 +56,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
   const save = trpc.owner.setRentalPickupAndContract.useMutation({
     onSuccess: async (data) => {
       await utils.owner.listIncomingRentals.invalidate();
+      await utils.owner.countPendingIncomingRentals.invalidate();
 
       const url = data?.contractUrl?.trim?.() ? data.contractUrl : null;
       if (!url) {

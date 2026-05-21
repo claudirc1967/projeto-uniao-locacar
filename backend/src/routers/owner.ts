@@ -962,6 +962,16 @@ export const ownerRouter = router({
       return { ok: true as const };
     }),
 
+  countPendingIncomingRentals: ownerProcedure.query(async ({ ctx }) => {
+    const count = await prisma.rental.count({
+      where: {
+        status: "PENDING_OWNER",
+        vehicle: { ownerUserId: (ctx as AuthedContext).user.id },
+      },
+    });
+    return { count };
+  }),
+
   listIncomingRentals: ownerProcedure.query(async ({ ctx }) => {
     const rentals = await prisma.rental.findMany({
       where: { vehicle: { ownerUserId: (ctx as AuthedContext).user.id } },

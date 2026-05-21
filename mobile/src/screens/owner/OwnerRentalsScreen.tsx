@@ -66,9 +66,13 @@ export function OwnerRentalsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const q = trpc.owner.listIncomingRentals.useQuery();
   const utils = trpc.useUtils();
+  const invalidateRentals = () => {
+    void utils.owner.listIncomingRentals.invalidate();
+    void utils.owner.countPendingIncomingRentals.invalidate();
+  };
   const approve = trpc.owner.approveRental.useMutation({
     onSuccess: () => {
-      void utils.owner.listIncomingRentals.invalidate();
+      invalidateRentals();
       setApproveModalOpen(false);
       setApproveRentalId(null);
       setPickupInstructions("");
@@ -78,7 +82,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
   });
   const reject = trpc.owner.rejectRental.useMutation({
     onSuccess: () => {
-      void utils.owner.listIncomingRentals.invalidate();
+      invalidateRentals();
       setRejectModalOpen(false);
       setRejectRentalId(null);
       setMotivoRecusa("");
@@ -87,13 +91,13 @@ export function OwnerRentalsScreen({ navigation }: Props) {
     onError: (e) => setModalErr(trpcErrorMessage(e)),
   });
   const unblock = trpc.owner.unblockDriverAfterRejection.useMutation({
-    onSuccess: () => void utils.owner.listIncomingRentals.invalidate(),
+    onSuccess: invalidateRentals,
   });
   const [deletingRentalId, setDeletingRentalId] = useState<string | null>(null);
   const deleteRejected = trpc.owner.deleteRejectedRental.useMutation({
     onSuccess: () => {
       setDeletingRentalId(null);
-      void utils.owner.listIncomingRentals.invalidate();
+      invalidateRentals();
     },
     onError: () => setDeletingRentalId(null),
   });

@@ -85,6 +85,25 @@ enum PartnerCategory {
   OTHER
 }
 
+/** Onde o app pode exibir um slot de anúncio (house / AdMob futuro). */
+enum AdPlacementKey {
+  DRIVER_HOME
+  MARKETPLACE_LIST
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+}
+
+enum AdEventType {
+  IMPRESSION
+  CLICK
+  DISMISS
+  FILL_ERROR
+}
+
 /** Locador avalia o motorista ou o contrário (uma avaliação por direção por locação). */
 enum ReviewDirection {
   OWNER_TO_DRIVER
@@ -391,4 +410,51 @@ model PasswordResetToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token     String   @unique
   expiresAt DateTime
+}
+
+/** Inventário de anúncios da plataforma (não confundir com Partner CRM do locador). */
+model AdCampaign {
+  id        String           @id @default(cuid())
+  status    AdCampaignStatus @default(DRAFT)
+  title     String
+  subtitle  String?
+  imageUrl  String?
+  ctaLabel  String           @default("Saiba mais")
+  clickUrl  String
+
+  placements    AdPlacementKey[]
+  targetRoles   Role[]
+  targetUfs     String[]         @default([])
+  targetCidades String[]         @default([])
+  nationwide    Boolean          @default(false)
+  priority      Int              @default(0)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  /** Opcional: referência ao Partner CRM (sem expor dados privados na API). */
+  sourcePartnerId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events AdEvent[]
+
+  @@index([status, priority])
+}
+
+model AdEvent {
+  id         String          @id @default(cuid())
+  eventId    String          @unique
+  campaignId String?
+  campaign   AdCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  userId     String?
+  placement  AdPlacementKey
+  eventType  AdEventType
+  platform   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId, eventType])
+  @@index([userId, createdAt])
 }

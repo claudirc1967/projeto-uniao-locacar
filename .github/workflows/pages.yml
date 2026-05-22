@@ -58,6 +58,8 @@ jobs:
           EXPO_BASE_URL: ${{ secrets.EXPO_BASE_URL }}
         run: npm run predeploy -w mobile
 
+      # Páginas estáticas (ex.: /parceiros) — incluídas via copy-static-web no predeploy
+
       - name: SPA fallback (GitHub Pages)
         run: cp mobile/dist/index.html mobile/dist/404.html
 

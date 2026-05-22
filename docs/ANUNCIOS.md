@@ -156,7 +156,7 @@ Colocar UF/município no `Partner` CRM só faria sentido para organização inte
 | Fase | Entrega | Estado no repo |
 |------|---------|----------------|
 | **0** | Documentação + `Partner` CRM | Atual |
-| **1** | House ads: Prisma, `ads.decision` / `ads.track`, `AdSlot` em 1–2 telas do motorista, métricas básicas | A implementar |
+| **1** | House ads: Prisma, `ads.decision` / `ads.track`, `AdSlot` em 1–2 telas do motorista, métricas básicas | Em `feature/anuncios-fase-1-house-ads` (home do motorista; seed: `npm run ads:seed -w backend`) |
 | **2** | CRUD de campanhas (admin interno) | A implementar |
 | **3** | AdMob fallback + política de privacidade atualizada + build nativo (EAS) | A implementar |
 | **4** | Segmentação (UF, categoria, placement), frequência, depois A/B | A implementar |

@@ -4,7 +4,10 @@ import { LogBox } from "react-native";
 
 import App from "./App";
 
-LogBox.ignoreLogs(["TRPCClientError: E-mail ou senha inválidos"]);
+LogBox.ignoreLogs([
+  "TRPCClientError: E-mail ou senha inválidos",
+  'TRPCClientError: No "query"-procedure on path "ads.decision"',
+]);
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

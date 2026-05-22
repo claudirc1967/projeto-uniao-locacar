@@ -2,7 +2,9 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AdSlot } from "../../components/ads/AdSlot";
 import { HomeMixedMenuGrid } from "../../components/HomeMixedMenuGrid";
+import { AD_PLACEMENTS } from "../../constants/adPlacements";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { firstNameFromDisplayName } from "../../utils/masks";
@@ -94,6 +96,8 @@ export function DriverHomeScreen({ navigation }: Props) {
             },
           ]}
         />
+
+        <AdSlot placement={AD_PLACEMENTS.DRIVER_HOME} />
       </ScrollView>
 
       <View

@@ -58,7 +58,7 @@ jobs:
           EXPO_BASE_URL: ${{ secrets.EXPO_BASE_URL }}
         run: npm run predeploy -w mobile
 
-      # Páginas estáticas (ex.: /parceiros) — incluídas via copy-static-web no predeploy
+      # Páginas estáticas + gzip + loader identity no index.html (GitHub Pages gzip/404 bug)
 
       - name: SPA fallback (GitHub Pages)
         run: cp mobile/dist/index.html mobile/dist/404.html

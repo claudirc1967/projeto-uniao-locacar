@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Image, Linking, Pressable, StyleSheet, View } from "react-native";
+import { Image, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import { Card, Text, useTheme } from "react-native-paper";
 import type { AdPlacementKey } from "../../constants/adPlacements";
 import { trpc } from "../../api/trpc";
@@ -50,7 +50,10 @@ export function HouseAdCard({ placement, platform, house }: Props) {
   };
 
   return (
-    <Card mode="elevated" style={styles.card}>
+    <Card
+      mode={Platform.OS === "web" ? "outlined" : "elevated"}
+      style={styles.card}
+    >
       <Pressable onPress={onPress} accessibilityRole="button">
         <Card.Content style={styles.content}>
           {house.imageUrl ? (

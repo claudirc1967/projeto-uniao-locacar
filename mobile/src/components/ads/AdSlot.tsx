@@ -42,8 +42,10 @@ export function AdSlot({ placement }: Props) {
 
   if (decisionQ.isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
+      <View style={styles.slot}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        </View>
       </View>
     );
   }
@@ -54,11 +56,13 @@ export function AdSlot({ placement }: Props) {
 
   if (decisionQ.data.kind === "house" && decisionQ.data.house) {
     return (
-      <HouseAdCard
-        placement={placement}
-        platform={platform}
-        house={decisionQ.data.house}
-      />
+      <View style={styles.slot}>
+        <HouseAdCard
+          placement={placement}
+          platform={platform}
+          house={decisionQ.data.house}
+        />
+      </View>
     );
   }
 
@@ -66,6 +70,17 @@ export function AdSlot({ placement }: Props) {
 }
 
 const styles = StyleSheet.create({
+  slot: {
+    width: "100%",
+    marginTop: 16,
+    ...Platform.select({
+      web: {
+        position: "relative",
+        zIndex: 0,
+      },
+      default: {},
+    }),
+  },
   loading: {
     minHeight: 48,
     alignItems: "center",

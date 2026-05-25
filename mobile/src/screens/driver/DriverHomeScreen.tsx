@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 24,
     paddingTop: 40,
-    paddingBottom: 16,
+    paddingBottom: 24,
     gap: 12,
   },
   greeting: { fontWeight: "600" },

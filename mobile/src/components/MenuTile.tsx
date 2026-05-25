@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Icon, Surface, Text, useTheme } from "react-native-paper";
 
 export type MenuTileProps = {
@@ -22,44 +22,62 @@ export function MenuTile({
 }: MenuTileProps) {
   const theme = useTheme();
   const iconTint = accentColor ?? theme.colors.primary;
+  const useFlatSurface = Platform.OS === "web";
+
+  const tileBody = (
+    <>
+      <Icon source={icon} size={28} color={iconTint} />
+      <View style={styles.textBlock}>
+        <Text
+          variant="titleSmall"
+          style={[styles.title, accentColor ? { color: accentColor } : null]}
+          numberOfLines={2}
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text
+            variant="bodySmall"
+            style={[styles.sub, { color: theme.colors.onSurfaceVariant }]}
+            numberOfLines={2}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+    </>
+  );
 
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.pressable, fullWidth && styles.pressableFull]}
+      style={fullWidth ? styles.pressableFull : styles.pressable}
     >
-      {({ pressed }) => (
-        <Surface
-          style={[
-            styles.outer,
-            fullWidth && styles.outerFull,
-            { opacity: pressed ? 0.92 : 1 },
-          ]}
-          elevation={2}
-        >
-          <View style={styles.inner}>
-            <Icon source={icon} size={28} color={iconTint} />
-            <View style={styles.textBlock}>
-              <Text
-                variant="titleSmall"
-                style={[styles.title, accentColor ? { color: accentColor } : null]}
-                numberOfLines={2}
-              >
-                {title}
-              </Text>
-              {subtitle ? (
-                <Text
-                  variant="bodySmall"
-                  style={[styles.sub, { color: theme.colors.onSurfaceVariant }]}
-                  numberOfLines={2}
-                >
-                  {subtitle}
-                </Text>
-              ) : null}
-            </View>
+      {({ pressed }) =>
+        useFlatSurface ? (
+          <View
+            style={[
+              styles.outer,
+              styles.webOuter,
+              fullWidth && styles.outerFull,
+              { opacity: pressed ? 0.92 : 1 },
+            ]}
+          >
+            <View style={styles.inner}>{tileBody}</View>
           </View>
-        </Surface>
-      )}
+        ) : (
+          <Surface
+            style={[
+              styles.outer,
+              fullWidth && styles.outerFull,
+              { opacity: pressed ? 0.92 : 1 },
+            ]}
+            elevation={2}
+          >
+            <View style={styles.inner}>{tileBody}</View>
+          </Surface>
+        )
+      }
     </Pressable>
   );
 }
@@ -67,24 +85,35 @@ export function MenuTile({
 const styles = StyleSheet.create({
   pressable: {
     flex: 1,
+    minWidth: 0,
+    alignSelf: "stretch",
   },
   pressableFull: {
-    flex: 0,
     alignSelf: "stretch",
     width: "100%",
   },
   outer: {
     borderRadius: 16,
     minHeight: 104,
-    flex: 1,
+    width: "100%",
   },
   outerFull: {
     minHeight: 112,
   },
+  webOuter: {
+    backgroundColor: "#ffffff",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#e2e8f0",
+    ...Platform.select({
+      web: {
+        boxShadow: "0 1px 3px rgba(15, 23, 42, 0.08)",
+      },
+      default: {},
+    }),
+  },
   inner: {
-    flex: 1,
     padding: 16,
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     alignItems: "flex-start",
     borderRadius: 16,
     overflow: "hidden",

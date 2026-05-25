@@ -1,7 +1,7 @@
-// GitHub Pages — experiments.baseUrl:
-// - https://<user>.github.io/<repo>/ → "/<repo>/"
-// - Domínio customizado na raiz → secret EXPO_BASE_URL=/ no CI
-// - Local: "/"
+// experiments.baseUrl (Expo web export):
+// - Local / Railway (domínio na raiz): "/"
+// - GitHub Pages: https://<user>.github.io/<repo>/ → "/<repo>/"
+// - Override manual: EXPO_BASE_URL (ex.: "/" no Railway, "/repo/" no Pages)
 
 const appJson = require("./app.json");
 
@@ -10,15 +10,39 @@ function normalizeBasePath(raw) {
   return noTrail.startsWith("/") ? `${noTrail}/` : `/${noTrail}/`;
 }
 
+function isRailwayBuild() {
+  return Boolean(
+    process.env.RAILWAY_ENVIRONMENT ||
+      process.env.RAILWAY_PROJECT_ID ||
+      process.env.RAILWAY_SERVICE_ID ||
+      process.env.RAILWAY_STATIC_URL ||
+      process.env.RAILWAY_PUBLIC_DOMAIN
+  );
+}
+
+function isGitHubActionsPagesBuild() {
+  return (
+    process.env.GITHUB_ACTIONS === "true" &&
+    Boolean(process.env.GITHUB_REPOSITORY?.trim())
+  );
+}
+
 function getBaseUrl() {
   const explicit = process.env.EXPO_BASE_URL?.trim();
   if (explicit) {
     return normalizeBasePath(explicit);
   }
-  if (process.env.GITHUB_REPOSITORY) {
+
+  // Railway injeta GITHUB_REPOSITORY no build, mas serve o site na raiz do domínio.
+  if (isRailwayBuild()) {
+    return "/";
+  }
+
+  if (isGitHubActionsPagesBuild()) {
     const repo = process.env.GITHUB_REPOSITORY.split("/")[1];
     if (repo) return `/${repo}/`;
   }
+
   return "/";
 }
 

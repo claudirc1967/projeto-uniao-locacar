@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { MenuTile, type MenuTileProps } from "./MenuTile";
 
 export type HomeMenuItem = Pick<
@@ -57,13 +57,15 @@ export function HomeMixedMenuGrid({
           </View>
         </View>
       ) : (
-        <MenuTile
-          title={featured.title}
-          subtitle={featured.subtitle}
-          icon={featured.icon}
-          onPress={featured.onPress}
-          fullWidth
-        />
+        <View style={styles.featuredWrap}>
+          <MenuTile
+            title={featured.title}
+            subtitle={featured.subtitle}
+            icon={featured.icon}
+            onPress={featured.onPress}
+            fullWidth
+          />
+        </View>
       )}
 
       <View style={styles.grid}>
@@ -79,7 +81,6 @@ export function HomeMixedMenuGrid({
                 />
               </View>
             ))}
-            {pair.length === 1 ? <View style={styles.cell} /> : null}
           </View>
         ))}
       </View>
@@ -90,9 +91,22 @@ export function HomeMixedMenuGrid({
 const styles = StyleSheet.create({
   root: {
     gap: 12,
+    width: "100%",
+    ...Platform.select({
+      web: {
+        position: "relative",
+        zIndex: 1,
+      },
+      default: {},
+    }),
+  },
+  featuredWrap: {
+    width: "100%",
+    marginBottom: 12,
   },
   grid: {
     gap: 12,
+    width: "100%",
   },
   row: {
     flexDirection: "row",

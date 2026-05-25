@@ -372,6 +372,7 @@ export function MarketplaceScreen({ navigation }: Props) {
             }
           >
             <Card mode="elevated" style={styles.card}>
+              <View style={styles.cardClip}>
               <View style={styles.row}>
                 {item.coverPhotoUrl ? (
                   <Image source={{ uri: item.coverPhotoUrl }} style={styles.cover} />
@@ -428,6 +429,7 @@ export function MarketplaceScreen({ navigation }: Props) {
                     </Text>
                   ) : null}
                 </View>
+              </View>
               </View>
             </Card>
           </Pressable>
@@ -731,7 +733,8 @@ const styles = StyleSheet.create({
   filterButton: { alignSelf: "flex-start" },
   headerTitle: { flex: 1 },
   filterHint: { marginTop: 4, opacity: 0.75 },
-  card: { marginBottom: 12, borderRadius: 16, overflow: "hidden" },
+  card: { marginBottom: 12, borderRadius: 16 },
+  cardClip: { borderRadius: 16, overflow: "hidden" },
   row: { flexDirection: "row" },
   cover: { width: 110, height: 110, backgroundColor: "#f1f5f9" },
   ph: { justifyContent: "center", alignItems: "center" },

@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, View } from "react-native";
-import { Icon, Text, useTheme } from "react-native-paper";
+import { Icon, Surface, Text, useTheme } from "react-native-paper";
 
 export type MenuTileProps = {
   title: string;
@@ -26,56 +26,59 @@ export function MenuTile({
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.outer,
-        fullWidth && styles.outerFull,
-        {
-          backgroundColor: theme.colors.surface,
-          opacity: pressed ? 0.92 : 1,
-        },
-      ]}
+      style={[styles.pressable, fullWidth && styles.pressableFull]}
     >
-      <View style={styles.inner}>
-        <Icon source={icon} size={28} color={iconTint} />
-        <View style={styles.textBlock}>
-          <Text
-            variant="titleSmall"
-            style={[styles.title, accentColor ? { color: accentColor } : null]}
-            numberOfLines={2}
-          >
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text
-              variant="bodySmall"
-              style={[styles.sub, { color: theme.colors.onSurfaceVariant }]}
-              numberOfLines={2}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-      </View>
+      {({ pressed }) => (
+        <Surface
+          style={[
+            styles.outer,
+            fullWidth && styles.outerFull,
+            { opacity: pressed ? 0.92 : 1 },
+          ]}
+          elevation={2}
+        >
+          <View style={styles.inner}>
+            <Icon source={icon} size={28} color={iconTint} />
+            <View style={styles.textBlock}>
+              <Text
+                variant="titleSmall"
+                style={[styles.title, accentColor ? { color: accentColor } : null]}
+                numberOfLines={2}
+              >
+                {title}
+              </Text>
+              {subtitle ? (
+                <Text
+                  variant="bodySmall"
+                  style={[styles.sub, { color: theme.colors.onSurfaceVariant }]}
+                  numberOfLines={2}
+                >
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </Surface>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  pressable: {
+    flex: 1,
+  },
+  pressableFull: {
+    flex: 0,
+    alignSelf: "stretch",
+    width: "100%",
+  },
   outer: {
     borderRadius: 16,
     minHeight: 104,
     flex: 1,
-    overflow: "hidden",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
   },
   outerFull: {
-    flex: 0,
-    alignSelf: "stretch",
-    width: "100%",
     minHeight: 112,
   },
   inner: {
@@ -83,6 +86,8 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: "space-between",
     alignItems: "flex-start",
+    borderRadius: 16,
+    overflow: "hidden",
   },
   textBlock: {
     marginTop: 12,

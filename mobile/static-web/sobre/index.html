@@ -305,7 +305,7 @@
   <body>
     <main class="page">
       <nav class="top-nav" aria-label="Navegação">
-        <a href="/">Abrir o app</a>
+        <a href="/" class="open-app-link">Abrir o app</a>
         <a href="/parceiros/">Parceiros</a>
       </nav>
 
@@ -336,7 +336,7 @@
           </p>
 
           <div class="actions" aria-label="Contatos e status">
-            <a class="button primary" href="/">Abrir o app</a>
+            <a class="button primary open-app-link" href="/">Abrir o app</a>
             <a class="button secondary" href="mailto:contato@uniaolocacar.com.br">
               Fale conosco
             </a>
@@ -409,5 +409,34 @@
         <span>uniaolocacar.com.br</span>
       </footer>
     </main>
+    <script>
+      (function () {
+        var WEB_APP_URL = "/";
+        var APP_SCHEME_URL = "uniaolocacar://";
+
+        function isMobile() {
+          return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        }
+
+        function openApp(event) {
+          if (event) event.preventDefault();
+          if (!isMobile()) {
+            window.location.href = WEB_APP_URL;
+            return;
+          }
+          var started = Date.now();
+          window.location.href = APP_SCHEME_URL;
+          window.setTimeout(function () {
+            if (Date.now() - started < 1600) {
+              window.location.href = WEB_APP_URL;
+            }
+          }, 1200);
+        }
+
+        document.querySelectorAll(".open-app-link").forEach(function (link) {
+          link.addEventListener("click", openApp);
+        });
+      })();
+    </script>
   </body>
 </html>

@@ -74,6 +74,7 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
               }
             >
               <Card mode="elevated" style={styles.card}>
+                <View style={styles.cardClip}>
                 <View style={styles.cardRow}>
                   {thumb ? (
                     <Image source={{ uri: thumb }} style={styles.thumb} />
@@ -98,6 +99,7 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
                     </Text>
                   </View>
                 </View>
+                </View>
               </Card>
             </Pressable>
           );
@@ -117,7 +119,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   list: { padding: 16, paddingBottom: 12 },
   header: { marginBottom: 16, gap: 12 },
-  card: { marginBottom: 12, borderRadius: 16, overflow: "hidden" },
+  card: { marginBottom: 12, borderRadius: 16 },
+  cardClip: { borderRadius: 16, overflow: "hidden" },
   cardRow: { flexDirection: "row" },
   thumb: { width: 96, height: 96, backgroundColor: "#f1f5f9" },
   thumbPh: { justifyContent: "center", alignItems: "center" },

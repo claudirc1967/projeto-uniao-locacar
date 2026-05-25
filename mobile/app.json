@@ -3,6 +3,7 @@
     "name": "União LocaCar",
     "slug": "projeto-uniao-locacar",
     "version": "1.0.0",
+    "scheme": "uniaolocacar",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

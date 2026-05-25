@@ -37,4 +37,6 @@ export type RootStackParamList = {
     displayName?: string | null;
   };
   RentalDetail: { rentalId: string };
+  AdminHome: undefined;
+  AdminCampaignForm: { campaignId?: string };
 };

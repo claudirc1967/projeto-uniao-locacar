@@ -105,6 +105,35 @@ export function maskDate(raw: string) {
   return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
 }
 
+/** DD/MM/AAAA a partir de Date ou ISO (formulários). */
+export function formatDateForm(value: Date | string | null | undefined): string {
+  if (!value) return "";
+  const dt = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(dt.getTime())) return "";
+  const day = String(dt.getDate()).padStart(2, "0");
+  const mo = String(dt.getMonth() + 1).padStart(2, "0");
+  return `${day}/${mo}/${dt.getFullYear()}`;
+}
+
+/** Interpreta string com máscara DD/MM/AAAA (8 dígitos). */
+export function parseDdMmYyyy(raw: string): Date | null {
+  const d = onlyDigits(raw).slice(0, 8);
+  if (d.length !== 8) return null;
+  const day = Number(d.slice(0, 2));
+  const mo = Number(d.slice(2, 4));
+  const y = Number(d.slice(4, 8));
+  if (mo < 1 || mo > 12 || day < 1 || day > 31 || y < 1900) return null;
+  const dt = new Date(y, mo - 1, day, 12, 0, 0, 0);
+  if (
+    dt.getFullYear() !== y ||
+    dt.getMonth() !== mo - 1 ||
+    dt.getDate() !== day
+  ) {
+    return null;
+  }
+  return dt;
+}
+
 export function formatMoneyFromCents(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>AutoSegura Brasil — Demo de campanha</title>
+    <style>
+      :root {
+        --primary: #1e3a8a;
+        --bg: #f8fafc;
+        --text: #0f172a;
+        --muted: #64748b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 32px 20px 48px;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        color: var(--primary);
+        font-size: 1.75rem;
+      }
+      .banner {
+        width: 100%;
+        border-radius: 12px;
+        margin: 20px 0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      }
+      ul { padding-left: 1.2rem; }
+      li { margin-bottom: 8px; }
+      .note {
+        margin-top: 24px;
+        padding: 14px 16px;
+        background: #eff6ff;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        color: #1e3a8a;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <p class="badge">Campanha fictícia — demo União LocaCar</p>
+      <h1>AutoSegura Brasil</h1>
+      <p>
+        Seguro auto pensado para motoristas de aplicativo e locação por assinatura.
+        Cobertura contra colisão, roubo, terceiros e assistência 24h em todo o Brasil.
+      </p>
+      <img
+        class="banner"
+        src="/sample-ads/autosegura-banner.png"
+        alt="Banner AutoSegura Brasil"
+        width="800"
+        height="200"
+      />
+      <h2>Benefícios destacados</h2>
+      <ul>
+        <li>Franquia reduzida para locadores parceiros da plataforma</li>
+        <li>Carro reserva em até 24h após sinistro</li>
+        <li>Atendimento via WhatsApp e app próprio</li>
+      </ul>
+      <p class="note">
+        Esta página existe só para testar o clique do banner no app. Marca, valores e condições são fictícios.
+      </p>
+    </main>
+  </body>
+</html>

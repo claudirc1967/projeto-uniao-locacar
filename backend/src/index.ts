@@ -1,10 +1,18 @@
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import cors from "cors";
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createContext } from "./context.js";
 import { appRouter } from "./router.js";
 
 const port = Number(process.env.PORT ?? 4000);
+const sampleAdsDir = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "public",
+  "sample-ads"
+);
 
 const resetPasswordPageHtml = `<!doctype html>
 <html lang="pt-BR">
@@ -256,6 +264,8 @@ app.get("/health", (_req, res) => {
 app.get("/reset-password", (_req, res) => {
   res.type("html").send(resetPasswordPageHtml);
 });
+
+app.use("/sample-ads", express.static(sampleAdsDir));
 
 app.use(
   "/trpc",

@@ -2,7 +2,11 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 
 const secret = process.env.JWT_SECRET ?? "dev-insecure-secret";
 
-export type JwtPayload = { sub: string; email: string; role: "OWNER" | "DRIVER" };
+export type JwtPayload = {
+  sub: string;
+  email: string;
+  role: "OWNER" | "DRIVER" | "ADMIN";
+};
 
 export function signJwt(
   payload: JwtPayload,

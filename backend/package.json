@@ -23,7 +23,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:backup": "node scripts/backup-db.mjs",
-    "ads:seed": "node scripts/seed-ad-campaign.mjs"
+    "ads:seed": "node scripts/seed-ad-campaign.mjs",
+    "admin:seed": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",

@@ -35,6 +35,8 @@ import { PrivacyPolicyScreen } from "../screens/legal/PrivacyPolicyScreen";
 import { TermsAcceptanceScreen } from "../screens/legal/TermsAcceptanceScreen";
 import { TermsOfUseScreen } from "../screens/legal/TermsOfUseScreen";
 import { UserReviewsScreen } from "../screens/reviews/UserReviewsScreen";
+import { AdminHomeScreen } from "../screens/admin/AdminHomeScreen";
+import { AdminCampaignFormScreen } from "../screens/admin/AdminCampaignFormScreen";
 import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -57,13 +59,15 @@ export function RootNavigator() {
   const needsTerms = authed && user?.needsTermsOfUseAcceptance === true;
   const initialRouteName = !authed
     ? "Login"
-    : needsPrivacy
-      ? "PrivacyAcceptance"
-      : needsTerms
-        ? "TermsAcceptance"
-        : user!.role === "OWNER"
-          ? "OwnerHome"
-          : "DriverHome";
+    : user!.role === "ADMIN"
+      ? "AdminHome"
+      : needsPrivacy
+        ? "PrivacyAcceptance"
+        : needsTerms
+          ? "TermsAcceptance"
+          : user!.role === "OWNER"
+            ? "OwnerHome"
+            : "DriverHome";
 
   return (
     <NavigationContainer key={navKey}>
@@ -179,6 +183,14 @@ export function RootNavigator() {
           options={({ route }) => ({ title: route.params.title })}
         />
         <Stack.Screen name="RentalDetail" component={RentalDetailScreen} options={{ title: "Detalhes da locação" }} />
+        <Stack.Screen name="AdminHome" component={AdminHomeScreen} options={{ title: "Admin — Anúncios" }} />
+        <Stack.Screen
+          name="AdminCampaignForm"
+          component={AdminCampaignFormScreen}
+          options={({ route }) => ({
+            title: route.params?.campaignId ? "Editar campanha" : "Nova campanha",
+          })}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

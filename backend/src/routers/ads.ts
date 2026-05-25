@@ -4,6 +4,7 @@ import type { AuthedContext } from "../context.js";
 import { pickEligibleCampaign } from "../ads/eligibility.js";
 import { prisma } from "../db.js";
 import { protectedProcedure, router } from "../trpc.js";
+import { adsAdminRouter } from "./adsAdmin.js";
 
 const placementSchema = z.enum(["DRIVER_HOME", "MARKETPLACE_LIST"]);
 const platformSchema = z.enum(["ios", "android", "web"]);
@@ -123,4 +124,6 @@ export const adsRouter = router({
 
       return { ok: true as const, duplicate: false as const };
     }),
+
+  admin: adsAdminRouter,
 });

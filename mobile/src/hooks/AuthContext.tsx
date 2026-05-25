@@ -18,7 +18,7 @@ const JWT_KEY = "jwt";
 export type SessionUser = {
   id: string;
   email: string;
-  role: "OWNER" | "DRIVER";
+  role: "OWNER" | "DRIVER" | "ADMIN";
   needsPrivacyPolicyAcceptance?: boolean;
   privacyPolicyVersion?: string;
   privacyPolicyAcceptedAt?: string | Date | null;

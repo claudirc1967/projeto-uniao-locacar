@@ -27,6 +27,11 @@ function isGitHubActionsPagesBuild() {
   );
 }
 
+function isCustomDomainPagesBuild() {
+  const domain = process.env.EXPO_PUBLIC_SITE_URL?.trim();
+  return Boolean(domain && !domain.includes(".github.io"));
+}
+
 function getBaseUrl() {
   const explicit = process.env.EXPO_BASE_URL?.trim();
   if (explicit) {
@@ -35,6 +40,11 @@ function getBaseUrl() {
 
   // Railway injeta GITHUB_REPOSITORY no build, mas serve o site na raiz do domínio.
   if (isRailwayBuild()) {
+    return "/";
+  }
+
+  // Domínio customizado no GitHub Pages (ex.: uniaolocacar.com.br) usa raiz "/".
+  if (isGitHubActionsPagesBuild() && isCustomDomainPagesBuild()) {
     return "/";
   }
 

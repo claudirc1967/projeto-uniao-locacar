@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const indexPath = path.join(__dirname, "..", "dist", "index.html");
 
 const SCRIPT_RE =
-  /<script\s+src="(\/_expo\/static\/js\/web\/index-[^"]+\.js)"\s+defer\s*><\/script>/;
+  /<script\s+src="([^"]*\/_expo\/static\/js\/web\/index-[^"]+\.js)"\s+defer\s*><\/script>/;
 
 function buildLoader(src) {
   return `<script>

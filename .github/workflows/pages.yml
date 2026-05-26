@@ -6,7 +6,8 @@
 #
 # Secrets (Settings → Secrets and variables → Actions):
 #   EXPO_PUBLIC_TRPC_URL — URL pública do tRPC no Railway (ex.: https://xxx.up.railway.app/trpc)
-#   EXPO_BASE_URL — opcional; use "/" se o site usar domínio customizado na raiz (sem /repo/ no path).
+#   EXPO_BASE_URL — "/" para domínio customizado na raiz (uniaolocacar.com.br); omita para github.io/<repo>/
+#   EXPO_PUBLIC_SITE_URL — opcional; ex.: https://uniaolocacar.com.br (ajuda o build a usar baseUrl "/")
 #
 # Nota: o passo "configure-pages" foi omitido de propósito — ele falha com 404 até Pages existir
 # e não é necessário para upload-pages-artifact + deploy-pages com arquivos estáticos.
@@ -56,6 +57,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           EXPO_PUBLIC_TRPC_URL: ${{ secrets.EXPO_PUBLIC_TRPC_URL }}
           EXPO_BASE_URL: ${{ secrets.EXPO_BASE_URL }}
+          EXPO_PUBLIC_SITE_URL: ${{ secrets.EXPO_PUBLIC_SITE_URL }}
         run: npm run predeploy -w mobile
 
       # Páginas estáticas + gzip + loader identity no index.html (GitHub Pages gzip/404 bug)

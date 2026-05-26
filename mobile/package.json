@@ -10,7 +10,7 @@
     "ios": "EXPO_OFFLINE=1 REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --ios --lan",
     "start:ios": "EXPO_OFFLINE=1 REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --lan",
     "web": "npx expo start --web",
-    "predeploy": "npx expo export -p web && node scripts/copy-static-web.mjs && node scripts/gzip-static-assets.mjs && node scripts/patch-index-html-loader.mjs",
+    "predeploy": "npx expo export -p web && node scripts/copy-static-web.mjs && node scripts/gzip-static-assets.mjs && node scripts/inject-web-font.mjs && node scripts/patch-index-html-loader.mjs",
     "deploy": "gh-pages --nojekyll -d dist",
     "eas:android": "eas build -p android --profile preview",
     "eas:ios": "eas build -p ios --profile preview"
@@ -23,7 +23,6 @@
     "@trpc/react-query": "^10.45.4",
     "expo": "~55.0.24",
     "expo-clipboard": "~55.0.13",
-    "expo-font": "~55.0.7",
     "expo-document-picker": "~55.0.13",
     "expo-file-system": "~55.0.11",
     "expo-image-picker": "~55.0.20",

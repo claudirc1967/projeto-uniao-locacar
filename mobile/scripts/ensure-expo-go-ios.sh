@@ -17,8 +17,9 @@ APP=$(ls -dt "${CACHE_DIR}"/*.app 2>/dev/null | head -1)
 
 if [ -z "$APP" ]; then
   echo "Expo Go não está no simulador e não há cache em ~/.expo/ios-simulator-app-cache"
-  echo "Instale uma vez com internet (sem EXPO_OFFLINE):"
-  echo "  cd mobile && REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --ios --lan"
+  echo "Instale uma vez com internet:"
+  echo "  npm run ios -w mobile"
+  echo "  (ou: cd mobile && REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --ios --lan)"
   exit 1
 fi
 

@@ -50,6 +50,8 @@ export function DriverHomeScreen({ navigation }: Props) {
           </Text>
         ) : null}
 
+        <AdSlot placement={AD_PLACEMENTS.DRIVER_HOME} variant="compact" />
+
         <HomeMixedMenuGrid
           featured={{
             key: "marketplace",
@@ -96,8 +98,6 @@ export function DriverHomeScreen({ navigation }: Props) {
             },
           ]}
         />
-
-        <AdSlot placement={AD_PLACEMENTS.DRIVER_HOME} />
       </ScrollView>
 
       <View

@@ -20,6 +20,8 @@ import {
   useTheme,
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AdSlot } from "../../components/ads/AdSlot";
+import { AD_PLACEMENTS, MARKETPLACE_AD_EVERY_N } from "../../constants/adPlacements";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
@@ -365,15 +367,16 @@ export function MarketplaceScreen({ navigation }: Props) {
               : "Nenhum veículo listado."}
           </Text>
         }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() =>
-              navigation.navigate("VehicleDetail", { vehicleId: item.id })
-            }
-          >
-            <Card mode="elevated" style={styles.card}>
-              <View style={styles.cardClip}>
-              <View style={styles.row}>
+        renderItem={({ item, index }) => (
+          <>
+            <Pressable
+              onPress={() =>
+                navigation.navigate("VehicleDetail", { vehicleId: item.id })
+              }
+            >
+              <Card mode="elevated" style={styles.card}>
+                <View style={styles.cardClip}>
+                <View style={styles.row}>
                 {item.coverPhotoUrl ? (
                   <Image source={{ uri: item.coverPhotoUrl }} style={styles.cover} />
                 ) : (
@@ -433,6 +436,11 @@ export function MarketplaceScreen({ navigation }: Props) {
               </View>
             </Card>
           </Pressable>
+            {user?.role === "DRIVER" &&
+            (index + 1) % MARKETPLACE_AD_EVERY_N === 0 ? (
+              <AdSlot placement={AD_PLACEMENTS.MARKETPLACE_LIST} />
+            ) : null}
+          </>
         )}
         />
         <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>

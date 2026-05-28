@@ -18,7 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { ImageViewerModal } from "../../components/ImageViewerModal";
 import type { RootStackParamList } from "../../navigation/types";
-import { getUriByteSize, imageUriToUint8Array } from "../../utils/imageUriToBlob";
+import { imageUriToUint8Array } from "../../utils/imageUriToBlob";
+import { prepareImageForUpload } from "../../utils/prepareImageForUpload";
 import {
   isAllowedImageType,
   validatePhotosForUpload,
@@ -185,40 +186,50 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
     });
     if (res.canceled) return;
 
-    const next: Picked[] = [];
-    for (const asset of res.assets) {
-      const mime = asset.mimeType ?? "image/jpeg";
-      let size = asset.fileSize ?? 0;
-      if (!size) {
-        try {
-          size = await getUriByteSize(asset.uri);
-        } catch {
-          size = 0;
-        }
-      }
-      next.push({
-        uri: asset.uri,
-        mime,
-        size,
-        name: asset.fileName ?? undefined,
-      });
-    }
+    const raw = res.assets.map((asset) => ({
+      uri: asset.uri,
+      name: asset.fileName ?? undefined,
+    }));
+    if (raw.length === 0) return;
 
-    const check = validatePhotosForUpload(
-      next.map((p) => ({ uri: p.uri, mime: p.mime, size: p.size }))
-    );
-    if (!check.ok) {
-      setErr(check.message);
-      return;
-    }
-    for (const photo of next) {
-      if (!isAllowedImageType(photo.mime)) {
-        setErr("Tipo de imagem não permitido.");
+    setBusy(true);
+    setStatus("Preparando fotos…");
+    try {
+      const next: Picked[] = [];
+      for (let i = 0; i < raw.length; i++) {
+        setStatus(`Preparando foto ${i + 1} de ${raw.length}…`);
+        const prepared = await prepareImageForUpload(raw[i]!.uri);
+        next.push({
+          uri: prepared.uri,
+          mime: prepared.mime,
+          size: prepared.size,
+          name: raw[i]!.name,
+        });
+      }
+
+      const check = validatePhotosForUpload(
+        next.map((p) => ({ uri: p.uri, mime: p.mime, size: p.size }))
+      );
+      if (!check.ok) {
+        setErr(check.message);
         return;
       }
+      for (const photo of next) {
+        if (!isAllowedImageType(photo.mime)) {
+          setErr("Tipo de imagem não permitido.");
+          return;
+        }
+      }
+      setPending((prev) => [...prev, ...next]);
+      setStatus(`${next.length} foto(s) pronta(s).`);
+    } catch (e) {
+      setErr(
+        e instanceof Error ? e.message : "Não foi possível preparar as fotos."
+      );
+      setStatus(null);
+    } finally {
+      setBusy(false);
     }
-    setPending((prev) => [...prev, ...next]);
-    setStatus(`${next.length} foto(s) selecionada(s).`);
   };
 
   const runSave = async () => {

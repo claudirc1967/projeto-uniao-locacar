@@ -26,7 +26,8 @@ import {
   isAllowedImageType,
   validatePhotosForUpload,
 } from "../../utils/photoUploadRules";
-import { getUriByteSize, imageUriToUint8Array } from "../../utils/imageUriToBlob";
+import { imageUriToUint8Array } from "../../utils/imageUriToBlob";
+import { prepareImageForUpload } from "../../utils/prepareImageForUpload";
 import { putWithRetry } from "../../utils/uploadWithRetry";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
@@ -96,7 +97,9 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
       Alert.alert("Limite", "Já existem 6 fotos para este veículo.");
       return;
     }
-    const next: Picked[] = [];
+
+    type RawPick = { uri: string; name?: string };
+    const raw: RawPick[] = [];
 
     if (Platform.OS === "web") {
       const res = await DocumentPicker.getDocumentAsync({
@@ -105,16 +108,8 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
         multiple: true,
       });
       if (res.canceled) return;
-      const assets = res.assets ?? [];
-      for (const a of assets.slice(0, maxSelectable)) {
-        const mime = a.mimeType ?? "image/jpeg";
-        const size = typeof a.size === "number" ? a.size : 0;
-        next.push({
-          uri: a.uri,
-          mime,
-          size,
-          name: a.name ?? undefined,
-        });
+      for (const a of (res.assets ?? []).slice(0, maxSelectable)) {
+        raw.push({ uri: a.uri, name: a.name ?? undefined });
       }
     } else {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -129,41 +124,51 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
         quality: 0.85,
       });
       if (res.canceled) return;
-
       for (const a of res.assets) {
-        const mime = a.mimeType ?? "image/jpeg";
-        let size = a.fileSize ?? 0;
-        if (!size) {
-          try {
-            size = await getUriByteSize(a.uri);
-          } catch {
-            size = 0;
-          }
-        }
+        raw.push({ uri: a.uri, name: a.fileName ?? undefined });
+      }
+    }
+
+    if (raw.length === 0) return;
+
+    setBusy(true);
+    setStatus("Preparando fotos…");
+    try {
+      const next: Picked[] = [];
+      for (let i = 0; i < raw.length; i++) {
+        setStatus(`Preparando foto ${i + 1} de ${raw.length}…`);
+        const prepared = await prepareImageForUpload(raw[i]!.uri);
         next.push({
-          uri: a.uri,
-          mime,
-          size,
-          name: a.fileName ?? undefined,
+          uri: prepared.uri,
+          mime: prepared.mime,
+          size: prepared.size,
+          name: raw[i]!.name,
         });
       }
-    }
 
-    const check = validatePhotosForUpload(
-      next.map((n) => ({ uri: n.uri, mime: n.mime, size: n.size }))
-    );
-    if (!check.ok) {
-      setErr(check.message);
-      return;
-    }
-    for (const n of next) {
-      if (!isAllowedImageType(n.mime)) {
-        setErr("Tipo de imagem não permitido.");
+      const check = validatePhotosForUpload(
+        next.map((n) => ({ uri: n.uri, mime: n.mime, size: n.size }))
+      );
+      if (!check.ok) {
+        setErr(check.message);
         return;
       }
+      for (const n of next) {
+        if (!isAllowedImageType(n.mime)) {
+          setErr("Tipo de imagem não permitido.");
+          return;
+        }
+      }
+      setPending(next);
+      setStatus(`${next.length} foto(s) pronta(s) para enviar.`);
+    } catch (e) {
+      setErr(
+        e instanceof Error ? e.message : "Não foi possível preparar as fotos."
+      );
+      setStatus(null);
+    } finally {
+      setBusy(false);
     }
-    setPending(next);
-    setStatus(`${next.length} foto(s) selecionada(s) para enviar.`);
   };
 
   const removePending = (uri: string) => {

@@ -26,6 +26,8 @@ export function PasswordInput({
         {...rest}
         style={styles.input}
         secureTextEntry={hidden}
+        autoCapitalize="none"
+        autoCorrect={false}
         textContentType="password"
         autoComplete="password"
       />

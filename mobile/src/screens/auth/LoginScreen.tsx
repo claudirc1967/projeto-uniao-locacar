@@ -75,6 +75,8 @@ export function LoginScreen({ navigation }: Props) {
           value={password}
           onChangeText={setPassword}
           secureTextEntry={secure}
+          autoCapitalize="none"
+          autoCorrect={false}
           autoComplete="password"
           textContentType="password"
           style={styles.field}

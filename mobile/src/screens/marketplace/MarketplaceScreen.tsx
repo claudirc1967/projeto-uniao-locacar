@@ -438,7 +438,10 @@ export function MarketplaceScreen({ navigation }: Props) {
           </Pressable>
             {user?.role === "DRIVER" &&
             (index + 1) % MARKETPLACE_AD_EVERY_N === 0 ? (
-              <AdSlot placement={AD_PLACEMENTS.MARKETPLACE_LIST} />
+              <AdSlot
+                placement={AD_PLACEMENTS.MARKETPLACE_LIST}
+                rotationSeed={index + 1}
+              />
             ) : null}
           </>
         )}

@@ -25,7 +25,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:backup": "node scripts/backup-db.mjs",
     "ads:seed": "node scripts/seed-ad-campaign.mjs",
-    "admin:seed": "node scripts/seed-admin.mjs"
+    "admin:seed": "node scripts/seed-admin.mjs",
+    "test:ads": "tsx --test src/ads/eligibility.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.750.0",

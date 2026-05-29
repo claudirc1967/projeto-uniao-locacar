@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { AuthedContext } from "../context.js";
 import { pickEligibleCampaign } from "../ads/eligibility.js";
+import { loadUserImpressionCounts } from "../ads/impressionCounts.js";
 import { prisma } from "../db.js";
 import { protectedProcedure, router } from "../trpc.js";
 import { adsAdminRouter } from "./adsAdmin.js";
@@ -39,6 +40,8 @@ export const adsRouter = router({
         platform: platformSchema.optional(),
         uf: z.string().max(2).optional(),
         cidade: z.string().max(120).optional(),
+        /** Índice do slot (ex.: marketplace) para rodízio entre campanhas do mesmo tier. */
+        rotationSeed: z.number().int().min(0).max(9999).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
@@ -47,15 +50,21 @@ export const adsRouter = router({
       const uf = input.uf?.trim() || profileGeo.uf;
       const cidade = input.cidade?.trim() || profileGeo.cidade;
 
-      const campaigns = await prisma.adCampaign.findMany({
-        where: { status: "ACTIVE" },
-      });
+      const [campaigns, impressionCounts] = await Promise.all([
+        prisma.adCampaign.findMany({
+          where: { status: "ACTIVE" },
+        }),
+        loadUserImpressionCounts(user.id),
+      ]);
 
       const picked = pickEligibleCampaign(campaigns, {
         placement: input.placement,
         role: user.role,
         uf,
         cidade,
+        userId: user.id,
+        rotationSeed: input.rotationSeed,
+        impressionCounts,
       });
 
       if (!picked) {

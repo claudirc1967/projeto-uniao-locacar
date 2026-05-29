@@ -6,7 +6,7 @@ import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { HouseAdCard, type HouseAdVariant } from "./HouseAdCard";
 
-const DECISION_STALE_MS = 5 * 60 * 1000;
+const DECISION_STALE_MS = 30 * 1000;
 
 function adPlatform(): "ios" | "android" | "web" {
   if (Platform.OS === "ios") return "ios";
@@ -18,23 +18,26 @@ type Props = {
   placement: AdPlacementKey;
   /** compact: faixa na home; default: card na lista do marketplace */
   variant?: HouseAdVariant;
+  /** Diferencia slots no mesmo placement (rodízio no marketplace). */
+  rotationSeed?: number;
 };
 
 /**
  * Reserva espaço na tela e exibe house ad conforme ads.decision no servidor.
  * Fase 1: só motorista; AdMob fica para fase 3.
  */
-export function AdSlot({ placement, variant = "default" }: Props) {
+export function AdSlot({ placement, variant = "default", rotationSeed }: Props) {
   const theme = useTheme();
   const { user } = useAuth();
   const platform = adPlatform();
   const compact = variant === "compact";
 
   const decisionQ = trpc.ads.decision.useQuery(
-    { placement, platform },
+    { placement, platform, rotationSeed: rotationSeed ?? 0 },
     {
       enabled: user?.role === "DRIVER",
       staleTime: DECISION_STALE_MS,
+      refetchOnMount: "always",
       retry: false,
     }
   );

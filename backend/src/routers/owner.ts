@@ -10,6 +10,10 @@ import {
   presignGetRead,
   presignPutUpload,
 } from "../storage/s3.js";
+import {
+  normalizeVehicleCapacity,
+  vehicleTypeSchema,
+} from "../vehicleCapacity.js";
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { ownerProcedure, router } from "../trpc.js";
@@ -324,8 +328,9 @@ export const ownerRouter = router({
         model: z.string().optional(),
         year: z.number().int().min(1900).max(2100),
         cor: z.string().optional(),
-        portas: z.number().int().min(2).max(8).default(4),
-        lugares: z.number().int().min(1).max(15).default(5),
+        vehicleType: vehicleTypeSchema.default("CAR"),
+        portas: z.number().int().min(2).max(8).optional().nullable(),
+        lugares: z.number().int().min(1).max(15).optional().nullable(),
         contractTime: contractTimeSchema.default("DIARIO"),
         kmLivre: z.boolean().default(false),
         kmPorContrato: z.number().int().min(0).default(0),
@@ -361,6 +366,11 @@ export const ownerRouter = router({
         input.bodyshopPartnerId,
         input.partsPartnerId,
       ]);
+      const capacity = normalizeVehicleCapacity(
+        input.vehicleType,
+        input.portas,
+        input.lugares
+      );
       const v = await prisma.vehicle.create({
         data: {
           ownerUserId: user.id,
@@ -371,8 +381,9 @@ export const ownerRouter = router({
           model: input.model,
           year: input.year,
           cor: input.cor,
-          portas: input.portas,
-          lugares: input.lugares,
+          vehicleType: input.vehicleType,
+          portas: capacity.portas,
+          lugares: capacity.lugares,
           contractTime: input.contractTime,
           kmLivre: input.kmLivre,
           kmPorContrato: input.kmPorContrato,
@@ -414,8 +425,9 @@ export const ownerRouter = router({
         model: z.string().optional().nullable(),
         year: z.number().int().min(1900).max(2100).optional(),
         cor: z.string().optional().nullable(),
-        portas: z.number().int().min(2).max(8).optional(),
-        lugares: z.number().int().min(1).max(15).optional(),
+        vehicleType: vehicleTypeSchema.optional(),
+        portas: z.number().int().min(2).max(8).optional().nullable(),
+        lugares: z.number().int().min(1).max(15).optional().nullable(),
         contractTime: contractTimeSchema.optional(),
         kmLivre: z.boolean().optional(),
         kmPorContrato: z.number().int().min(0).optional(),
@@ -452,11 +464,38 @@ export const ownerRouter = router({
         input.bodyshopPartnerId,
         input.partsPartnerId,
       ]);
+      const existing = await prisma.vehicle.findFirst({
+        where: { id: input.vehicleId, ownerUserId },
+        select: {
+          vehicleType: true,
+          portas: true,
+          lugares: true,
+        },
+      });
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Veículo não encontrado",
+        });
+      }
       const { vehicleId, ...rest } = input;
-      const data = { ...rest };
+      const data = { ...rest } as typeof rest & {
+        portas?: number | null;
+        lugares?: number | null;
+        vehicleType?: typeof existing.vehicleType;
+      };
       if (data.insuranceMaintenanceIncluded === false) {
         data.insurerPolicy = null;
       }
+      const vehicleType = data.vehicleType ?? existing.vehicleType;
+      const portas =
+        data.portas !== undefined ? data.portas : existing.portas;
+      const lugares =
+        data.lugares !== undefined ? data.lugares : existing.lugares;
+      const capacity = normalizeVehicleCapacity(vehicleType, portas, lugares);
+      data.vehicleType = vehicleType;
+      data.portas = capacity.portas;
+      data.lugares = capacity.lugares;
       await prisma.vehicle.update({
         where: { id: vehicleId },
         data,
@@ -1272,6 +1311,7 @@ export const ownerRouter = router({
               model: true,
               year: true,
               cor: true,
+              vehicleType: true,
               portas: true,
               lugares: true,
               dailyRateCents: true,

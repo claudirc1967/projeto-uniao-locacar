@@ -38,6 +38,8 @@ import {
   maskPhone,
   onlyDigits,
 } from "../../utils/masks";
+import { vehicleTypeLabel } from "../../constants/vehicleType";
+import { formatVehicleCapacityLine } from "../../utils/vehicleDisplay";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerRentalDetail">;
 
@@ -426,9 +428,21 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
             Cor: {row.vehicle.cor?.trim() || "—"}
           </Text>
           <Text variant="bodySmall" style={styles.meta}>
-            Portas: {row.vehicle.portas ?? 4} · Lugares:{" "}
-            {row.vehicle.lugares ?? 5}
+            Tipo: {vehicleTypeLabel(row.vehicle.vehicleType)}
           </Text>
+          {formatVehicleCapacityLine(
+            row.vehicle.vehicleType,
+            row.vehicle.portas,
+            row.vehicle.lugares
+          ) ? (
+            <Text variant="bodySmall" style={styles.meta}>
+              {formatVehicleCapacityLine(
+                row.vehicle.vehicleType,
+                row.vehicle.portas,
+                row.vehicle.lugares
+              )}
+            </Text>
+          ) : null}
         </Card.Content>
       </Card>
 

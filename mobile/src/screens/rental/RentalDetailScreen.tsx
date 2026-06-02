@@ -23,6 +23,8 @@ import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatDateDisplay, maskPhone, onlyDigits } from "../../utils/masks";
+import { vehicleTypeLabel } from "../../constants/vehicleType";
+import { formatVehicleCapacityLine } from "../../utils/vehicleDisplay";
 import {
   buildVehiclePickupSearchQuery,
   googleMapsSearchUrl,
@@ -215,8 +217,21 @@ export function RentalDetailScreen({ navigation, route }: Props) {
         Cor: {r.vehicle.cor ?? "—"}
       </Text>
       <Text variant="bodyMedium" style={styles.meta}>
-        Portas: {r.vehicle.portas ?? 4} · Lugares: {r.vehicle.lugares ?? 5}
+        Tipo: {vehicleTypeLabel(r.vehicle.vehicleType)}
       </Text>
+      {formatVehicleCapacityLine(
+        r.vehicle.vehicleType,
+        r.vehicle.portas,
+        r.vehicle.lugares
+      ) ? (
+        <Text variant="bodyMedium" style={styles.meta}>
+          {formatVehicleCapacityLine(
+            r.vehicle.vehicleType,
+            r.vehicle.portas,
+            r.vehicle.lugares
+          )}
+        </Text>
+      ) : null}
       <Text variant="bodyMedium" style={styles.meta}>
         Placa: {r.vehicle.plate}
       </Text>

@@ -237,6 +237,7 @@ export const driverRouter = router({
               brand: true,
               model: true,
               cor: true,
+              vehicleType: true,
               portas: true,
               lugares: true,
               owner: {

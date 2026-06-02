@@ -14,6 +14,7 @@ import {
   type ContractTime,
   formatMoneyWithContractPeriod,
 } from "../../utils/masks";
+import { vehicleTypeLabel } from "../../constants/vehicleType";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -95,7 +96,11 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
                       )}
                     </Text>
                     <Text variant="bodySmall" style={styles.meta}>
-                      {item.available ? "Disponível" : "Indisponível"}
+                      {vehicleTypeLabel(
+                        (item as { vehicleType?: "CAR" | "MOTORCYCLE" })
+                          .vehicleType
+                      )}{" "}
+                      · {item.available ? "Disponível" : "Indisponível"}
                     </Text>
                   </View>
                 </View>

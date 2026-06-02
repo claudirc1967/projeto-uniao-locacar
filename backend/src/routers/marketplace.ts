@@ -6,6 +6,7 @@ import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
 import { presignGetRead } from "../storage/s3.js";
 import { protectedProcedure, router } from "../trpc.js";
+import { vehicleTypeSchema } from "../vehicleCapacity.js";
 
 const listFiltersSchema = z.object({
   brandContains: z.string().max(120).optional(),
@@ -17,6 +18,7 @@ const listFiltersSchema = z.object({
   ownerNameContains: z.string().max(200).optional(),
   yearMin: z.number().int().min(1900).max(2100).optional(),
   yearMax: z.number().int().min(1900).max(2100).optional(),
+  vehicleType: vehicleTypeSchema.optional(),
   portas: z.number().int().min(2).max(8).optional(),
   lugares: z.number().int().min(1).max(15).optional(),
   contractTime: z.enum(["DIARIO", "SEMANAL", "MENSAL"]).optional(),
@@ -103,11 +105,14 @@ function buildVehicleWhere(
   if (f.yearMax != null) {
     and.push({ year: { lte: f.yearMax } });
   }
+  if (f.vehicleType != null) {
+    and.push({ vehicleType: f.vehicleType });
+  }
   if (f.portas != null) {
-    and.push({ portas: f.portas });
+    and.push({ vehicleType: "CAR", portas: f.portas });
   }
   if (f.lugares != null) {
-    and.push({ lugares: f.lugares });
+    and.push({ vehicleType: "CAR", lugares: f.lugares });
   }
   if (f.contractTime != null) {
     and.push({ contractTime: f.contractTime });
@@ -196,6 +201,7 @@ export const marketplaceRouter = router({
               model: v.model,
               year: v.year,
               cor: v.cor,
+              vehicleType: v.vehicleType,
               portas: v.portas,
               lugares: v.lugares,
               contractTime: v.contractTime,
@@ -281,6 +287,7 @@ export const marketplaceRouter = router({
           model: v.model,
           year: v.year,
           cor: v.cor,
+          vehicleType: v.vehicleType,
           portas: v.portas,
           lugares: v.lugares,
           contractTime: v.contractTime,

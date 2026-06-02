@@ -38,6 +38,10 @@ import {
   type CepAddressValue,
 } from "../../components/CepAddressForm";
 import { MenuTile } from "../../components/MenuTile";
+import {
+  VEHICLE_TYPE_OPTIONS,
+  type VehicleType,
+} from "../../constants/vehicleType";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -109,6 +113,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [cor, setCor] = useState("");
+  const [vehicleType, setVehicleType] = useState<VehicleType>("CAR");
   const [portasStr, setPortasStr] = useState("4");
   const [lugaresStr, setLugaresStr] = useState("5");
   const [dailyReais, setDailyReais] = useState("");
@@ -173,6 +178,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     setModel(v.model ?? "");
     setYear(String(v.year ?? ""));
     setCor(v.cor ?? "");
+    setVehicleType(v.vehicleType === "MOTORCYCLE" ? "MOTORCYCLE" : "CAR");
     setPortasStr(
       v.portas != null && Number.isFinite(v.portas) ? String(v.portas) : "4"
     );
@@ -329,15 +335,23 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       setErr("Número do endereço de retirada é obrigatório.");
       return;
     }
-    const portasNum = parseInt(portasStr.replace(/\D/g, ""), 10);
-    const lugaresNum = parseInt(lugaresStr.replace(/\D/g, ""), 10);
-    if (!Number.isFinite(portasNum) || portasNum < 2 || portasNum > 8) {
-      setErr("Portas: informe um número entre 2 e 8.");
-      return;
-    }
-    if (!Number.isFinite(lugaresNum) || lugaresNum < 1 || lugaresNum > 15) {
-      setErr("Lugares: informe um número entre 1 e 15.");
-      return;
+    const portasNum =
+      vehicleType === "CAR"
+        ? parseInt(portasStr.replace(/\D/g, ""), 10)
+        : null;
+    const lugaresNum =
+      vehicleType === "CAR"
+        ? parseInt(lugaresStr.replace(/\D/g, ""), 10)
+        : null;
+    if (vehicleType === "CAR") {
+      if (!Number.isFinite(portasNum!) || portasNum! < 2 || portasNum! > 8) {
+        setErr("Portas: informe um número entre 2 e 8.");
+        return;
+      }
+      if (!Number.isFinite(lugaresNum!) || lugaresNum! < 1 || lugaresNum! > 15) {
+        setErr("Lugares: informe um número entre 1 e 15.");
+        return;
+      }
     }
     if (!year.trim()) {
       setErr("Informe o ano do veículo.");
@@ -362,6 +376,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         model: model || undefined,
         year: y,
         cor: cor || undefined,
+        vehicleType,
         portas: portasNum,
         lugares: lugaresNum,
         contractTime,
@@ -397,6 +412,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
         model: model || undefined,
         year: y,
         cor: cor || undefined,
+        vehicleType,
         portas: portasNum,
         lugares: lugaresNum,
         contractTime,
@@ -491,18 +507,34 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           keyboardType="number-pad"
         />
         <Field label="Cor" value={cor} onChangeText={setCor} />
-        <Field
-          label="Portas"
-          value={portasStr}
-          onChangeText={setPortasStr}
-          keyboardType="number-pad"
+        <Text variant="labelLarge" style={{ marginTop: 14 }}>
+          Tipo de veículo
+        </Text>
+        <SegmentedButtons
+          value={vehicleType}
+          onValueChange={(v) => setVehicleType(v as VehicleType)}
+          buttons={VEHICLE_TYPE_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))}
+          style={{ marginTop: 8 }}
         />
-        <Field
-          label="Lugares"
-          value={lugaresStr}
-          onChangeText={setLugaresStr}
-          keyboardType="number-pad"
-        />
+        {vehicleType === "CAR" ? (
+          <>
+            <Field
+              label="Portas"
+              value={portasStr}
+              onChangeText={setPortasStr}
+              keyboardType="number-pad"
+            />
+            <Field
+              label="Lugares"
+              value={lugaresStr}
+              onChangeText={setLugaresStr}
+              keyboardType="number-pad"
+            />
+          </>
+        ) : null}
         <Field
           label={`Valor do período (R$)${contractTimeSuffix(contractTime)}`}
           value={dailyReais}

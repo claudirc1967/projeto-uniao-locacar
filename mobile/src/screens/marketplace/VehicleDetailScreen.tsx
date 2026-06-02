@@ -18,6 +18,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
+import {
+  formatVehicleCapacityLine,
+} from "../../utils/vehicleDisplay";
+import { vehicleTypeLabel } from "../../constants/vehicleType";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import {
@@ -186,8 +190,13 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
           Cor: {v.cor ?? "—"}
         </Text>
         <Text variant="bodyMedium" style={styles.meta}>
-          Portas: {v.portas ?? 4} · Lugares: {v.lugares ?? 5}
+          Tipo: {vehicleTypeLabel(v.vehicleType)}
         </Text>
+        {formatVehicleCapacityLine(v.vehicleType, v.portas, v.lugares) ? (
+          <Text variant="bodyMedium" style={styles.meta}>
+            {formatVehicleCapacityLine(v.vehicleType, v.portas, v.lugares)}
+          </Text>
+        ) : null}
         {showDescription ? (
           <Text variant="bodyMedium" style={styles.desc}>
             {descriptionText}

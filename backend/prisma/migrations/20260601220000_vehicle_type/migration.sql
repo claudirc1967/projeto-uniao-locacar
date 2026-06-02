@@ -1,0 +1,11 @@
+-- CreateEnum
+CREATE TYPE "VehicleType" AS ENUM ('CAR', 'MOTORCYCLE');
+
+-- AlterTable
+ALTER TABLE "Vehicle" ADD COLUMN "vehicleType" "VehicleType" NOT NULL DEFAULT 'CAR';
+
+ALTER TABLE "Vehicle" ALTER COLUMN "portas" DROP NOT NULL;
+ALTER TABLE "Vehicle" ALTER COLUMN "portas" DROP DEFAULT;
+
+ALTER TABLE "Vehicle" ALTER COLUMN "lugares" DROP NOT NULL;
+ALTER TABLE "Vehicle" ALTER COLUMN "lugares" DROP DEFAULT;

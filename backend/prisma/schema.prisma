@@ -78,6 +78,11 @@ enum ContractTime {
   MENSAL
 }
 
+enum VehicleType {
+  CAR
+  MOTORCYCLE
+}
+
 enum PartnerCategory {
   INSURANCE
   WORKSHOP
@@ -223,8 +228,9 @@ model Vehicle {
   model            String?
   year             Int          @default(2010)
   cor              String?
-  portas           Int          @default(4)
-  lugares          Int          @default(5)
+  vehicleType      VehicleType  @default(CAR)
+  portas           Int?
+  lugares          Int?
   contractTime   ContractTime @default(DIARIO)
   kmLivre        Boolean  @default(false)
   kmPorContrato  Int      @default(0)

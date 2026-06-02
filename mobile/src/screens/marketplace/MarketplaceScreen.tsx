@@ -22,9 +22,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AdSlot } from "../../components/ads/AdSlot";
 import { AD_PLACEMENTS, MARKETPLACE_AD_EVERY_N } from "../../constants/adPlacements";
+import type { VehicleType } from "../../constants/vehicleType";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
+import { formatVehicleMetaLine } from "../../utils/vehicleDisplay";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -70,6 +72,7 @@ type MarketplaceListFilters = {
   ownerUserId?: string;
   yearMin?: number;
   yearMax?: number;
+  vehicleType?: VehicleType;
   portas?: number;
   lugares?: number;
   contractTime?: "DIARIO" | "SEMANAL" | "MENSAL";
@@ -92,6 +95,7 @@ type FilterDraft = {
   ownerName: string;
   yearMin: string;
   yearMax: string;
+  vehicleType: "ANY" | VehicleType;
   portas: string;
   lugares: string;
   contractTime: "ANY" | "DIARIO" | "SEMANAL" | "MENSAL";
@@ -110,6 +114,7 @@ function emptyDraft(): FilterDraft {
     ownerName: "",
     yearMin: "",
     yearMax: "",
+    vehicleType: "ANY",
     portas: "",
     lugares: "",
     contractTime: "ANY",
@@ -138,6 +143,7 @@ function draftFromApplied(a: MarketplaceListFilters): FilterDraft {
     ownerName: a.ownerNameContains ?? "",
     yearMin: a.yearMin != null ? String(a.yearMin) : "",
     yearMax: a.yearMax != null ? String(a.yearMax) : "",
+    vehicleType: a.vehicleType ?? "ANY",
     portas: a.portas != null ? String(a.portas) : "",
     lugares: a.lugares != null ? String(a.lugares) : "",
     contractTime: a.contractTime ?? "ANY",
@@ -206,6 +212,10 @@ function buildFilters(d: FilterDraft): {
       filters: {},
       error: "Ano mínimo não pode ser maior que o ano máximo.",
     };
+  }
+
+  if (d.vehicleType !== "ANY") {
+    o.vehicleType = d.vehicleType;
   }
 
   if (d.portas.trim()) {
@@ -406,7 +416,11 @@ export function MarketplaceScreen({ navigation }: Props) {
                     </Text>
                   </View>
                   <Text variant="bodySmall" style={styles.meta}>
-                    Portas: {item.portas ?? 4} · Lugares: {item.lugares ?? 5}
+                    {formatVehicleMetaLine(
+                      item.vehicleType,
+                      item.portas,
+                      item.lugares
+                    )}
                   </Text>
                   {item.pickupCity ? (
                     <Text variant="bodySmall" style={styles.meta}>
@@ -596,6 +610,26 @@ export function MarketplaceScreen({ navigation }: Props) {
                   style={[styles.field, styles.fieldHalf]}
                 />
               </View>
+              <Text variant="labelLarge" style={styles.sectionLabel}>
+                Tipo de veículo
+              </Text>
+              <SegmentedButtons
+                value={draft.vehicleType}
+                onValueChange={(v) =>
+                  setDraft((d) => ({
+                    ...d,
+                    vehicleType: v as FilterDraft["vehicleType"],
+                    ...(v === "MOTORCYCLE" ? { portas: "", lugares: "" } : {}),
+                  }))
+                }
+                buttons={[
+                  { value: "ANY", label: "Qualquer" },
+                  { value: "CAR", label: "Automóvel" },
+                  { value: "MOTORCYCLE", label: "Moto" },
+                ]}
+                style={styles.segment}
+              />
+              {draft.vehicleType === "ANY" || draft.vehicleType === "CAR" ? (
               <View style={styles.rowFields}>
                 <TextInput
                   label="Portas"
@@ -604,6 +638,7 @@ export function MarketplaceScreen({ navigation }: Props) {
                   mode="outlined"
                   keyboardType="number-pad"
                   style={[styles.field, styles.fieldHalf]}
+                  disabled={draft.vehicleType === "MOTORCYCLE"}
                 />
                 <TextInput
                   label="Lugares"
@@ -612,8 +647,10 @@ export function MarketplaceScreen({ navigation }: Props) {
                   mode="outlined"
                   keyboardType="number-pad"
                   style={[styles.field, styles.fieldHalf]}
+                  disabled={draft.vehicleType === "MOTORCYCLE"}
                 />
               </View>
+              ) : null}
               <Text variant="labelLarge" style={styles.sectionLabel}>
                 Período de cobrança
               </Text>

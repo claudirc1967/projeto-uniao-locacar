@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -61,6 +61,17 @@ const UFS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "SE", label: "SE — Sergipe" },
   { value: "TO", label: "TO — Tocantins" },
 ];
+
+const UF_MENU_ITEMS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "Qualquer UF" },
+  ...UFS,
+];
+
+function pickupUfDisplayLabel(uf: string): string {
+  if (!uf.trim()) return "Qualquer";
+  const found = UFS.find((x) => x.value === uf);
+  return found?.label ?? uf;
+}
 
 type MarketplaceListFilters = {
   brandContains?: string;
@@ -267,9 +278,13 @@ export function MarketplaceScreen({ navigation }: Props) {
   const { user } = useAuth();
   const [applied, setApplied] = useState<MarketplaceListFilters>({});
   const [filterOpen, setFilterOpen] = useState(false);
-  const [ufPickerOpen, setUfPickerOpen] = useState(false);
+  const [ufPickerExpanded, setUfPickerExpanded] = useState(false);
   const [draft, setDraft] = useState<FilterDraft>(emptyDraft);
   const [modalErr, setModalErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!filterOpen) setUfPickerExpanded(false);
+  }, [filterOpen]);
 
   const queryFilters = useMemo(() => {
     if (user?.role === "OWNER") {
@@ -302,6 +317,7 @@ export function MarketplaceScreen({ navigation }: Props) {
       setApplied(filters);
     }
     setModalErr(null);
+    setUfPickerExpanded(false);
     setFilterOpen(false);
   };
 
@@ -309,6 +325,7 @@ export function MarketplaceScreen({ navigation }: Props) {
     setApplied({});
     setDraft(emptyDraft());
     setModalErr(null);
+    setUfPickerExpanded(false);
     setFilterOpen(false);
   };
 
@@ -319,6 +336,7 @@ export function MarketplaceScreen({ navigation }: Props) {
     }
     setDraft(d);
     setModalErr(null);
+    setUfPickerExpanded(false);
     setFilterOpen(true);
   };
 
@@ -536,20 +554,21 @@ export function MarketplaceScreen({ navigation }: Props) {
                   user?.role === "OWNER" ? styles.rowFieldsFirst : null,
                 ]}
               >
-                <Pressable
-                  onPress={() => setUfPickerOpen(true)}
-                  style={styles.fieldHalf}
-                >
-                  <TextInput
-                    label="UF (retirada)"
-                    value={draft.pickupUf || "Qualquer"}
+                <View style={styles.ufFieldWrap}>
+                  <Text variant="labelSmall" style={styles.ufFieldLabel}>
+                    UF (retirada)
+                  </Text>
+                  <Button
                     mode="outlined"
-                    editable={false}
-                    pointerEvents="none"
-                    right={<TextInput.Icon icon="chevron-down" />}
-                    style={styles.field}
-                  />
-                </Pressable>
+                    onPress={() => setUfPickerExpanded((open) => !open)}
+                    icon={ufPickerExpanded ? "chevron-up" : "chevron-down"}
+                    contentStyle={styles.ufFieldButtonContent}
+                    labelStyle={styles.ufFieldButtonLabel}
+                    style={styles.ufFieldButton}
+                  >
+                    {pickupUfDisplayLabel(draft.pickupUf)}
+                  </Button>
+                </View>
                 <TextInput
                   label="Cidade (retirada)"
                   value={draft.pickupCity}
@@ -560,6 +579,53 @@ export function MarketplaceScreen({ navigation }: Props) {
                   style={[styles.field, styles.fieldHalf]}
                 />
               </View>
+              {ufPickerExpanded ? (
+                <View
+                  style={[
+                    styles.ufInlinePanel,
+                    {
+                      borderColor: theme.colors.outlineVariant,
+                      backgroundColor: theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <ScrollView
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.ufInlineScroll}
+                  >
+                    {UF_MENU_ITEMS.map((item) => {
+                      const selected = draft.pickupUf === item.value;
+                      return (
+                        <Pressable
+                          key={item.value || "ANY"}
+                          onPress={() => {
+                            setDraft((d) => ({ ...d, pickupUf: item.value }));
+                            setUfPickerExpanded(false);
+                          }}
+                          style={({ pressed }) => [
+                            styles.ufInlineItem,
+                            selected && {
+                              backgroundColor: theme.colors.secondaryContainer,
+                            },
+                            pressed && { opacity: 0.85 },
+                          ]}
+                        >
+                          <Text variant="bodyMedium">{item.label}</Text>
+                          {selected ? (
+                            <Text
+                              variant="labelMedium"
+                              style={{ color: theme.colors.primary }}
+                            >
+                              ✓
+                            </Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ) : null}
               {user?.role !== "OWNER" ? (
                 <TextInput
                   label="Locador (contém)"
@@ -638,7 +704,6 @@ export function MarketplaceScreen({ navigation }: Props) {
                   mode="outlined"
                   keyboardType="number-pad"
                   style={[styles.field, styles.fieldHalf]}
-                  disabled={draft.vehicleType === "MOTORCYCLE"}
                 />
                 <TextInput
                   label="Lugares"
@@ -647,7 +712,6 @@ export function MarketplaceScreen({ navigation }: Props) {
                   mode="outlined"
                   keyboardType="number-pad"
                   style={[styles.field, styles.fieldHalf]}
-                  disabled={draft.vehicleType === "MOTORCYCLE"}
                 />
               </View>
               ) : null}
@@ -706,58 +770,6 @@ export function MarketplaceScreen({ navigation }: Props) {
               </Button>
             </View>
             <Button mode="text" onPress={() => setFilterOpen(false)}>
-              Fechar
-            </Button>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      <Modal
-        visible={ufPickerOpen}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setUfPickerOpen(false)}
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setUfPickerOpen(false)}
-        >
-          <Pressable
-            style={[
-              styles.ufSheet,
-              { backgroundColor: theme.colors.surface },
-            ]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text variant="titleMedium" style={styles.ufTitle}>
-              Selecione a UF
-            </Text>
-            <FlatList
-              data={[{ value: "", label: "Qualquer UF" }, ...UFS]}
-              keyExtractor={(i) => i.value || "ANY"}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => {
-                    setDraft((d) => ({ ...d, pickupUf: item.value }));
-                    setUfPickerOpen(false);
-                  }}
-                  style={({ pressed }) => [
-                    styles.ufItem,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                >
-                  <Text variant="bodyMedium">{item.label}</Text>
-                  {draft.pickupUf === item.value ? (
-                    <Text variant="labelMedium" style={styles.ufSelected}>
-                      Selecionado
-                    </Text>
-                  ) : null}
-                </Pressable>
-              )}
-              ItemSeparatorComponent={() => <View style={styles.ufSep} />}
-              style={{ maxHeight: 420 }}
-            />
-            <Button mode="text" onPress={() => setUfPickerOpen(false)}>
               Fechar
             </Button>
           </Pressable>
@@ -824,24 +836,24 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 28,
   },
-  ufSheet: {
-    width: "92%",
-    maxWidth: 520,
-    alignSelf: "center",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 28,
+  ufInlinePanel: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    marginBottom: 10,
+    overflow: "hidden",
   },
-  ufTitle: { marginBottom: 10 },
-  ufItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+  ufInlineScroll: {
+    maxHeight: 220,
+  },
+  ufInlineItem: {
+    paddingVertical: 11,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#e2e8f0",
   },
-  ufSelected: { opacity: 0.7 },
-  ufSep: { height: StyleSheet.hairlineWidth, backgroundColor: "#e2e8f0" },
   modalTitle: { marginBottom: 4 },
   modalSub: { opacity: 0.75, marginBottom: 12 },
   modalScroll: { maxHeight: 420 },
@@ -850,6 +862,28 @@ const styles = StyleSheet.create({
   /** Espaço após o texto introdutório quando o bloco de estrelas está oculto (proprietário). */
   rowFieldsFirst: { marginTop: 4 },
   fieldHalf: { flex: 1 },
+  ufFieldWrap: {
+    flex: 1,
+    marginBottom: 10,
+  },
+  ufFieldLabel: {
+    marginLeft: 4,
+    marginBottom: 4,
+    opacity: 0.8,
+  },
+  ufFieldButton: {
+    borderRadius: 4,
+  },
+  ufFieldButtonContent: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  ufFieldButtonLabel: {
+    flex: 1,
+    textAlign: "left",
+    marginHorizontal: 0,
+  },
   sectionLabel: { marginTop: 8, marginBottom: 6 },
   starsFilterHint: { opacity: 0.8, marginBottom: 10, lineHeight: 18 },
   ownerStarsScroll: {

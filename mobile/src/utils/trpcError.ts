@@ -164,6 +164,16 @@ function messageFromTrpcData(data: unknown): string | null {
   return null;
 }
 
+/** Solicitação duplicada — tratada na UI sem mensagem de erro. */
+export function isDuplicateRentalRequestError(err: unknown): boolean {
+  if (!(err instanceof TRPCClientError)) return false;
+  const data = err.data as { code?: string } | undefined;
+  return (
+    data?.code === "CONFLICT" ||
+    err.message.includes("Já existe solicitação ou locação ativa")
+  );
+}
+
 export function trpcErrorMessage(err: unknown, fallback = "Algo deu errado.") {
   if (err instanceof TRPCClientError) {
     const fromData = messageFromTrpcData(err.data);

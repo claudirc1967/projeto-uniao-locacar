@@ -322,10 +322,10 @@ Alterações de preço/duração **não** alteram pedidos já criados (snapshot 
 | Fase | Entrega | Depende de |
 |------|---------|------------|
 | **0** | Este documento | — |
-| **1** | `AdminHubScreen` + dois cards; mover campanhas para `AdminCampaignsScreen`; Prisma tier em `Vehicle`; sort marketplace; admin concede tier manualmente | Migration leve |
+| **1** | `AdminHubScreen` + dois cards; mover campanhas para `AdminCampaignsScreen`; Prisma tier em `Vehicle`; sort marketplace; `AdminHighlights` placeholder até fase 2 | Migration leve |
 | **2** | `HighlightPlan` + `HighlightPlatformConfig`; `AdminHighlightsScreen` (preço, duração, chave PIX); APIs admin upsert/get | Fase 1 |
 | **3** | `VehicleHighlightOrder`; fluxo locador com **chave + QR**; `AdminHighlights` confirma PIX; ativa vigência | Fase 2 |
-| **4** | Rodízio justo dentro do tier; métricas de exposição; badges no marketplace | Fase 1 |
+| **4** | Rodízio justo dentro do tier (24h); `MarketplaceExposureEvent`; badges no marketplace (ícones Paper) | Fase 1 |
 | **5** | Lembretes de expiração; comprovante opcional; relatórios admin | Fases 3–4 |
 | **6** | PSP PIX (webhook), QR dinâmico | Conta PSP, jurídico |
 

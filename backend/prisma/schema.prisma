@@ -83,6 +83,34 @@ enum VehicleType {
   MOTORCYCLE
 }
 
+enum VehicleHighlightTier {
+  NORMAL
+  BRONZE
+  PRATA
+  OURO
+}
+
+enum VehicleHighlightOrderStatus {
+  DRAFT
+  PENDING_PIX
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  REJECTED
+}
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  PHONE
+  RANDOM
+}
+
+enum MarketplaceExposurePlacement {
+  LIST
+}
+
 enum PartnerCategory {
   INSURANCE
   WORKSHOP
@@ -139,6 +167,9 @@ model User {
   reviewsFrom   RentalReview[] @relation("ReviewFrom")
   reviewsTo     RentalReview[] @relation("ReviewTo")
   createdInspections RentalInspection[] @relation("InspectionCreatedBy")
+  highlightOrdersOwned      VehicleHighlightOrder[] @relation("HighlightOrderOwner")
+  highlightOrdersConfirmed  VehicleHighlightOrder[] @relation("HighlightOrderConfirmedBy")
+  marketplaceExposureEvents MarketplaceExposureEvent[] @relation("MarketplaceExposureViewer")
 }
 
 model Partner {
@@ -264,12 +295,73 @@ model Vehicle {
   pickupBairro      String?
   pickupSameAsOwner Boolean  @default(false)
 
+  highlightTier       VehicleHighlightTier @default(NORMAL)
+  highlightExpiresAt  DateTime?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   photos  VehiclePhoto[]
   rentals Rental[]
   vehicleDriverBlocks VehicleDriverBlock[]
+  highlightOrders     VehicleHighlightOrder[]
+  marketplaceExposureEvents MarketplaceExposureEvent[]
+}
+
+model MarketplaceExposureEvent {
+  id           String                       @id @default(cuid())
+  eventId      String                       @unique
+  vehicleId    String
+  vehicle      Vehicle                      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  viewerUserId String?
+  viewer       User?                        @relation("MarketplaceExposureViewer", fields: [viewerUserId], references: [id], onDelete: SetNull)
+  placement    MarketplaceExposurePlacement @default(LIST)
+  createdAt    DateTime                     @default(now())
+
+  @@index([vehicleId, createdAt])
+}
+
+model HighlightPlan {
+  id           String               @id @default(cuid())
+  tier         VehicleHighlightTier @unique
+  priceCents   Int                  @default(0)
+  durationDays Int                  @default(30)
+  active       Boolean              @default(false)
+  description  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+}
+
+model HighlightPlatformConfig {
+  id           String     @id @default("default")
+  pixKey       String     @default("")
+  pixKeyType   PixKeyType @default(RANDOM)
+  receiverName String     @default("")
+  updatedAt    DateTime   @updatedAt
+}
+
+model VehicleHighlightOrder {
+  id                   String                      @id @default(cuid())
+  vehicleId            String
+  vehicle              Vehicle                     @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  ownerUserId          String
+  owner                User                        @relation("HighlightOrderOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  tier                 VehicleHighlightTier
+  status               VehicleHighlightOrderStatus @default(PENDING_PIX)
+  amountCents          Int
+  durationDaysSnapshot Int
+  orderReference       String                      @unique
+  paidAt               DateTime?
+  confirmedByUserId    String?
+  confirmedBy          User?                       @relation("HighlightOrderConfirmedBy", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+  startsAt             DateTime?
+  endsAt               DateTime?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  @@index([status])
+  @@index([ownerUserId])
+  @@index([vehicleId])
 }
 
 model VehicleDriverBlock {

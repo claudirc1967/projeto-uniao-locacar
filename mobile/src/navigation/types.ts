@@ -14,6 +14,7 @@ export type RootStackParamList = {
   OwnerProfileEdit: undefined;
   OwnerContractTemplate: undefined;
   OwnerVehicles: undefined;
+  VehicleHighlight: { vehicleId: string };
   OwnerPartners: undefined;
   VehicleForm: { vehicleId?: string };
   VehiclePhotos: { vehicleId: string };
@@ -37,6 +38,8 @@ export type RootStackParamList = {
     displayName?: string | null;
   };
   RentalDetail: { rentalId: string };
-  AdminHome: undefined;
+  AdminHub: undefined;
+  AdminCampaigns: undefined;
+  AdminHighlights: undefined;
   AdminCampaignForm: { campaignId?: string };
 };

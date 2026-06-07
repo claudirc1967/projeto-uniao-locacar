@@ -7,6 +7,7 @@ import { ownerRouter } from "./routers/owner.js";
 import { rentalInspectionRouter } from "./routers/rentalInspection.js";
 import { rentalReviewRouter } from "./routers/rentalReview.js";
 import { adsRouter } from "./routers/ads.js";
+import { highlightsRouter } from "./routers/highlights.js";
 
 export const appRouter = router({
   auth: authRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   rentalInspection: rentalInspectionRouter,
   rentalReview: rentalReviewRouter,
   ads: adsRouter,
+  highlights: highlightsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -21,6 +21,7 @@ import { OwnerProfileEditScreen } from "../screens/owner/OwnerProfileEditScreen"
 import { OwnerRentalsScreen } from "../screens/owner/OwnerRentalsScreen";
 import { OwnerRentalDetailScreen } from "../screens/owner/OwnerRentalDetailScreen";
 import { OwnerVehiclesScreen } from "../screens/owner/OwnerVehiclesScreen";
+import { VehicleHighlightScreen } from "../screens/owner/VehicleHighlightScreen";
 import { OwnerPartnersScreen } from "../screens/owner/OwnerPartnersScreen";
 import { RentalContractEditScreen } from "../screens/owner/RentalContractEditScreen";
 import { RentalInspectionFormScreen } from "../screens/owner/RentalInspectionFormScreen";
@@ -35,7 +36,9 @@ import { PrivacyPolicyScreen } from "../screens/legal/PrivacyPolicyScreen";
 import { TermsAcceptanceScreen } from "../screens/legal/TermsAcceptanceScreen";
 import { TermsOfUseScreen } from "../screens/legal/TermsOfUseScreen";
 import { UserReviewsScreen } from "../screens/reviews/UserReviewsScreen";
-import { AdminHomeScreen } from "../screens/admin/AdminHomeScreen";
+import { AdminHubScreen } from "../screens/admin/AdminHubScreen";
+import { AdminCampaignsScreen } from "../screens/admin/AdminCampaignsScreen";
+import { AdminHighlightsScreen } from "../screens/admin/AdminHighlightsScreen";
 import { AdminCampaignFormScreen } from "../screens/admin/AdminCampaignFormScreen";
 import type { RootStackParamList } from "./types";
 
@@ -60,7 +63,7 @@ export function RootNavigator() {
   const initialRouteName = !authed
     ? "Login"
     : user!.role === "ADMIN"
-      ? "AdminHome"
+      ? "AdminHub"
       : needsPrivacy
         ? "PrivacyAcceptance"
         : needsTerms
@@ -134,6 +137,11 @@ export function RootNavigator() {
         />
         <Stack.Screen name="OwnerVehicles" component={OwnerVehiclesScreen} options={{ title: "Veículos" }}  />
         <Stack.Screen
+          name="VehicleHighlight"
+          component={VehicleHighlightScreen}
+          options={{ title: "Destaque" }}
+        />
+        <Stack.Screen
           name="OwnerPartners"
           component={OwnerPartnersScreen}
           options={{ title: "Parceiros" }}
@@ -183,7 +191,17 @@ export function RootNavigator() {
           options={({ route }) => ({ title: route.params.title })}
         />
         <Stack.Screen name="RentalDetail" component={RentalDetailScreen} options={{ title: "Detalhes da locação" }} />
-        <Stack.Screen name="AdminHome" component={AdminHomeScreen} options={{ title: "Admin — Anúncios" }} />
+        <Stack.Screen name="AdminHub" component={AdminHubScreen} options={{ title: "Admin" }} />
+        <Stack.Screen
+          name="AdminCampaigns"
+          component={AdminCampaignsScreen}
+          options={{ title: "Anúncios — Campanhas" }}
+        />
+        <Stack.Screen
+          name="AdminHighlights"
+          component={AdminHighlightsScreen}
+          options={{ title: "Destaques" }}
+        />
         <Stack.Screen
           name="AdminCampaignForm"
           component={AdminCampaignFormScreen}

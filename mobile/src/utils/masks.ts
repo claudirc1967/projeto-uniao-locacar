@@ -177,3 +177,9 @@ export function moneyInputFromCents(cents: number | null | undefined) {
   if (cents == null) return "";
   return maskMoneyInput(String(Math.max(0, Math.round(cents))));
 }
+
+export function parseMoneyInputToCents(raw: string): number {
+  const digits = onlyDigits(raw);
+  if (!digits) return 0;
+  return parseInt(digits, 10);
+}

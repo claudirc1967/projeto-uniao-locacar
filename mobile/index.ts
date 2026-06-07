@@ -7,6 +7,7 @@ import App from "./App";
 LogBox.ignoreLogs([
   "TRPCClientError: E-mail ou senha inválidos",
   'TRPCClientError: No "query"-procedure on path "ads.decision"',
+  "TRPCClientError: Já existe solicitação ou locação ativa para este veículo",
 ]);
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

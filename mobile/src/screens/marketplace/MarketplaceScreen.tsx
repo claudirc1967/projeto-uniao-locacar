@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type ViewToken,
 } from "react-native";
 import {
   Button,
@@ -21,12 +22,15 @@ import {
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AdSlot } from "../../components/ads/AdSlot";
+import { HighlightTierBadge } from "../../components/HighlightTierBadge";
 import { AD_PLACEMENTS, MARKETPLACE_AD_EVERY_N } from "../../constants/adPlacements";
+import type { VehicleHighlightTier } from "../../constants/highlightTier";
 import type { VehicleType } from "../../constants/vehicleType";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
 import { formatVehicleMetaLine } from "../../utils/vehicleDisplay";
+import { createAdEventId } from "../../utils/adEventId";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -286,15 +290,48 @@ export function MarketplaceScreen({ navigation }: Props) {
     if (!filterOpen) setUfPickerExpanded(false);
   }, [filterOpen]);
 
+  const rotationSeed = useMemo(() => {
+    if (!user?.id) return 0;
+    let h = 0;
+    for (let i = 0; i < user.id.length; i++) {
+      h = (h + user.id.charCodeAt(i)) % 9973;
+    }
+    return h % 9999;
+  }, [user?.id]);
+
   const queryFilters = useMemo(() => {
+    const base = { ...applied, rotationSeed };
     if (user?.role === "OWNER") {
-      const { ownerMinAverageStars: _stars, ...rest } = applied;
+      const { ownerMinAverageStars: _stars, ...rest } = base;
       return { ...rest, ownerUserId: user.id };
     }
-    return applied;
-  }, [applied, user]);
+    return base;
+  }, [applied, rotationSeed, user]);
 
   const q = trpc.marketplace.listAvailableVehicles.useQuery(queryFilters);
+
+  const impressedIds = useRef(new Set<string>());
+  const trackListImpression = trpc.marketplace.trackListImpression.useMutation();
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 55 }).current;
+
+  useEffect(() => {
+    impressedIds.current.clear();
+  }, [queryFilters]);
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      for (const token of viewableItems) {
+        if (!token.isViewable || token.item == null) continue;
+        const row = token.item as { id?: string };
+        if (!row.id || impressedIds.current.has(row.id)) continue;
+        impressedIds.current.add(row.id);
+        trackListImpression.mutate({
+          eventId: createAdEventId(),
+          vehicleId: row.id,
+        });
+      }
+    }
+  ).current;
 
   const activeCount = useMemo(() => {
     const a = { ...applied };
@@ -369,6 +406,8 @@ export function MarketplaceScreen({ navigation }: Props) {
             styles.list,
             { paddingBottom: 8 + insets.bottom },
           ]}
+          viewabilityConfig={viewabilityConfig}
+          onViewableItemsChanged={onViewableItemsChanged}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
             <View style={styles.headerRow}>
@@ -414,7 +453,17 @@ export function MarketplaceScreen({ navigation }: Props) {
                     </Text>
                   </View>
                 )}
-                <View style={styles.body}>
+                <View
+                  style={[
+                    styles.body,
+                    (item as { effectiveHighlightTier?: VehicleHighlightTier })
+                      .effectiveHighlightTier &&
+                    (item as { effectiveHighlightTier: VehicleHighlightTier })
+                      .effectiveHighlightTier !== "NORMAL"
+                      ? styles.bodyWithBadge
+                      : null,
+                  ]}
+                >
                   <Text variant="titleMedium">{item.title}</Text>
                   <Text variant="bodySmall" style={styles.meta}>
                     {formatMoneyWithContractPeriod(
@@ -465,6 +514,20 @@ export function MarketplaceScreen({ navigation }: Props) {
                   ) : null}
                 </View>
               </View>
+                {(item as { effectiveHighlightTier?: VehicleHighlightTier })
+                  .effectiveHighlightTier &&
+                (item as { effectiveHighlightTier: VehicleHighlightTier })
+                  .effectiveHighlightTier !== "NORMAL" ? (
+                  <View style={styles.tierBadgePos} pointerEvents="none">
+                    <HighlightTierBadge
+                      tier={
+                        (item as { effectiveHighlightTier: VehicleHighlightTier })
+                          .effectiveHighlightTier
+                      }
+                      compact
+                    />
+                  </View>
+                ) : null}
               </View>
             </Card>
           </Pressable>
@@ -794,9 +857,11 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1 },
   filterHint: { marginTop: 4, opacity: 0.75 },
   card: { marginBottom: 12, borderRadius: 16 },
-  cardClip: { borderRadius: 16, overflow: "hidden" },
+  cardClip: { borderRadius: 16, overflow: "hidden", position: "relative" },
   row: { flexDirection: "row" },
   cover: { width: 110, height: 110, backgroundColor: "#f1f5f9" },
+  tierBadgePos: { position: "absolute", top: 8, right: 8, zIndex: 1 },
+  bodyWithBadge: { paddingRight: 36 },
   ph: { justifyContent: "center", alignItems: "center" },
   phT: { color: "#94a3b8" },
   body: { flex: 1, padding: 12, justifyContent: "center" },

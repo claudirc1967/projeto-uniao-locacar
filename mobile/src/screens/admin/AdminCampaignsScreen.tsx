@@ -21,7 +21,7 @@ import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
-type Props = NativeStackScreenProps<RootStackParamList, "AdminHome">;
+type Props = NativeStackScreenProps<RootStackParamList, "AdminCampaigns">;
 
 function statusChipColor(status: AdCampaignStatus, theme: ReturnType<typeof useTheme>) {
   switch (status) {
@@ -34,10 +34,10 @@ function statusChipColor(status: AdCampaignStatus, theme: ReturnType<typeof useT
   }
 }
 
-export function AdminHomeScreen({ navigation }: Props) {
+export function AdminCampaignsScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const utils = trpc.useUtils();
 
   const listQ = trpc.ads.admin.list.useQuery(undefined, {
@@ -97,10 +97,7 @@ export function AdminHomeScreen({ navigation }: Props) {
       <FlatList
         data={campaigns}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.list,
-          { paddingBottom: 72 + insets.bottom },
-        ]}
+        contentContainerStyle={[styles.list, { paddingBottom: 8 + insets.bottom }]}
         refreshControl={
           <RefreshControl refreshing={listQ.isFetching} onRefresh={onRefresh} />
         }
@@ -110,7 +107,7 @@ export function AdminHomeScreen({ navigation }: Props) {
               Campanhas
             </Text>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              Inventário house ads — {user?.email}
+              Inventário house ads
             </Text>
             <Button
               mode="contained"
@@ -186,25 +183,9 @@ export function AdminHomeScreen({ navigation }: Props) {
           </Card>
         )}
       />
-
-      <View
-        style={[
-          styles.footerBar,
-          {
-            paddingBottom: insets.bottom,
-            borderTopColor: theme.colors.outlineVariant,
-            backgroundColor: theme.colors.surface,
-          },
-        ]}
-      >
-        <Button
-          mode="contained"
-          buttonColor={theme.colors.error}
-          textColor={theme.colors.onError}
-          icon="logout"
-          onPress={() => void logout()}
-        >
-          Sair
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
         </Button>
       </View>
     </View>
@@ -227,13 +208,5 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   chip: { alignSelf: "flex-start" },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
-  footerBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

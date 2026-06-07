@@ -22,7 +22,10 @@ import {
   formatVehicleCapacityLine,
 } from "../../utils/vehicleDisplay";
 import { vehicleTypeLabel } from "../../constants/vehicleType";
-import { trpcErrorMessage } from "../../utils/trpcError";
+import {
+  isDuplicateRentalRequestError,
+  trpcErrorMessage,
+} from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import {
   buildVehiclePickupSearchQuery,
@@ -84,8 +87,11 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
       await utils.driver.myRentals.invalidate();
       navigation.navigate("DriverRentals");
     },
-    onError: () => {
-      /* shown below */
+    onError: async (err) => {
+      if (isDuplicateRentalRequestError(err)) {
+        await utils.driver.myRentals.invalidate();
+        navigation.navigate("DriverRentals");
+      }
     },
   });
 
@@ -217,7 +223,8 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
             Caução: {v.caucao.trim()}
           </Text>
         ) : null}
-        {request.isError ? (
+        {request.isError &&
+        !isDuplicateRentalRequestError(request.error) ? (
           <Text style={{ color: theme.colors.error, marginVertical: 8 }}>
             {trpcErrorMessage(request.error)}
           </Text>

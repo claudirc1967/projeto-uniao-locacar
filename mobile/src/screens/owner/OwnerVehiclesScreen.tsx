@@ -10,8 +10,14 @@ import {
 import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
+import { HighlightPromoBanner } from "../../components/HighlightPromoBanner";
+import {
+  effectiveHighlightTier,
+  highlightTierLabel,
+} from "../../constants/highlightTier";
 import {
   type ContractTime,
+  formatDateDisplay,
   formatMoneyWithContractPeriod,
 } from "../../utils/masks";
 import { vehicleTypeLabel } from "../../constants/vehicleType";
@@ -24,6 +30,13 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const q = trpc.owner.listMyVehicles.useQuery();
+  const ordersQ = trpc.highlights.owner.listMyOrders.useQuery();
+
+  const pendingByVehicle = new Map(
+    (ordersQ.data ?? [])
+      .filter((o) => o.status === "PENDING_PIX")
+      .map((o) => [o.vehicle.id, o])
+  );
 
   if (q.isLoading) {
     return (
@@ -68,45 +81,69 @@ export function OwnerVehiclesScreen({ navigation }: Props) {
         }
         renderItem={({ item }) => {
           const thumb = item.photos[0]?.photoUrl;
+          const effectiveTier = effectiveHighlightTier({
+            highlightTier: item.highlightTier,
+            highlightExpiresAt: item.highlightExpiresAt,
+          });
+          const pending = pendingByVehicle.get(item.id);
+          const activeLabel =
+            effectiveTier !== "NORMAL" && item.highlightExpiresAt
+              ? `${highlightTierLabel(effectiveTier)} até ${formatDateDisplay(item.highlightExpiresAt)}`
+              : effectiveTier !== "NORMAL"
+                ? highlightTierLabel(effectiveTier)
+                : null;
+          const pendingLabel = pending
+            ? `Pedido ${pending.orderReference} — ${highlightTierLabel(pending.tier as typeof effectiveTier)}`
+            : null;
+
           return (
-            <Pressable
-              onPress={() =>
-                navigation.navigate("VehicleForm", { vehicleId: item.id })
-              }
-            >
-              <Card mode="elevated" style={styles.card}>
-                <View style={styles.cardClip}>
-                <View style={styles.cardRow}>
-                  {thumb ? (
-                    <Image source={{ uri: thumb }} style={styles.thumb} />
-                  ) : (
-                    <View style={[styles.thumb, styles.thumbPh]}>
-                      <Text variant="labelSmall" style={styles.thumbPhT}>
-                        Sem foto
+            <Card mode="elevated" style={styles.card}>
+              <View style={styles.cardClip}>
+                <Pressable
+                  onPress={() =>
+                    navigation.navigate("VehicleForm", { vehicleId: item.id })
+                  }
+                >
+                  <View style={styles.cardRow}>
+                    {thumb ? (
+                      <Image source={{ uri: thumb }} style={styles.thumb} />
+                    ) : (
+                      <View style={[styles.thumb, styles.thumbPh]}>
+                        <Text variant="labelSmall" style={styles.thumbPhT}>
+                          Sem foto
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.cardBody}>
+                      <Text variant="titleMedium">{item.title}</Text>
+                      <Text variant="bodySmall" style={styles.meta}>
+                        {item.plate} ·{" "}
+                        {formatMoneyWithContractPeriod(
+                          item.dailyRateCents,
+                          (item as { contractTime?: ContractTime }).contractTime
+                        )}
+                      </Text>
+                      <Text variant="bodySmall" style={styles.meta}>
+                        {vehicleTypeLabel(
+                          (item as { vehicleType?: "CAR" | "MOTORCYCLE" })
+                            .vehicleType
+                        )}{" "}
+                        · {item.available ? "Disponível" : "Indisponível"}
                       </Text>
                     </View>
-                  )}
-                  <View style={styles.cardBody}>
-                    <Text variant="titleMedium">{item.title}</Text>
-                    <Text variant="bodySmall" style={styles.meta}>
-                      {item.plate} ·{" "}
-                      {formatMoneyWithContractPeriod(
-                        item.dailyRateCents,
-                        (item as { contractTime?: ContractTime }).contractTime
-                      )}
-                    </Text>
-                    <Text variant="bodySmall" style={styles.meta}>
-                      {vehicleTypeLabel(
-                        (item as { vehicleType?: "CAR" | "MOTORCYCLE" })
-                          .vehicleType
-                      )}{" "}
-                      · {item.available ? "Disponível" : "Indisponível"}
-                    </Text>
                   </View>
-                </View>
-                </View>
-              </Card>
-            </Pressable>
+                </Pressable>
+                <HighlightPromoBanner
+                  onPress={() =>
+                    navigation.navigate("VehicleHighlight", {
+                      vehicleId: item.id,
+                    })
+                  }
+                  activeTierLabel={pendingLabel ? null : activeLabel}
+                  pendingLabel={pendingLabel}
+                />
+              </View>
+            </Card>
           );
         }}
       />

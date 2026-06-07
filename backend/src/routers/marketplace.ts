@@ -4,6 +4,11 @@ import type { Prisma } from "@prisma/client";
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
+import { loadVehicleExposureCounts } from "../highlights/exposure.js";
+import {
+  effectiveHighlightTier,
+  sortVehiclesForMarketplace,
+} from "../highlights/tier.js";
 import { presignGetRead } from "../storage/s3.js";
 import { protectedProcedure, router } from "../trpc.js";
 import { vehicleTypeSchema } from "../vehicleCapacity.js";
@@ -26,6 +31,8 @@ const listFiltersSchema = z.object({
   priceMaxCents: z.number().int().min(0).optional(),
   /** Média mínima do locador (avaliações recebidas de locatários). Exige ao menos 1 avaliação. */
   ownerMinAverageStars: z.number().int().min(1).max(5).optional(),
+  /** Desloca rodízio dentro do mesmo tier de destaque (fase 4). */
+  rotationSeed: z.number().int().min(0).max(9999).optional(),
 });
 
 function tagsFromJson(json: unknown): string[] {
@@ -154,9 +161,8 @@ export const marketplaceRouter = router({
       }
 
       const where = buildVehicleWhere(f);
-      const list = await prisma.vehicle.findMany({
+      const rawList = await prisma.vehicle.findMany({
         where,
-        orderBy: { updatedAt: "desc" },
         include: {
           photos: { orderBy: { sortOrder: "asc" }, take: 1 },
           owner: {
@@ -176,6 +182,12 @@ export const marketplaceRouter = router({
             },
           },
         },
+      });
+      const vehicleIds = rawList.map((v) => v.id);
+      const exposureCounts = await loadVehicleExposureCounts(vehicleIds);
+      const list = sortVehiclesForMarketplace(rawList, {
+        exposureCounts,
+        rotationSeed: f.rotationSeed ?? 0,
       });
       try {
         return await Promise.all(
@@ -217,6 +229,7 @@ export const marketplaceRouter = router({
               ownerRatingCount: v.owner.ownerProfile?.ratingCount ?? 0,
               coverPhotoUrl: coverUrl,
               driverRequestBlocked,
+              effectiveHighlightTier: effectiveHighlightTier(v),
             };
           })
         );
@@ -227,6 +240,46 @@ export const marketplaceRouter = router({
           message: msg,
         });
       }
+    }),
+
+  trackListImpression: protectedProcedure
+    .input(
+      z.object({
+        eventId: z.string().min(8).max(64),
+        vehicleId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = (ctx as AuthedContext).user.id;
+
+      const existing = await prisma.marketplaceExposureEvent.findUnique({
+        where: { eventId: input.eventId },
+      });
+      if (existing) {
+        return { ok: true as const, duplicate: true as const };
+      }
+
+      const vehicle = await prisma.vehicle.findFirst({
+        where: { id: input.vehicleId, available: true },
+        select: { id: true },
+      });
+      if (!vehicle) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Veículo não encontrado",
+        });
+      }
+
+      await prisma.marketplaceExposureEvent.create({
+        data: {
+          eventId: input.eventId,
+          vehicleId: input.vehicleId,
+          viewerUserId: userId,
+          placement: "LIST",
+        },
+      });
+
+      return { ok: true as const, duplicate: false as const };
     }),
 
   getVehiclePublic: protectedProcedure

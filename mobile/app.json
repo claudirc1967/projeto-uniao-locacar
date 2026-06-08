@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#003366"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -37,7 +32,15 @@
           "photosPermission": "Permitir acesso às fotos para cadastrar imagens do veículo."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#003366"
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -61,6 +61,18 @@ if (!plugins.some((plugin) => plugin === "expo-secure-store")) {
   plugins.push("expo-secure-store");
 }
 
+// Embute a fonte de ícones do react-native-paper (@expo/vector-icons usa o
+// MaterialCommunityIcons) diretamente no build nativo. Em builds standalone (EAS)
+// os ícones não renderizam se a fonte não estiver registrada nativamente.
+//
+// IMPORTANTE: o lado nativo (expo-font) reconhece a família de fonte pelo NOME DO
+// ARQUIVO em assets/fonts. O @expo/vector-icons procura a família "material-community"
+// (ver createIconSet), por isso o arquivo precisa se chamar "material-community.ttf".
+const materialCommunityIconsFont = "./assets/fonts/material-community.ttf";
+if (!plugins.some((plugin) => Array.isArray(plugin) && plugin[0] === "expo-font")) {
+  plugins.push(["expo-font", { fonts: [materialCommunityIconsFont] }]);
+}
+
 module.exports = {
   expo: {
     ...appJson.expo,

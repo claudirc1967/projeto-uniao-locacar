@@ -1,7 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { AuthedContext } from "../context.js";
-import { PAID_HIGHLIGHT_TIERS } from "../highlights/constants.js";
+import {
+  HIGHLIGHT_EXPIRY_REMINDER_DAYS,
+  PAID_HIGHLIGHT_TIERS,
+} from "../highlights/constants.js";
+import {
+  reminderWindowEnd,
+  runHighlightExpirationSweep,
+} from "../highlights/expiration.js";
 import { computeHighlightEndsAt, serializePlan } from "../highlights/orders.js";
 import { effectiveHighlightTier } from "../highlights/tier.js";
 import { prisma } from "../db.js";
@@ -223,6 +230,70 @@ export const highlightsAdminRouter = router({
 
       return { ok: true as const };
     }),
+
+  getReport: adminProcedure.query(async () => {
+    const now = new Date();
+    const windowEnd = reminderWindowEnd(now);
+
+    const [activeByTier, expiringSoon, ordersByStatus, paidAgg] =
+      await Promise.all([
+        prisma.vehicle.groupBy({
+          by: ["highlightTier"],
+          where: {
+            highlightTier: { not: "NORMAL" },
+            highlightExpiresAt: { gt: now },
+          },
+          _count: { _all: true },
+        }),
+        prisma.vehicleHighlightOrder.count({
+          where: {
+            status: "ACTIVE",
+            endsAt: { gt: now, lte: windowEnd },
+          },
+        }),
+        prisma.vehicleHighlightOrder.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+        }),
+        prisma.vehicleHighlightOrder.aggregate({
+          where: { paidAt: { not: null } },
+          _sum: { amountCents: true },
+          _count: { _all: true },
+        }),
+      ]);
+
+    const activeCountByTier: Record<string, number> = {
+      BRONZE: 0,
+      PRATA: 0,
+      OURO: 0,
+    };
+    for (const row of activeByTier) {
+      activeCountByTier[row.highlightTier] = row._count._all;
+    }
+
+    const ordersCountByStatus: Record<string, number> = {};
+    for (const row of ordersByStatus) {
+      ordersCountByStatus[row.status] = row._count._all;
+    }
+
+    return {
+      reminderWindowDays: HIGHLIGHT_EXPIRY_REMINDER_DAYS,
+      activeCountByTier,
+      activeTotal:
+        activeCountByTier.BRONZE +
+        activeCountByTier.PRATA +
+        activeCountByTier.OURO,
+      expiringSoon,
+      pendingCount: ordersCountByStatus.PENDING_PIX ?? 0,
+      ordersCountByStatus,
+      paidOrdersCount: paidAgg._count._all,
+      paidRevenueCents: paidAgg._sum.amountCents ?? 0,
+    };
+  }),
+
+  runExpirationSweep: adminProcedure.mutation(async () => {
+    return runHighlightExpirationSweep();
+  }),
 
   /** Cortesia operacional — não exposto na UI principal. */
   setVehicleTier: adminProcedure

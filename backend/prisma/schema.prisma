@@ -356,12 +356,15 @@ model VehicleHighlightOrder {
   confirmedBy          User?                       @relation("HighlightOrderConfirmedBy", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
   startsAt             DateTime?
   endsAt               DateTime?
+  /** Quando o lembrete de expiração foi enviado ao locador (evita reenvio). */
+  expiryReminderSentAt DateTime?
   createdAt            DateTime                    @default(now())
   updatedAt            DateTime                    @updatedAt
 
   @@index([status])
   @@index([ownerUserId])
   @@index([vehicleId])
+  @@index([status, endsAt])
 }
 
 model VehicleDriverBlock {

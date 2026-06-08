@@ -7,7 +7,6 @@ import {
   View,
 } from "react-native";
 import * as Clipboard from "expo-clipboard";
-import QRCode from "react-native-qrcode-svg";
 import {
   Button,
   Card,
@@ -19,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
+  effectiveHighlightTier,
   highlightTierLabel,
   type VehicleHighlightTier,
 } from "../../constants/highlightTier";
@@ -31,7 +31,9 @@ import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VehicleHighlight">;
 
-const TIER_ORDER: VehicleHighlightTier[] = ["OURO", "PRATA", "BRONZE"];
+type PaidTier = Exclude<VehicleHighlightTier, "NORMAL">;
+
+const TIER_ORDER: PaidTier[] = ["OURO", "PRATA", "BRONZE"];
 
 export function VehicleHighlightScreen({ route, navigation }: Props) {
   const { vehicleId } = route.params;
@@ -39,9 +41,7 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const utils = trpc.useUtils();
   const [snack, setSnack] = useState<string | null>(null);
-  const [selectedTier, setSelectedTier] = useState<VehicleHighlightTier | null>(
-    null
-  );
+  const [selectedTier, setSelectedTier] = useState<PaidTier | null>(null);
 
   const vehicleQ = trpc.owner.getMyVehicle.useQuery({ vehicleId });
   const plansQ = trpc.highlights.owner.getPlans.useQuery();
@@ -70,7 +70,7 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
     ).filter(Boolean) as NonNullable<(typeof plans)[number]>[];
   }, [plansQ.data]);
 
-  const onSelectTier = useCallback((tier: VehicleHighlightTier) => {
+  const onSelectTier = useCallback((tier: PaidTier) => {
     setSelectedTier(tier);
   }, []);
 
@@ -114,6 +114,7 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
   }
 
   const vehicle = vehicleQ.data;
+  const currentTier = effectiveHighlightTier(vehicle);
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
@@ -173,13 +174,9 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
                 </Button>
               </View>
 
-              <View style={styles.qrWrap}>
-                <QRCode value={payment.qrPayload} size={180} />
-              </View>
-
               <Text variant="bodySmall" style={[styles.muted, styles.qrHint]}>
-                Escaneie o QR no app do banco ou use a chave PIX acima. Informe o
-                código do pedido na descrição, se possível.
+                Use a chave PIX acima no app do banco. Informe o código do
+                pedido na descrição, se possível.
               </Text>
             </Card.Content>
           </Card>
@@ -205,7 +202,7 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
                   styles.planCard,
                   selectedTier === plan.tier && styles.planSelected,
                 ]}
-                onPress={() => onSelectTier(plan.tier as VehicleHighlightTier)}
+                onPress={() => onSelectTier(plan.tier as PaidTier)}
               >
                 <Card.Content style={styles.planRow}>
                   <View style={styles.planText}>
@@ -252,11 +249,11 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
           </>
         )}
 
-        {vehicle.highlightTier !== "NORMAL" && vehicle.highlightExpiresAt ? (
+        {currentTier !== "NORMAL" && vehicle.highlightExpiresAt ? (
           <Card mode="outlined" style={styles.card}>
             <Card.Content>
               <Text variant="bodySmall" style={styles.muted}>
-                Destaque atual: {highlightTierLabel(vehicle.highlightTier)} até{" "}
+                Destaque atual: {highlightTierLabel(currentTier)} até{" "}
                 {formatDateDisplay(vehicle.highlightExpiresAt)}
               </Text>
             </Card.Content>
@@ -297,6 +294,5 @@ const styles = StyleSheet.create({
   },
   bold: { fontWeight: "600" },
   pixKey: { flex: 1 },
-  qrWrap: { alignItems: "center", marginVertical: 12 },
   qrHint: { textAlign: "center" },
 });

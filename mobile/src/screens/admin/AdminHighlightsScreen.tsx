@@ -72,6 +72,9 @@ export function AdminHighlightsScreen({ navigation }: Props) {
     { status: "PENDING_PIX" },
     { enabled: user?.role === "ADMIN" }
   );
+  const reportQ = trpc.highlights.admin.getReport.useQuery(undefined, {
+    enabled: user?.role === "ADMIN",
+  });
 
   const [planDrafts, setPlanDrafts] = useState<Record<string, PlanDraft>>({});
   const [pixKey, setPixKey] = useState("");
@@ -126,11 +129,18 @@ export function AdminHighlightsScreen({ navigation }: Props) {
     },
   });
 
+  const sweepM = trpc.highlights.admin.runExpirationSweep.useMutation({
+    onSuccess: async () => {
+      await Promise.all([reportQ.refetch(), ordersQ.refetch()]);
+    },
+  });
+
   const onRefresh = useCallback(() => {
     void plansQ.refetch();
     void pixQ.refetch();
     void ordersQ.refetch();
-  }, [plansQ, pixQ, ordersQ]);
+    void reportQ.refetch();
+  }, [plansQ, pixQ, ordersQ, reportQ]);
 
   const savePlan = (tier: VehicleHighlightTier) => {
     const draft = planDrafts[tier] ?? emptyPlanDraft();
@@ -197,6 +207,80 @@ export function AdminHighlightsScreen({ navigation }: Props) {
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
         Configure planos, PIX e confirme pagamentos dos locadores.
       </Text>
+
+      <Text variant="titleMedium" style={styles.section}>
+        Visão geral
+      </Text>
+      <Card mode="elevated" style={styles.card}>
+        <Card.Content style={styles.cardGap}>
+          {reportQ.data ? (
+            <>
+              <View style={styles.metricsRow}>
+                <View style={styles.metric}>
+                  <Text variant="headlineSmall" style={styles.metricValue}>
+                    {reportQ.data.activeTotal}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.muted}>
+                    Destaques ativos
+                  </Text>
+                </View>
+                <View style={styles.metric}>
+                  <Text variant="headlineSmall" style={styles.metricValue}>
+                    {reportQ.data.expiringSoon}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.muted}>
+                    Expiram em {reportQ.data.reminderWindowDays}d
+                  </Text>
+                </View>
+                <View style={styles.metric}>
+                  <Text variant="headlineSmall" style={styles.metricValue}>
+                    {reportQ.data.pendingCount}
+                  </Text>
+                  <Text variant="bodySmall" style={styles.muted}>
+                    Aguardando PIX
+                  </Text>
+                </View>
+              </View>
+              <Text variant="bodySmall" style={styles.muted}>
+                Ativos por tier: Bronze {reportQ.data.activeCountByTier.BRONZE} ·
+                Prata {reportQ.data.activeCountByTier.PRATA} · Ouro{" "}
+                {reportQ.data.activeCountByTier.OURO}
+              </Text>
+              <Text variant="bodySmall" style={styles.muted}>
+                Receita confirmada:{" "}
+                {formatMoneyFromCents(reportQ.data.paidRevenueCents)} (
+                {reportQ.data.paidOrdersCount} pedidos)
+              </Text>
+            </>
+          ) : (
+            <Text variant="bodySmall" style={styles.muted}>
+              Carregando indicadores...
+            </Text>
+          )}
+          <Button
+            mode="outlined"
+            icon="update"
+            onPress={() => sweepM.mutate()}
+            loading={sweepM.isPending}
+          >
+            Processar expirações agora
+          </Button>
+          {sweepM.data ? (
+            <Text variant="bodySmall" style={styles.muted}>
+              Concluído: {sweepM.data.expiredOrders} pedidos expirados,{" "}
+              {sweepM.data.downgradedVehicles} veículos rebaixados,{" "}
+              {sweepM.data.remindersSent} lembretes enviados.
+            </Text>
+          ) : null}
+          {sweepM.isError ? (
+            <Text style={{ color: theme.colors.error }}>
+              {trpcErrorMessage(sweepM.error)}
+            </Text>
+          ) : null}
+        </Card.Content>
+      </Card>
+
+      <Divider style={styles.divider} />
 
       <Text variant="titleMedium" style={styles.section}>
         Planos
@@ -399,6 +483,9 @@ const styles = StyleSheet.create({
   typeBtn: { marginBottom: 4 },
   divider: { marginVertical: 8 },
   muted: { opacity: 0.85 },
+  metricsRow: { flexDirection: "row", gap: 8 },
+  metric: { flex: 1, alignItems: "center", gap: 2 },
+  metricValue: { fontWeight: "700" },
   empty: { opacity: 0.8, textAlign: "center", marginTop: 8 },
   orderActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   footer: { paddingHorizontal: 16, paddingTop: 8 },

@@ -219,6 +219,35 @@ export function rentalRejectedEmail(input: {
   };
 }
 
+export function highlightExpiringEmail(input: {
+  owner: Pick<PersonEmailData, "name">;
+  vehicle: VehicleEmailData;
+  tierLabel: string;
+  expiresAt: Date;
+  daysLeft: number;
+}): EmailTemplate {
+  const expiresLabel = input.expiresAt.toLocaleDateString("pt-BR");
+  const prazo =
+    input.daysLeft <= 0
+      ? "hoje"
+      : input.daysLeft === 1
+        ? "amanhã"
+        : `em ${input.daysLeft} dias`;
+  return {
+    subject: `Seu destaque ${input.tierLabel} expira ${prazo}`,
+    text: [
+      `Olá, ${valueOrDash(input.owner.name)}`,
+      "",
+      `O destaque ${input.tierLabel} do veículo ${vehicleBrandModelWithPlate(input.vehicle)} expira ${prazo} (${expiresLabel}).`,
+      "",
+      "Quando o destaque expirar, o veículo volta a aparecer na posição padrão do marketplace.",
+      "Para manter a prioridade na listagem, renove o destaque pelo app em Meus veículos → Destacar.",
+      "",
+      ...signatureLines(),
+    ].join("\n"),
+  };
+}
+
 export function rentalReviewReminderEmail(input: {
   recipient: Pick<PersonEmailData, "name">;
   reviewedPerson: Pick<PersonEmailData, "name">;

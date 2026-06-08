@@ -326,7 +326,7 @@ Alterações de preço/duração **não** alteram pedidos já criados (snapshot 
 | **2** | `HighlightPlan` + `HighlightPlatformConfig`; `AdminHighlightsScreen` (preço, duração, chave PIX); APIs admin upsert/get | Fase 1 |
 | **3** | `VehicleHighlightOrder`; fluxo locador com **chave + QR**; `AdminHighlights` confirma PIX; ativa vigência | Fase 2 |
 | **4** | Rodízio justo dentro do tier (24h); `MarketplaceExposureEvent`; badges no marketplace (ícones Paper) | Fase 1 |
-| **5** | Lembretes de expiração; comprovante opcional; relatórios admin | Fases 3–4 |
+| **5** | Job de expiração (rebaixa veículo p/ `NORMAL` + limpa `highlightExpiresAt`; pedidos `ACTIVE`→`EXPIRED`); lembrete de expiração ao locador (e-mail, antecedência 3d, sem reenvio); relatórios admin + sweep manual. Comprovante opcional adiado p/ fase 6 | Fases 3–4 |
 | **6** | PSP PIX (webhook), QR dinâmico | Conta PSP, jurídico |
 
 Evitar na fase 1: PSP, pacotes multi-veículo, leilão de posição, destaque sem data de fim.

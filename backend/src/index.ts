@@ -4,6 +4,7 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createContext } from "./context.js";
+import { startHighlightExpirationScheduler } from "./highlights/scheduler.js";
 import { appRouter } from "./router.js";
 
 const port = Number(process.env.PORT ?? 4000);
@@ -278,6 +279,7 @@ app.use(
 app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`API tRPC em http://localhost:${port}/trpc`);
+  startHighlightExpirationScheduler();
 });
 
 export { appRouter };

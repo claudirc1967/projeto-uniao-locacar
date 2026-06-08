@@ -15,3 +15,17 @@ export function isPaidHighlightTier(
     tier
   );
 }
+
+const TIER_LABELS_PT: Record<VehicleHighlightTier, string> = {
+  NORMAL: "Padrão",
+  BRONZE: "Bronze",
+  PRATA: "Prata",
+  OURO: "Ouro",
+};
+
+export function highlightTierLabelPt(tier: VehicleHighlightTier): string {
+  return TIER_LABELS_PT[tier];
+}
+
+/** Antecedência (dias) do lembrete de expiração enviado ao locador. */
+export const HIGHLIGHT_EXPIRY_REMINDER_DAYS = 3;

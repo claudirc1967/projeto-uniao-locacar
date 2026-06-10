@@ -2,6 +2,10 @@ import { prisma } from "../db.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import { highlightExpiringEmail } from "../email/templates.js";
 import {
+  highlightExpiringWhatsApp,
+  sendWhatsApp,
+} from "../whatsapp/sendWhatsApp.js";
+import {
   HIGHLIGHT_EXPIRY_REMINDER_DAYS,
   highlightTierLabelPt,
 } from "./constants.js";
@@ -74,7 +78,7 @@ export async function runHighlightExpirationSweep(
         select: {
           email: true,
           ownerProfile: {
-            select: { nomeRazaoSocial: true, emailLocador: true },
+            select: { nomeRazaoSocial: true, emailLocador: true, phone: true },
           },
         },
       },
@@ -84,15 +88,19 @@ export async function runHighlightExpirationSweep(
   let remindersSent = 0;
   for (const order of soonToExpire) {
     if (!order.endsAt) continue;
+    const tierLabel = highlightTierLabelPt(order.tier);
+    const daysLeft = daysUntil(order.endsAt, now);
+    const ownerName = order.owner.ownerProfile?.nomeRazaoSocial;
+
     const to =
       order.owner.ownerProfile?.emailLocador?.trim() || order.owner.email.trim();
     if (to) {
       const email = highlightExpiringEmail({
-        owner: { name: order.owner.ownerProfile?.nomeRazaoSocial },
+        owner: { name: ownerName },
         vehicle: order.vehicle,
-        tierLabel: highlightTierLabelPt(order.tier),
+        tierLabel,
         expiresAt: order.endsAt,
-        daysLeft: daysUntil(order.endsAt, now),
+        daysLeft,
       });
       try {
         await sendEmail({ to, ...email });
@@ -100,6 +108,21 @@ export async function runHighlightExpirationSweep(
         /* não falha a rotina por erro de e-mail */
       }
     }
+
+    const ownerPhone = order.owner.ownerProfile?.phone?.trim();
+    if (ownerPhone) {
+      const whatsapp = highlightExpiringWhatsApp({
+        owner: { name: ownerName },
+        vehicle: order.vehicle,
+        tierLabel,
+        expiresAt: order.endsAt,
+        daysLeft,
+      });
+      void sendWhatsApp({ to: ownerPhone, ...whatsapp }).catch(() => {
+        /* não falha a rotina por erro de WhatsApp */
+      });
+    }
+
     await prisma.vehicleHighlightOrder.update({
       where: { id: order.id },
       data: { expiryReminderSentAt: now },

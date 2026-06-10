@@ -4,6 +4,7 @@ export const WHATSAPP_TEMPLATE_IDS = [
   "driver_rejected",
   "rental_approved",
   "rental_rejected",
+  "highlight_expiring",
 ] as const;
 
 export type WhatsAppTemplateId = (typeof WHATSAPP_TEMPLATE_IDS)[number];

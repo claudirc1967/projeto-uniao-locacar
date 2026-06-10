@@ -6,6 +6,7 @@ const TEMPLATE_ENV_KEYS: Record<WhatsAppTemplateId, string> = {
   driver_rejected: "WHATSAPP_TEMPLATE_DRIVER_REJECTED",
   rental_approved: "WHATSAPP_TEMPLATE_RENTAL_APPROVED",
   rental_rejected: "WHATSAPP_TEMPLATE_RENTAL_REJECTED",
+  highlight_expiring: "WHATSAPP_TEMPLATE_HIGHLIGHT_EXPIRING",
 };
 
 export function isWhatsAppEnabled(): boolean {

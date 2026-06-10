@@ -8,6 +8,7 @@ export type { SendWhatsAppInput, WhatsAppMessage, WhatsAppTemplateId } from "./t
 export {
   driverApprovedWhatsApp,
   driverRejectedWhatsApp,
+  highlightExpiringWhatsApp,
   rentalApprovedWhatsApp,
   rentalRejectedWhatsApp,
   rentalRequestedWhatsApp,

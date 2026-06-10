@@ -172,6 +172,37 @@ export function rentalApprovedWhatsApp(input: {
   );
 }
 
+export function highlightExpiringWhatsApp(input: {
+  owner: Pick<PersonWhatsAppData, "name">;
+  vehicle: VehicleWhatsAppData;
+  tierLabel: string;
+  expiresAt: Date;
+  daysLeft: number;
+}): WhatsAppMessage {
+  const prazo =
+    input.daysLeft <= 0
+      ? "hoje"
+      : input.daysLeft === 1
+        ? "amanhã"
+        : `em ${input.daysLeft} dias`;
+  const variables = [
+    valueOrDash(input.owner.name),
+    valueOrDash(input.tierLabel),
+    vehicleSummary(input.vehicle),
+    `${prazo} (${input.expiresAt.toLocaleDateString("pt-BR")})`,
+  ];
+
+  return buildMessage(
+    "highlight_expiring",
+    variables,
+    [
+      `Olá, ${variables[0]}.`,
+      `O destaque ${variables[1]} do veículo ${variables[2]} expira ${variables[3]}.`,
+      "Para manter a prioridade na listagem, renove pelo app em Meus veículos → Destacar.",
+    ].join("\n")
+  );
+}
+
 export function rentalRejectedWhatsApp(input: {
   driver: Pick<PersonWhatsAppData, "name">;
   owner: PersonWhatsAppData;

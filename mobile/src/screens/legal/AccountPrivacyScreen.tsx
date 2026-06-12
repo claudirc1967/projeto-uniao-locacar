@@ -15,7 +15,7 @@ export function AccountPrivacyScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: 24 + insets.bottom },
+          { paddingBottom: 8 + insets.bottom },
         ]}
       >
         <Text variant="bodyMedium" style={styles.sub}>
@@ -40,14 +40,20 @@ export function AccountPrivacyScreen({ navigation }: Props) {
           Excluir minha conta
         </Button>
       </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 24, paddingTop: 24, gap: 12 },
+  container: { padding: 24, paddingTop: 24, paddingBottom: 12, gap: 12 },
   title: { fontWeight: "600" },
   sub: { opacity: 0.9, marginBottom: 8, lineHeight: 22 },
   btn: { borderRadius: 12 },
+  footer: { paddingHorizontal: 24, paddingTop: 8 },
 });

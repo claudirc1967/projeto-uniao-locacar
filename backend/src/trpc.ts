@@ -51,6 +51,19 @@ const requireDriver = t.middleware(async ({ ctx, next }) => {
 export const ownerProcedure = protectedProcedure.use(requireOwner);
 export const driverProcedure = protectedProcedure.use(requireDriver);
 
+const requireOwnerOrAdmin = t.middleware(async ({ ctx, next }) => {
+  const c = ctx as AuthedContext;
+  if (c.user.role !== "OWNER" && c.user.role !== "ADMIN") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Apenas proprietários ou administradores",
+    });
+  }
+  return next({ ctx: c });
+});
+
+export const ownerOrAdminProcedure = protectedProcedure.use(requireOwnerOrAdmin);
+
 const requireAdmin = t.middleware(async ({ ctx, next }) => {
   const c = ctx as AuthedContext;
   if (c.user.role !== "ADMIN") {

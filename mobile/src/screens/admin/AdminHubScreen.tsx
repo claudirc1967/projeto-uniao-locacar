@@ -1,7 +1,10 @@
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useCallback } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Button, Text, useTheme } from "react-native-paper";
+import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { trpc } from "../../api/trpc";
 import { MenuTile } from "../../components/MenuTile";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
@@ -12,6 +15,20 @@ export function AdminHubScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
+
+  const pendingDriversQ = trpc.owner.listPendingDrivers.useQuery(undefined, {
+    enabled: user?.role === "ADMIN",
+    staleTime: 30_000,
+  });
+  const pendingDriversCount = pendingDriversQ.data?.length ?? 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.role === "ADMIN") {
+        void pendingDriversQ.refetch();
+      }
+    }, [pendingDriversQ, user?.role])
+  );
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
@@ -27,6 +44,45 @@ export function AdminHubScreen({ navigation }: Props) {
         <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
           {user?.email}
         </Text>
+
+        {pendingDriversCount > 0 ? (
+          <Card
+            mode="elevated"
+            style={[
+              styles.pendingCard,
+              { backgroundColor: theme.colors.secondaryContainer },
+            ]}
+          >
+            <Card.Content style={styles.pendingCardContent}>
+              <View style={styles.pendingTextWrap}>
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onSecondaryContainer }}
+                >
+                  {pendingDriversCount === 1
+                    ? "1 motorista aguardando aprovação"
+                    : `${pendingDriversCount} motoristas aguardando aprovação`}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.pendingHint,
+                    { color: theme.colors.onSecondaryContainer },
+                  ]}
+                >
+                  Analise os cadastros pendentes para liberar solicitações de locação.
+                </Text>
+              </View>
+              <Button
+                mode="contained"
+                icon="account-check-outline"
+                onPress={() => navigation.navigate("OwnerPendingDrivers")}
+              >
+                Analisar agora
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : null}
 
         <View style={styles.grid}>
           <View style={styles.cell}>
@@ -46,6 +102,18 @@ export function AdminHubScreen({ navigation }: Props) {
             />
           </View>
         </View>
+
+        <MenuTile
+          fullWidth
+          title="Motoristas"
+          subtitle={
+            pendingDriversCount > 0
+              ? `${pendingDriversCount} aguardando aprovação`
+              : "Aprovar cadastros"
+          }
+          icon="account-clock-outline"
+          onPress={() => navigation.navigate("OwnerPendingDrivers")}
+        />
       </ScrollView>
 
       <View
@@ -76,7 +144,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { padding: 16, gap: 16 },
   title: { fontWeight: "600" },
-  grid: { flexDirection: "row", gap: 12, marginTop: 8 },
+  pendingCard: { borderRadius: 16 },
+  pendingCardContent: { gap: 12 },
+  pendingTextWrap: { gap: 4 },
+  pendingHint: { opacity: 0.9 },
+  grid: { flexDirection: "row", gap: 12 },
   cell: { flex: 1 },
   footerBar: {
     position: "absolute",

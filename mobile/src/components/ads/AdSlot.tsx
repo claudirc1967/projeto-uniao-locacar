@@ -16,7 +16,7 @@ function adPlatform(): "ios" | "android" | "web" {
 
 type Props = {
   placement: AdPlacementKey;
-  /** compact: faixa na home; default: card na lista do marketplace */
+  /** compact: faixa na home; default: card horizontal na lista do marketplace */
   variant?: HouseAdVariant;
   /** Diferencia slots no mesmo placement (rodízio no marketplace). */
   rotationSeed?: number;

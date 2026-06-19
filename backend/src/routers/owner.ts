@@ -17,6 +17,7 @@ import {
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { ownerOrAdminProcedure, ownerProcedure, router } from "../trpc.js";
+import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import {
   driverApprovedEmail,
@@ -917,14 +918,22 @@ export const ownerRouter = router({
           /* não falha a aprovação por e-mail */
         });
       }
+      const driverApprovedMessage = driverApprovedWhatsApp({
+        driver: { name: p.fullName },
+      });
       if (p.phone) {
-        const whatsapp = driverApprovedWhatsApp({
-          driver: { name: p.fullName },
-        });
-        void sendWhatsApp({ to: p.phone, ...whatsapp }).catch(() => {
+        void sendWhatsApp({ to: p.phone, ...driverApprovedMessage }).catch(() => {
           /* não falha a aprovação por WhatsApp */
         });
       }
+      void notifyAdminWhatsAppRelay({
+        event: "Cadastro de motorista aprovado",
+        recipientName: p.fullName,
+        recipientPhone: p.phone,
+        message: driverApprovedMessage,
+      }).catch(() => {
+        /* não falha a aprovação por aviso admin */
+      });
       return { ok: true as const };
     }),
 
@@ -966,15 +975,23 @@ export const ownerRouter = router({
           /* não falha a recusa por e-mail */
         });
       }
+      const driverRejectedMessage = driverRejectedWhatsApp({
+        driver: { name: p.fullName },
+        rejectionReason: input.motivo.trim(),
+      });
       if (p.phone) {
-        const whatsapp = driverRejectedWhatsApp({
-          driver: { name: p.fullName },
-          rejectionReason: input.motivo.trim(),
-        });
-        void sendWhatsApp({ to: p.phone, ...whatsapp }).catch(() => {
+        void sendWhatsApp({ to: p.phone, ...driverRejectedMessage }).catch(() => {
           /* não falha a recusa por WhatsApp */
         });
       }
+      void notifyAdminWhatsAppRelay({
+        event: "Cadastro de motorista reprovado",
+        recipientName: p.fullName,
+        recipientPhone: p.phone,
+        message: driverRejectedMessage,
+      }).catch(() => {
+        /* não falha a recusa por aviso admin */
+      });
       return { ok: true as const };
     }),
 
@@ -1133,21 +1150,29 @@ export const ownerRouter = router({
         });
       }
       const driverPhone = r.driver.driverProfile?.phone;
+      const rentalApprovedMessage = rentalApprovedWhatsApp({
+        driver: { name: r.driver.driverProfile?.fullName },
+        owner: {
+          name: owner.ownerProfile?.nomeRazaoSocial,
+          phone: owner.ownerProfile?.phone,
+          email: owner.ownerProfile?.emailLocador ?? owner.email,
+        },
+        vehicle: r.vehicle,
+        pickupInstructions,
+      });
       if (driverPhone) {
-        const whatsapp = rentalApprovedWhatsApp({
-          driver: { name: r.driver.driverProfile?.fullName },
-          owner: {
-            name: owner.ownerProfile?.nomeRazaoSocial,
-            phone: owner.ownerProfile?.phone,
-            email: owner.ownerProfile?.emailLocador ?? owner.email,
-          },
-          vehicle: r.vehicle,
-          pickupInstructions,
-        });
-        void sendWhatsApp({ to: driverPhone, ...whatsapp }).catch(() => {
+        void sendWhatsApp({ to: driverPhone, ...rentalApprovedMessage }).catch(() => {
           /* não falha a aprovação por WhatsApp */
         });
       }
+      void notifyAdminWhatsAppRelay({
+        event: "Locação aprovada",
+        recipientName: r.driver.driverProfile?.fullName,
+        recipientPhone: driverPhone,
+        message: rentalApprovedMessage,
+      }).catch(() => {
+        /* não falha a aprovação por aviso admin */
+      });
       return { ok: true as const };
     }),
 
@@ -1220,21 +1245,29 @@ export const ownerRouter = router({
         });
       }
       const driverPhone = r.driver.driverProfile?.phone;
+      const rentalRejectedMessage = rentalRejectedWhatsApp({
+        driver: { name: r.driver.driverProfile?.fullName },
+        owner: {
+          name: owner.ownerProfile?.nomeRazaoSocial,
+          phone: owner.ownerProfile?.phone,
+          email: owner.ownerProfile?.emailLocador ?? owner.email,
+        },
+        vehicle: r.vehicle,
+        rejectionReason: input.motivoRecusa.trim(),
+      });
       if (driverPhone) {
-        const whatsapp = rentalRejectedWhatsApp({
-          driver: { name: r.driver.driverProfile?.fullName },
-          owner: {
-            name: owner.ownerProfile?.nomeRazaoSocial,
-            phone: owner.ownerProfile?.phone,
-            email: owner.ownerProfile?.emailLocador ?? owner.email,
-          },
-          vehicle: r.vehicle,
-          rejectionReason: input.motivoRecusa.trim(),
-        });
-        void sendWhatsApp({ to: driverPhone, ...whatsapp }).catch(() => {
+        void sendWhatsApp({ to: driverPhone, ...rentalRejectedMessage }).catch(() => {
           /* não falha a recusa por WhatsApp */
         });
       }
+      void notifyAdminWhatsAppRelay({
+        event: "Locação não aprovada",
+        recipientName: r.driver.driverProfile?.fullName,
+        recipientPhone: driverPhone,
+        message: rentalRejectedMessage,
+      }).catch(() => {
+        /* não falha a recusa por aviso admin */
+      });
       return { ok: true as const };
     }),
 

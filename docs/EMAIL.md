@@ -23,8 +23,26 @@ Variáveis de ambiente (backend / Railway):
 | `AWS_ACCESS_KEY_ID` | Sim | Credencial IAM com permissão de envio |
 | `AWS_SECRET_ACCESS_KEY` | Sim | Credencial IAM |
 | `PASSWORD_RESET_URL` | Recomendada | URL da página de reset (ex.: `https://api.../reset-password`). Sem ela, o e-mail de senha envia só o código |
+| `ADMIN_NOTIFY_EMAIL` | Opcional | E-mail operacional: aviso com texto pronto para colar no WhatsApp (6 eventos principais). Ver abaixo. |
 
 Permissão IAM mínima: `ses:SendEmail` (API SES v2) na região configurada.
+
+---
+
+## Aviso admin para WhatsApp manual (`ADMIN_NOTIFY_EMAIL`)
+
+Enquanto a WhatsApp Business API não estiver ativa, defina `ADMIN_NOTIFY_EMAIL`
+(ex.: `admin@uniaolocacar.com.br`) no backend. A cada evento principal, o admin
+recebe um e-mail **interno** com:
+
+- nome e telefone do destinatário (E.164 quando possível);
+- **mensagem sugerida** (mesmo texto de `whatsapp/templates.ts`) para copiar e colar.
+
+Eventos cobertos: nova locação, motorista aprovado/reprovado, locação aprovada/recusada,
+destaque expirando. **Não** inclui recuperação de senha.
+
+Implementação: `backend/src/email/adminNotify.ts`. Se a variável estiver ausente,
+nenhum aviso admin é enviado.
 
 ---
 

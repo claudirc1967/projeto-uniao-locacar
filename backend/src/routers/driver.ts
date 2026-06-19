@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
+import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import { rentalRequestedEmail } from "../email/templates.js";
 import {
@@ -186,22 +187,30 @@ export const driverRouter = router({
         });
       }
       const ownerPhone = owner?.ownerProfile?.phone;
+      const whatsapp = rentalRequestedWhatsApp({
+        owner: {
+          name: owner?.ownerProfile?.nomeRazaoSocial,
+        },
+        driver: {
+          name: profile.fullName,
+          phone: profile.phone,
+          email: (ctx as AuthedContext).user.email,
+        },
+        vehicle,
+      });
       if (ownerPhone) {
-        const whatsapp = rentalRequestedWhatsApp({
-          owner: {
-            name: owner?.ownerProfile?.nomeRazaoSocial,
-          },
-          driver: {
-            name: profile.fullName,
-            phone: profile.phone,
-            email: (ctx as AuthedContext).user.email,
-          },
-          vehicle,
-        });
         void sendWhatsApp({ to: ownerPhone, ...whatsapp }).catch(() => {
           /* não falha a solicitação por WhatsApp */
         });
       }
+      void notifyAdminWhatsAppRelay({
+        event: "Nova solicitação de locação",
+        recipientName: owner?.ownerProfile?.nomeRazaoSocial,
+        recipientPhone: ownerPhone,
+        message: whatsapp,
+      }).catch(() => {
+        /* não falha a solicitação por aviso admin */
+      });
       return { rentalId: rental.id };
     }),
 

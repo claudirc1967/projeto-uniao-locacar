@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import { highlightExpiringEmail } from "../email/templates.js";
 import {
@@ -110,18 +111,26 @@ export async function runHighlightExpirationSweep(
     }
 
     const ownerPhone = order.owner.ownerProfile?.phone?.trim();
+    const highlightExpiringMessage = highlightExpiringWhatsApp({
+      owner: { name: ownerName },
+      vehicle: order.vehicle,
+      tierLabel,
+      expiresAt: order.endsAt,
+      daysLeft,
+    });
     if (ownerPhone) {
-      const whatsapp = highlightExpiringWhatsApp({
-        owner: { name: ownerName },
-        vehicle: order.vehicle,
-        tierLabel,
-        expiresAt: order.endsAt,
-        daysLeft,
-      });
-      void sendWhatsApp({ to: ownerPhone, ...whatsapp }).catch(() => {
+      void sendWhatsApp({ to: ownerPhone, ...highlightExpiringMessage }).catch(() => {
         /* não falha a rotina por erro de WhatsApp */
       });
     }
+    void notifyAdminWhatsAppRelay({
+      event: "Destaque expirando",
+      recipientName: ownerName,
+      recipientPhone: ownerPhone,
+      message: highlightExpiringMessage,
+    }).catch(() => {
+      /* não falha a rotina por aviso admin */
+    });
 
     await prisma.vehicleHighlightOrder.update({
       where: { id: order.id },

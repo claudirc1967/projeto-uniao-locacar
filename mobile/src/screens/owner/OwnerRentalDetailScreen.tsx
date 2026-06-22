@@ -209,6 +209,13 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       returnSituation === "LIBERADA" &&
       !inspectionsQ.data?.items.some((inspection) => inspection.type === "CHECKIN")
     ) {
+      if (Platform.OS === "web") {
+        const ok = globalThis.confirm?.(
+          "A vistoria de devolução ainda não foi feita. Deseja concluir mesmo assim?"
+        );
+        if (ok) submitReturnNow();
+        return;
+      }
       Alert.alert(
         "Vistoria recomendada",
         "A vistoria de devolução ainda não foi feita. Deseja concluir mesmo assim?",

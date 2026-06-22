@@ -28,6 +28,8 @@ type Props = {
   platform: "ios" | "android" | "web";
   house: HouseAdPayload;
   variant?: HouseAdVariant;
+  /** Pré-visualização no admin: sem tracking de impressão/clique. */
+  preview?: boolean;
 };
 
 export function HouseAdCard({
@@ -35,6 +37,7 @@ export function HouseAdCard({
   platform,
   house,
   variant = "default",
+  preview = false,
 }: Props) {
   const theme = useTheme();
   const impressionSent = useRef(false);
@@ -42,7 +45,7 @@ export function HouseAdCard({
   const compact = variant === "compact";
 
   useEffect(() => {
-    if (impressionSent.current) return;
+    if (preview || impressionSent.current) return;
     impressionSent.current = true;
     track.mutate({
       eventId: createAdEventId(),
@@ -51,9 +54,21 @@ export function HouseAdCard({
       campaignId: house.campaignId,
       platform,
     });
-  }, [house.campaignId, placement, platform]);
+  }, [house.campaignId, placement, platform, preview, track]);
 
   const onPress = () => {
+    const url = house.clickUrl.trim();
+    if (!url || url === "#") return;
+
+    if (preview) {
+      if (Platform.OS === "web") {
+        globalThis.open?.(url, "_blank", "noopener,noreferrer");
+      } else {
+        void Linking.openURL(url);
+      }
+      return;
+    }
+
     track.mutate({
       eventId: createAdEventId(),
       placement,
@@ -61,9 +76,12 @@ export function HouseAdCard({
       campaignId: house.campaignId,
       platform,
     });
-    const url = house.clickUrl.trim();
-    if (url) void Linking.openURL(url);
+    void Linking.openURL(url);
   };
+
+  const pressableProps = preview
+    ? { accessibilityRole: "link" as const, accessibilityLabel: "Abrir URL de destino (preview)" }
+    : { accessibilityRole: "button" as const };
 
   if (compact) {
     return (
@@ -77,7 +95,7 @@ export function HouseAdCard({
           },
         ]}
       >
-        <Pressable onPress={onPress} accessibilityRole="button">
+        <Pressable onPress={onPress} {...pressableProps}>
           <Card.Content style={styles.compactContent}>
             <Chip
               compact
@@ -132,7 +150,7 @@ export function HouseAdCard({
       mode={Platform.OS === "web" ? "outlined" : "elevated"}
       style={styles.card}
     >
-      <Pressable onPress={onPress} accessibilityRole="button">
+      <Pressable onPress={onPress} {...pressableProps}>
         <Card.Content style={styles.content}>
           <Chip compact mode="outlined" style={styles.partnerChipDefault}>
             Parceria

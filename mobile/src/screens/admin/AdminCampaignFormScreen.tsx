@@ -36,6 +36,7 @@ import type { AdPlacementKey } from "../../constants/adPlacements";
 import type { RootStackParamList } from "../../navigation/types";
 import { maskDate } from "../../utils/masks";
 import { trpcErrorMessage } from "../../utils/trpcError";
+import { CampaignAdPreview } from "../../components/ads/CampaignAdPreview";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AdminCampaignForm">;
 
@@ -313,6 +314,8 @@ export function AdminCampaignFormScreen({ navigation, route }: Props) {
             </Chip>
           ))}
         </View>
+
+        <CampaignAdPreview form={form} />
 
         <Text variant="labelLarge" style={styles.sectionLabel}>
           Público (roles)

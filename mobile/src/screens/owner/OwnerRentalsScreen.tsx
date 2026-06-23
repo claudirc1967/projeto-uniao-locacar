@@ -155,6 +155,23 @@ export function OwnerRentalsScreen({ navigation }: Props) {
     reject.mutate({ rentalId: rejectRentalId, motivoRecusa: t });
   };
 
+  const confirmDeleteRejected = (rentalId: string) => {
+    const message =
+      "Deseja excluir esta solicitação recusada? O motorista poderá solicitar este veículo novamente.";
+    const runDelete = () => {
+      setDeletingRentalId(rentalId);
+      deleteRejected.mutate({ rentalId });
+    };
+    if (Platform.OS === "web") {
+      if (globalThis.confirm?.(message)) runDelete();
+      return;
+    }
+    Alert.alert("Tem certeza?", message, [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Excluir", style: "destructive", onPress: runDelete },
+    ]);
+  };
+
   if (q.isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
@@ -276,23 +293,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                     buttonColor={theme.colors.error}
                     textColor={theme.colors.onError}
                     compact
-                    onPress={() => {
-                      Alert.alert(
-                        "Tem certeza?",
-                        "Deseja excluir esta solicitação recusada? O motorista poderá solicitar este veículo novamente.",
-                        [
-                          { text: "Cancelar", style: "cancel" },
-                          {
-                            text: "Excluir",
-                            style: "destructive",
-                            onPress: () => {
-                              setDeletingRentalId(item.id);
-                              deleteRejected.mutate({ rentalId: item.id });
-                            },
-                          },
-                        ]
-                      );
-                    }}
+                    onPress={() => confirmDeleteRejected(item.id)}
                     loading={
                       deleteRejected.isPending && deletingRentalId === item.id
                     }

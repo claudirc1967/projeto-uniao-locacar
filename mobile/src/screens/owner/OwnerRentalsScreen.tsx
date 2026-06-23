@@ -279,7 +279,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                     onPress={() => {
                       Alert.alert(
                         "Tem certeza?",
-                        "Deseja excluir esta solicitação recusada?",
+                        "Deseja excluir esta solicitação recusada? O motorista poderá solicitar este veículo novamente.",
                         [
                           { text: "Cancelar", style: "cancel" },
                           {

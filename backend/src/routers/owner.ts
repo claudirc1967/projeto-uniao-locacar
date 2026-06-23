@@ -1305,7 +1305,7 @@ export const ownerRouter = router({
       return { ok: true as const };
     }),
 
-  /** Exclui uma solicitação recusada. */
+  /** Exclui uma solicitação recusada e libera nova solicitação do mesmo motorista. */
   deleteRejectedRental: ownerProcedure
     .input(z.object({ rentalId: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -1322,7 +1322,23 @@ export const ownerRouter = router({
           message: "Solicitação recusada não encontrada",
         });
       }
-      await prisma.rental.delete({ where: { id: r.id } });
+      await prisma.$transaction([
+        prisma.vehicleDriverBlock.upsert({
+          where: {
+            vehicleId_driverUserId: {
+              vehicleId: r.vehicleId,
+              driverUserId: r.driverUserId,
+            },
+          },
+          create: {
+            vehicleId: r.vehicleId,
+            driverUserId: r.driverUserId,
+            active: false,
+          },
+          update: { active: false },
+        }),
+        prisma.rental.delete({ where: { id: r.id } }),
+      ]);
       return { ok: true as const };
     }),
 

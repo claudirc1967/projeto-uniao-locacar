@@ -1,7 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -25,33 +24,44 @@ export function ForgotPasswordScreen({ navigation }: Props) {
   const theme = useTheme();
   const [email, setEmail] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [devResetToken, setDevResetToken] = useState<string | null>(null);
 
   const forgot = trpc.auth.forgotPassword.useMutation({
     onSuccess: (data) => {
       setErr(null);
       const dev = "devResetToken" in data ? data.devResetToken : undefined;
       if (dev) {
-        Alert.alert(
-          "Desenvolvimento",
-          `Token de reset (somente dev): ${dev}`,
-          [
-            {
-              text: "Ir para reset",
-              onPress: () =>
-                navigation.navigate("ResetPassword", { token: dev }),
-            },
-            { text: "OK" },
-          ]
+        setDevResetToken(dev);
+        setSuccess(
+          "Ambiente de desenvolvimento: token gerado. Use o botão abaixo para redefinir a senha."
         );
       } else {
-        Alert.alert(
-          "Enviado",
-          "Se o e-mail existir, você receberá instruções em breve."
+        setDevResetToken(null);
+        setSuccess(
+          "Se o e-mail existir, você receberá instruções em breve. Verifique também a caixa de spam."
         );
       }
     },
-    onError: (e) => setErr(trpcErrorMessage(e)),
+    onError: (e) => {
+      setSuccess(null);
+      setDevResetToken(null);
+      setErr(trpcErrorMessage(e));
+    },
   });
+
+  const onSend = () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setErr("Informe seu e-mail.");
+      setSuccess(null);
+      return;
+    }
+    setErr(null);
+    setSuccess(null);
+    setDevResetToken(null);
+    forgot.mutate({ email: trimmed });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -73,15 +83,41 @@ export function ForgotPasswordScreen({ navigation }: Props) {
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(t) => {
+            setEmail(t);
+            if (err) setErr(null);
+            if (success) {
+              setSuccess(null);
+              setDevResetToken(null);
+            }
+          }}
           style={styles.field}
         />
         <HelperText type="error" visible={!!err}>
           {err ?? ""}
         </HelperText>
+        {success ? (
+          <Text
+            variant="bodyMedium"
+            style={[styles.success, { color: theme.colors.primary }]}
+          >
+            {success}
+          </Text>
+        ) : null}
+        {devResetToken ? (
+          <Button
+            mode="outlined"
+            onPress={() =>
+              navigation.navigate("ResetPassword", { token: devResetToken })
+            }
+            style={styles.btn}
+          >
+            Ir para redefinir senha
+          </Button>
+        ) : null}
         <Button
           mode="contained"
-          onPress={() => forgot.mutate({ email: email.trim() })}
+          onPress={onSend}
           loading={forgot.isPending}
           disabled={forgot.isPending}
           style={styles.btn}
@@ -103,5 +139,6 @@ const styles = StyleSheet.create({
   hint: { marginVertical: 8, opacity: 0.9 },
   field: { backgroundColor: "#fff" },
   btn: { marginTop: 8 },
+  success: { marginTop: 4, lineHeight: 22 },
   spacer: { height: 24 },
 });

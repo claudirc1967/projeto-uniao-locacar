@@ -1,6 +1,6 @@
 /**
  * Injeta @font-face da MaterialCommunityIcons no index.html após expo export.
- * Evita travar o app web esperando useFonts e garante ícones no GitHub Pages / Railway.
+ * Evita travar o app web esperando useFonts e garante ícones no GitHub Pages / deploy web.
  */
 import fs from "node:fs";
 import path from "node:path";

@@ -5,7 +5,7 @@
 #   Sem isso o job deploy pode falhar ao publicar.
 #
 # Secrets (Settings → Secrets and variables → Actions):
-#   EXPO_PUBLIC_TRPC_URL — URL pública do tRPC no Railway (ex.: https://xxx.up.railway.app/trpc)
+#   EXPO_PUBLIC_TRPC_URL — URL pública do tRPC na EC2 (ex.: https://uniaolocacar.com.br/trpc)
 #   EXPO_BASE_URL — "/" para domínio customizado na raiz (uniaolocacar.com.br); omita para github.io/<repo>/
 #   EXPO_PUBLIC_SITE_URL — opcional; ex.: https://uniaolocacar.com.br (ajuda o build a usar baseUrl "/")
 #
@@ -49,7 +49,7 @@ jobs:
           TRPC: ${{ secrets.EXPO_PUBLIC_TRPC_URL }}
         run: |
           if [ -z "$TRPC" ]; then
-            echo "::warning::Defina o secret EXPO_PUBLIC_TRPC_URL (URL do tRPC no Railway) para o app web funcionar."
+            echo "::warning::Defina o secret EXPO_PUBLIC_TRPC_URL (URL do tRPC na EC2) para o app web funcionar."
           fi
 
       - name: Export web build

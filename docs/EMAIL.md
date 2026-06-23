@@ -14,7 +14,7 @@
 | `backend/src/email/consoleEmail.ts` | Cliente SES v2; função `sendEmail({ to, subject, text })` |
 | `backend/src/email/templates.ts` | Textos dos e-mails (assunto + corpo) |
 
-Variáveis de ambiente (backend / Railway):
+Variáveis de ambiente (backend / EC2):
 
 | Variável | Obrigatória | Descrição |
 |---|---|---|
@@ -97,7 +97,7 @@ No **AWS Console** → **Amazon SES** → região **`sa-east-1`** (mesma de `AWS
    - **Mail type:** Transactional.
    - **Use case:** Notificações do app União Locacar (locação, aprovação de motorista,
      recuperação de senha, lembrete de destaque).
-   - **Website:** URL do app ou do backend no Railway.
+   - **Website:** URL do app (`uniaolocacar.com.br`) ou da API na EC2.
    - **Opt-in:** Cadastro no app + aceite de termos e política de privacidade.
    - **Volume:** estimativa inicial (ex.: dezenas a centenas de e-mails/mês).
    - **Bounces/complaints:** monitorar métricas no console SES; apenas mensagens
@@ -105,9 +105,10 @@ No **AWS Console** → **Amazon SES** → região **`sa-east-1`** (mesma de `AWS
 4. Aguardar aprovação da AWS (geralmente 24–48 h, pode levar mais).
 5. Confirmar que o status passou a **Production**.
 
-### 3. Configurar produção (Railway)
+### 3. Configurar produção (EC2)
 
-Definir as variáveis listadas acima no serviço do backend e redeploy.
+Definir as variáveis listadas acima no servidor (`.env`, systemd, PM2 ou
+Parameter Store) e reiniciar o processo Node.
 
 Teste: disparar um fluxo (ex.: recuperação de senha) para um e-mail **não** cadastrado
 no SES — deve ser entregue após sair do sandbox.
@@ -122,7 +123,7 @@ Enquanto a conta estiver no sandbox:
 2. Confirmar o link na caixa de entrada de cada e-mail de teste (locador, motorista, etc.).
 3. Só esses endereços receberão mensagens.
 
-Alternativa: manter sandbox só em dev local e usar conta em **Production** no Railway.
+Alternativa: manter sandbox só em dev local e usar conta em **Production** na EC2.
 
 ---
 
@@ -144,9 +145,9 @@ Alternativa: manter sandbox só em dev local e usar conta em **Production** no R
 | `MessageRejected: Email address is not verified` (destinatário) | Conta ainda em **Sandbox** |
 | `SES não configurado. Defina SES_FROM_EMAIL` | Variável ausente no ambiente |
 | E-mail não chega, sem erro no app | Verificar spam; identidade do remetente; região SES vs `AWS_REGION` |
-| `[EMAIL:ses:error]` no log Railway | Credenciais IAM, permissão `ses:SendEmail`, ou remetente não verificado |
+| `[EMAIL:ses:error]` no log do backend | Credenciais IAM, permissão `ses:SendEmail`, ou remetente não verificado |
 
-Logs: buscar `[EMAIL:ses:error]` nos **Deploy Logs** do serviço backend no Railway.
+Logs: buscar `[EMAIL:ses:error]` na saída do processo Node na EC2 (`journalctl`, PM2 ou CloudWatch).
 
 ---
 

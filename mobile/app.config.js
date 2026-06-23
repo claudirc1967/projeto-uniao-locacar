@@ -1,7 +1,7 @@
 // experiments.baseUrl (Expo web export):
-// - Local / Railway (domínio na raiz): "/"
+// - Local / EC2 / domínio na raiz: "/"
 // - GitHub Pages: https://<user>.github.io/<repo>/ → "/<repo>/"
-// - Override manual: EXPO_BASE_URL (ex.: "/" no Railway, "/repo/" no Pages)
+// - Override manual: EXPO_BASE_URL (ex.: "/" na EC2, "/repo/" no Pages)
 
 const appJson = require("./app.json");
 
@@ -38,7 +38,7 @@ function getBaseUrl() {
     return normalizeBasePath(explicit);
   }
 
-  // Railway injeta GITHUB_REPOSITORY no build, mas serve o site na raiz do domínio.
+  // Builds legados no Railway (ou EXPO_BASE_URL explícito) servem na raiz do domínio.
   if (isRailwayBuild()) {
     return "/";
   }

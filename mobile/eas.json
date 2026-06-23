@@ -11,7 +11,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_TRPC_URL": "https://projeto-uniao-locacar-production.up.railway.app/trpc"
+        "EXPO_PUBLIC_TRPC_URL": "https://uniaolocacar.com.br/trpc"
       }
     },
     "production": {

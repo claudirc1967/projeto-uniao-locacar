@@ -67,7 +67,7 @@ São 6 templates a submeter (um por evento da tabela acima), com placeholders
 
 ### 3. Configurar o ambiente do backend
 
-No `backend/.env` local e nas variáveis do serviço no Railway (linhas já existem
+No `backend/.env` local e nas variáveis do servidor na **EC2** (linhas já existem
 comentadas no `.env`):
 
 ```bash
@@ -111,7 +111,7 @@ não muda.
 1. Testar em dev com número próprio (provedores têm número/sandbox de teste).
 2. Conferir telefones válidos em `OwnerProfile.phone` e no perfil do motorista
    (`normalizePhoneToE164` já cuida do formato +55).
-3. Ativar as envs no Railway e acompanhar os logs — erros aparecem como
+3. Ativar as envs na EC2 e acompanhar os logs — erros aparecem como
    `Falha ao enviar WhatsApp (...)` sem quebrar as operações.
 
 ---

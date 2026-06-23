@@ -174,7 +174,7 @@ Evitar abrir a fase 1 com muitos placements ou formatos (interstitial, rewarded)
 | Rascunho de texto na política de privacidade | Sim (não substitui advogado) | Revisão jurídica |
 | **AdMob** | Código e config no projeto | Conta Google AdMob, app IDs, **EAS Build**, secrets |
 | Campanhas reais (imagem, link, contrato) | — | Negócio / design |
-| Deploy produção | — | GitHub, Railway, secrets |
+| Deploy produção | — | GitHub Pages, EC2, secrets |
 
 Pedido recomendado ao Agent: *“Implemente a fase 1 do docs/ANUNCIOS.md”* — escopo claro e entregável; fases 2–4 em sessões seguintes.
 

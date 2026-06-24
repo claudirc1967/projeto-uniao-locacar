@@ -54,7 +54,7 @@ export function OwnerPendingDriversScreen({ navigation }: Props) {
 
   const sections = [
     {
-      title: "Pendentes de análise",
+      title: "Pendentes de revisão",
       data: pending,
       kind: "pending" as const,
     },
@@ -72,8 +72,8 @@ export function OwnerPendingDriversScreen({ navigation }: Props) {
       {emptyAll ? (
         <View style={styles.emptyWrap}>
           <Text variant="bodyMedium" style={styles.hint}>
-            Toque em um motorista para ver os dados e aprovar, rejeitar ou
-            recolocar na análise.
+            Motoristas com pré-cadastro completo já podem solicitar locações. Toque
+            para revisar, marcar como revisado ou reprovar na plataforma.
           </Text>
           <Text variant="bodyMedium" style={styles.empty}>
             Nenhum motorista pendente ou com cadastro recusado.

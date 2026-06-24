@@ -29,12 +29,18 @@ type Props = NativeStackScreenProps<RootStackParamList, "VehicleDetail">;
 
 const PHOTO_THUMB = 108;
 
+const PRE_REGISTER_CTA =
+  "Conclua o pré-cadastro para solicitar locação.";
+
 export function VehicleDetailScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { vehicleId } = route.params;
   const { user } = useAuth();
   const q = trpc.marketplace.getVehiclePublic.useQuery({ vehicleId });
+  const driverEligibilityQ = trpc.driver.myStatus.useQuery(undefined, {
+    enabled: user?.role === "DRIVER",
+  });
   const utils = trpc.useUtils();
   const request = trpc.driver.requestRental.useMutation({
     onSuccess: async () => {
@@ -82,11 +88,21 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
     descriptionText.toLocaleLowerCase() !== brandModel.toLocaleLowerCase();
   const ownerHasReviews =
     (v.ownerRatingCount ?? 0) > 0 && v.ownerAverageRating != null;
-  const driverStatus = user?.driverProfile?.status;
-  const driverCanRequest = user?.role === "DRIVER" && driverStatus === "APPROVED";
-  const driverApprovalMessage =
-    user?.role === "DRIVER" && !driverCanRequest
-      ? "Cadastro de motorista deve estar aprovado"
+  const driverCanRequest =
+    user?.role === "DRIVER" && driverEligibilityQ.data?.canRequestRental === true;
+  const driverEligibility = driverEligibilityQ.data;
+  const needsPreRegister =
+    user?.role === "DRIVER" &&
+    !driverCanRequest &&
+    driverEligibility != null &&
+    driverEligibility.status !== "REJECTED" &&
+    !driverEligibility.preRegistrationComplete;
+  const driverBlockMessage =
+    user?.role === "DRIVER" &&
+    !driverCanRequest &&
+    !needsPreRegister &&
+    driverEligibility?.requestRentalBlockReason
+      ? driverEligibility.requestRentalBlockReason
       : null;
 
   return (
@@ -224,11 +240,23 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
                 Solicitar locação
               </Button>
             </>
+          ) : needsPreRegister ? (
+            <Button
+              mode="contained"
+              style={styles.requestBtn}
+              onPress={() => navigation.navigate("DriverPreRegister")}
+            >
+              {PRE_REGISTER_CTA}
+            </Button>
           ) : !driverCanRequest ? (
             <>
-              <Text style={{ color: theme.colors.error, marginVertical: 8 }}>
-                {driverApprovalMessage}
-              </Text>
+              {driverBlockMessage ? (
+                <Text style={{ color: theme.colors.error, marginVertical: 8 }}>
+                  {driverBlockMessage}
+                </Text>
+              ) : driverEligibilityQ.isLoading ? (
+                <ActivityIndicator style={{ marginVertical: 12 }} />
+              ) : null}
               <Button mode="contained" disabled style={styles.requestBtn}>
                 Solicitar locação
               </Button>

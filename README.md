@@ -27,6 +27,9 @@ exemplo `https://uniaolocacar.com.br/reset-password` (ou o domínio público da 
 na EC2). Sem essa variável, o
 e-mail envia apenas o código para colar no app.
 
+Contato de suporte na login (público): `ADMIN_SUPPORT_EMAIL` e
+`ADMIN_SUPPORT_WHATSAPP` (somente dígitos com DDI, ex. `5531995477155`).
+
 ## App mobile
 
 ```bash
@@ -72,4 +75,4 @@ Ou no console AWS → bucket `AWS_S3_BUCKET` → Permissions → CORS.
 ## Papéis
 
 - **Proprietário:** veículos, fotos, requisitos, motoristas pendentes, aprovar/recusar locações, instruções de retirada e contrato.
-- **Motorista:** pré-cadastro (CEP via `address.lookupCep`), status, marketplace, solicitar locação, ver instruções/contrato quando ativo.
+- **Motorista:** pré-cadastro (CEP via `address.lookupCep`), solicitação de locação após pré-cadastro completo (aprovação por locador em cada pedido; plataforma só bloqueia cadastros reprovados), marketplace, ver instruções/contrato quando ativo.

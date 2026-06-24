@@ -60,8 +60,8 @@ export function AdminHubScreen({ navigation }: Props) {
                   style={{ color: theme.colors.onSecondaryContainer }}
                 >
                   {pendingDriversCount === 1
-                    ? "1 motorista aguardando aprovação"
-                    : `${pendingDriversCount} motoristas aguardando aprovação`}
+                    ? "1 cadastro de motorista para revisar"
+                    : `${pendingDriversCount} cadastros de motoristas para revisar`}
                 </Text>
                 <Text
                   variant="bodySmall"
@@ -70,7 +70,8 @@ export function AdminHubScreen({ navigation }: Props) {
                     { color: theme.colors.onSecondaryContainer },
                   ]}
                 >
-                  Analise os cadastros pendentes para liberar solicitações de locação.
+                  Motoristas já podem solicitar locação após o pré-cadastro. Use
+                  esta fila para revisão ou reprovação na plataforma.
                 </Text>
               </View>
               <Button
@@ -108,8 +109,8 @@ export function AdminHubScreen({ navigation }: Props) {
           title="Motoristas"
           subtitle={
             pendingDriversCount > 0
-              ? `${pendingDriversCount} aguardando aprovação`
-              : "Aprovar cadastros"
+              ? `${pendingDriversCount} para revisar`
+              : "Revisar cadastros"
           }
           icon="account-clock-outline"
           onPress={() => navigation.navigate("OwnerPendingDrivers")}

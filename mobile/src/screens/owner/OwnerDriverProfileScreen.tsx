@@ -110,7 +110,8 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <Text variant="bodyMedium" style={styles.lead}>
-          Revise os dados e escolha uma ação.
+          Revise os dados. Reprovar bloqueia novas solicitações na plataforma; a
+          aprovação de cada locação continua com o locador do veículo.
         </Text>
 
         <Card mode="outlined" style={styles.card}>
@@ -118,9 +119,9 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
             <Text variant="labelLarge">Status do cadastro</Text>
             <Text variant="bodyLarge" style={styles.statusText}>
               {p.status === "PENDING"
-                ? "Pendente de análise"
+                ? "Aguardando revisão (opcional)"
                 : p.status === "APPROVED"
-                  ? "Aprovado"
+                  ? "Revisado"
                   : "Cadastro recusado"}
             </Text>
             {p.status === "REJECTED" && p.rejectionReason?.trim() ? (
@@ -211,7 +212,7 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
               loading={approve.isPending}
               disabled={approve.isPending || reject.isPending}
             >
-              Aprovar
+              Marcar como revisado
             </Button>
             <Button
               mode="contained"

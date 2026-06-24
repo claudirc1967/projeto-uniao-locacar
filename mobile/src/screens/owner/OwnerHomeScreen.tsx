@@ -91,8 +91,8 @@ export function OwnerHomeScreen({ navigation }: Props) {
                   style={{ color: theme.colors.onSecondaryContainer }}
                 >
                   {pendingDriversCount === 1
-                    ? "1 motorista aguardando aprovação"
-                    : `${pendingDriversCount} motoristas aguardando aprovação`}
+                    ? "1 cadastro de motorista para revisar"
+                    : `${pendingDriversCount} cadastros de motoristas para revisar`}
                 </Text>
                 <Text
                   variant="bodySmall"
@@ -101,7 +101,8 @@ export function OwnerHomeScreen({ navigation }: Props) {
                     { color: theme.colors.onSecondaryContainer },
                   ]}
                 >
-                  Analise os cadastros pendentes para liberar solicitações de locação.
+                  Motoristas já podem solicitar locação após o pré-cadastro. Use
+                  esta fila para revisão ou reprovação na plataforma.
                 </Text>
               </View>
               <Button

@@ -10,6 +10,7 @@ import { passwordResetEmail } from "../email/templates.js";
 import { PRIVACY_POLICY_VERSION } from "../privacy.js";
 import { TERMS_OF_USE_VERSION } from "../terms.js";
 import { deleteUserAccountData } from "../services/deleteUserAccount.js";
+import { getPublicSupportConfig } from "../support/publicSupport.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
 
@@ -285,4 +286,7 @@ export const authRouter = router({
 
   /** Valida token atual (útil após cold start do app). */
   pingSession: protectedProcedure.query(() => ({ ok: true as const })),
+
+  /** Contato de suporte exibido na login (público, sem JWT). */
+  getPublicSupport: publicProcedure.query(() => getPublicSupportConfig()),
 });

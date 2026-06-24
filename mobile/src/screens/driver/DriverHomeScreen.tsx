@@ -70,8 +70,8 @@ export function DriverHomeScreen({ navigation }: Props) {
             },
             {
               key: "status",
-              title: "Status do cadastro",
-              subtitle: "Aprovação e pendências",
+              title: "Meu cadastro",
+              subtitle: "Documentos e situação",
               icon: "clipboard-check-outline",
               onPress: () => navigation.navigate("DriverStatus"),
             },

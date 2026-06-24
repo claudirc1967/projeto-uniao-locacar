@@ -2,6 +2,10 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
+import {
+  getDriverRentalEligibility,
+  isDriverPreRegistrationComplete,
+} from "../driverProfileEligibility.js";
 import { prisma } from "../db.js";
 import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
@@ -96,6 +100,14 @@ export const driverRouter = router({
     return {
       status: p.status,
       profile: p,
+      preRegistrationComplete: isDriverPreRegistrationComplete(p),
+      ...(() => {
+        const eligibility = getDriverRentalEligibility(p);
+        return {
+          canRequestRental: eligibility.ok,
+          requestRentalBlockReason: eligibility.ok ? null : eligibility.message,
+        };
+      })(),
     };
   }),
 
@@ -103,10 +115,11 @@ export const driverRouter = router({
     .input(z.object({ vehicleId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const profile = (ctx as AuthedContext).user.driverProfile;
-      if (!profile || profile.status !== "APPROVED") {
+      const eligibility = getDriverRentalEligibility(profile);
+      if (!profile || !eligibility.ok) {
         throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Cadastro de motorista deve estar aprovado",
+          code: profile?.status === "REJECTED" ? "FORBIDDEN" : "BAD_REQUEST",
+          message: eligibility.ok ? "Perfil de motorista não encontrado" : eligibility.message,
         });
       }
       const vehicle = await prisma.vehicle.findFirst({

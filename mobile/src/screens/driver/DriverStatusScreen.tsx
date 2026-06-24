@@ -10,8 +10,8 @@ import { maskCpf, maskDate, maskPhone } from "../../utils/masks";
 type Props = NativeStackScreenProps<RootStackParamList, "DriverStatus">;
 
 const map: Record<string, string> = {
-  PENDING: "Pendente de aprovação",
-  APPROVED: "Aprovado",
+  PENDING: "Pronto para solicitar locações",
+  APPROVED: "Cadastro revisado",
   REJECTED: "Rejeitado",
 };
 
@@ -59,6 +59,20 @@ export function DriverStatusScreen({ navigation }: Props) {
       <Text variant="titleMedium" style={[styles.badge, { color: theme.colors.primary }]}>
         {map[q.data!.status] ?? q.data!.status}
       </Text>
+
+      {q.data!.status === "REJECTED" ? (
+        <Text variant="bodyMedium" style={styles.hint}>
+          Você não pode solicitar locações enquanto o cadastro estiver reprovado.
+        </Text>
+      ) : !q.data!.preRegistrationComplete ? (
+        <Text variant="bodyMedium" style={styles.hint}>
+          Conclua o pré-cadastro para solicitar locações no marketplace.
+        </Text>
+      ) : (
+        <Text variant="bodyMedium" style={styles.hint}>
+          Cada locação ainda depende da aprovação do locador do veículo.
+        </Text>
+      )}
 
       {p.ratingCount > 0 ? (
         <Card mode="outlined" style={[styles.card, styles.reputationCard]}>
@@ -135,6 +149,7 @@ const styles = StyleSheet.create({
   container: { padding: 24, paddingTop: 48, paddingBottom: 12, gap: 12 },
   title: { marginBottom: 4 },
   badge: { marginVertical: 8 },
+  hint: { opacity: 0.85, lineHeight: 22 },
   warnCard: { borderColor: "#fcd34d", backgroundColor: "#fffbeb" },
   rejectionText: { marginTop: 8, lineHeight: 22 },
   card: { borderRadius: 16 },

@@ -15,6 +15,7 @@ import {
   useTheme,
 } from "react-native-paper";
 import { trpc } from "../../api/trpc";
+import { SupportContactBlock } from "../../components/SupportContactBlock";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import {
@@ -150,6 +151,8 @@ export function LoginScreen({ navigation }: Props) {
         >
           Termos de uso
         </Button>
+
+        <SupportContactBlock />
 
         <View style={styles.spacer} />
       </ScrollView>

@@ -1,10 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
-  ActionSheetIOS,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
@@ -19,18 +17,13 @@ import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RentalInspectionSection } from "../../components/RentalInspectionSection";
 import { RentalReviewSection } from "../../components/RentalReviewSection";
+import { VehicleLocationActions } from "../../components/VehicleLocationActions";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatDateDisplay, maskPhone, onlyDigits } from "../../utils/masks";
 import { vehicleTypeLabel } from "../../constants/vehicleType";
 import { formatVehicleCapacityLine } from "../../utils/vehicleDisplay";
-import {
-  buildVehiclePickupSearchQuery,
-  googleMapsSearchUrl,
-  type VehiclePickupFields,
-  wazeSearchUrl,
-} from "../../utils/vehicleLocationLinks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "RentalDetail">;
 
@@ -59,68 +52,6 @@ async function sharePdfFromUrl(url: string, rentalId: string) {
     mimeType: "application/pdf",
     dialogTitle: "Contrato de locação",
   });
-}
-
-function VehicleLocationActions({ vehicle }: { vehicle: VehiclePickupFields }) {
-  const query = buildVehiclePickupSearchQuery(vehicle);
-  if (!query) return null;
-
-  const googleUrl = googleMapsSearchUrl(query);
-  const wazeUrl = wazeSearchUrl(query);
-
-  const copyLink = async () => {
-    await Clipboard.setStringAsync(googleUrl);
-    Alert.alert(
-      "Copiado",
-      "O link do Google Maps foi copiado para a área de transferência."
-    );
-  };
-
-  const openMaps = () => void Linking.openURL(googleUrl);
-  const openWaze = () => void Linking.openURL(wazeUrl);
-
-  const onPress = () => {
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ["Cancelar", "Google Maps", "Waze", "Copiar link"],
-          cancelButtonIndex: 0,
-          title: "Localização do veículo",
-          message: query,
-        },
-        (i) => {
-          if (i === 1) openMaps();
-          else if (i === 2) openWaze();
-          else if (i === 3) void copyLink();
-        }
-      );
-    } else {
-      Alert.alert("Localização do veículo", query, [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Google Maps", onPress: openMaps },
-        {
-          text: "Mais opções",
-          onPress: () =>
-            Alert.alert("Outras opções", undefined, [
-              { text: "Voltar", style: "cancel" },
-              { text: "Waze", onPress: openWaze },
-              { text: "Copiar link", onPress: () => void copyLink() },
-            ]),
-        },
-      ]);
-    }
-  };
-
-  return (
-    <Button
-      mode="outlined"
-      icon="map-marker-radius"
-      onPress={onPress}
-      style={{ marginTop: 12 }}
-    >
-      Localização do veículo
-    </Button>
-  );
 }
 
 export function RentalDetailScreen({ navigation, route }: Props) {

@@ -1,3 +1,5 @@
+import { Linking, Platform } from "react-native";
+
 export type VehiclePickupFields = {
   pickupCep?: string | null;
   pickupLogradouro?: string | null;
@@ -34,4 +36,13 @@ export function googleMapsSearchUrl(query: string): string {
 
 export function wazeSearchUrl(query: string): string {
   return `https://waze.com/ul?q=${encodeURIComponent(query)}`;
+}
+
+/** Abre URL externa (nova aba no web). */
+export function openExternalUrl(url: string): void {
+  if (Platform.OS === "web") {
+    globalThis.open?.(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+  void Linking.openURL(url);
 }

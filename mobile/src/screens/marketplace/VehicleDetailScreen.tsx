@@ -1,12 +1,8 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useMemo, useState } from "react";
 import {
-  ActionSheetIOS,
   ActivityIndicator,
-  Alert,
   Image,
-  Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +10,7 @@ import {
 } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import VehicleImageViewer from "../../components/VehicleImageViewer";
+import { VehicleLocationActions } from "../../components/VehicleLocationActions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
@@ -27,53 +24,10 @@ import {
   trpcErrorMessage,
 } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
-import {
-  buildVehiclePickupSearchQuery,
-  googleMapsSearchUrl,
-  wazeSearchUrl,
-  type VehiclePickupFields,
-} from "../../utils/vehicleLocationLinks";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VehicleDetail">;
 
 const PHOTO_THUMB = 108;
-
-function VehicleLocationActions({ vehicle }: { vehicle: VehiclePickupFields }) {
-  const query = buildVehiclePickupSearchQuery(vehicle);
-  if (!query) return null;
-
-  const googleUrl = googleMapsSearchUrl(query);
-  const wazeUrl = wazeSearchUrl(query);
-
-  const onPress = () => {
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: ["Cancelar", "Google Maps", "Waze"],
-          cancelButtonIndex: 0,
-          title: "Localização do veículo",
-          message: query,
-        },
-        (i) => {
-          if (i === 1) void Linking.openURL(googleUrl);
-          else if (i === 2) void Linking.openURL(wazeUrl);
-        }
-      );
-    } else {
-      Alert.alert("Localização do veículo", query, [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Google Maps", onPress: () => void Linking.openURL(googleUrl) },
-        { text: "Waze", onPress: () => void Linking.openURL(wazeUrl) },
-      ]);
-    }
-  };
-
-  return (
-    <Button mode="outlined" icon="map-marker-radius" onPress={onPress} style={styles.locationBtn}>
-      Localização do veículo
-    </Button>
-  );
-}
 
 export function VehicleDetailScreen({ navigation, route }: Props) {
   const theme = useTheme();
@@ -338,7 +292,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 2,
   },
-  locationBtn: { marginTop: 4 },
   requestBtn: { marginTop: 18 },
   desc: { marginTop: 12, fontSize: 16, lineHeight: 22 },
   req: { marginTop: 8, color: "#334155" },

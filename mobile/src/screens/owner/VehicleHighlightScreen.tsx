@@ -119,10 +119,7 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: 24 + insets.bottom },
-        ]}
+        contentContainerStyle={styles.scroll}
       >
         <Text variant="titleLarge" style={styles.title}>
           Destaque no marketplace
@@ -261,6 +258,12 @@ export function VehicleHighlightScreen({ route, navigation }: Props) {
         ) : null}
       </ScrollView>
 
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
+
       <Snackbar visible={!!snack} onDismiss={() => setSnack(null)} duration={2500}>
         {snack}
       </Snackbar>
@@ -295,4 +298,5 @@ const styles = StyleSheet.create({
   bold: { fontWeight: "600" },
   pixKey: { flex: 1 },
   qrHint: { textAlign: "center" },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

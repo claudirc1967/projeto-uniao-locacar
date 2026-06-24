@@ -47,10 +47,18 @@ npm run start
 
 1. `owner.createVehicle` → `vehicleId`
 2. `owner.requestVehiclePhotoUploads` → URLs PUT + `key`
-3. App faz `PUT` direto no storage
+3. App faz `PUT` direto no storage (mobile nativo) **ou** `PUT` binário na API em `/upload/vehicle-photo` (web — evita CORS no S3)
 4. `owner.addVehiclePhotos` confirma metadados
 
-Sem upload multipart pesado no backend.
+Sem upload multipart pesado no backend (exceto proxy web, uma foto por request).
+
+**CORS no bucket (opcional):** para upload direto no navegador sem passar pela API, aplique `backend/scripts/s3-cors.json`:
+
+```bash
+cd backend && npm run s3:cors
+```
+
+Ou no console AWS → bucket `AWS_S3_BUCKET` → Permissions → CORS.
 
 ## Estrutura do app (`mobile/src`)
 

@@ -26,6 +26,7 @@ import {
 } from "../../utils/photoUploadRules";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import { putWithRetry } from "../../utils/uploadWithRetry";
+import { putViaApiProxy } from "../../utils/uploadViaApiProxy";
 
 type Props = NativeStackScreenProps<RootStackParamList, "RentalInspectionForm">;
 type FuelLevel = "EMPTY" | "QUARTER" | "HALF" | "THREE_QUARTERS" | "FULL";
@@ -67,6 +68,7 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { rentalId, type } = route.params;
+  const isWeb = Platform.OS === "web";
   const utils = trpc.useUtils();
   const q = trpc.rentalInspection.list.useQuery({ rentalId });
   const presign = trpc.rentalInspection.requestPhotoUploads.useMutation();
@@ -270,12 +272,22 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
           const photo = pending[i]!;
           setStatus(`Enviando foto ${i + 1} de ${pending.length}...`);
           const bytes = await imageUriToUint8Array(photo.uri);
-          await putWithRetry(
-            row.uploadUrl,
-            bytes,
-            row.requiredHeaders ?? { "Content-Type": row.contentType },
-            2
-          );
+          const ct = row.contentType ?? photo.mime;
+          if (isWeb) {
+            await putViaApiProxy(
+              "/upload/rental-inspection-photo",
+              { rentalId, type, key: row.key },
+              bytes,
+              ct
+            );
+          } else {
+            await putWithRetry(
+              row.uploadUrl,
+              bytes,
+              row.requiredHeaders ?? { "Content-Type": ct },
+              2
+            );
+          }
         }
 
         uploaded = pres.items.map((row, index) => ({

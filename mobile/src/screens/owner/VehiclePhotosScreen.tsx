@@ -29,6 +29,7 @@ import {
 import { imageUriToUint8Array } from "../../utils/imageUriToBlob";
 import { prepareImageForUpload } from "../../utils/prepareImageForUpload";
 import { putWithRetry } from "../../utils/uploadWithRetry";
+import { putViaApiProxy } from "../../utils/uploadViaApiProxy";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -275,7 +276,16 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
         const ct = row.contentType ?? p.mime;
         const extraHeaders =
           row.requiredHeaders ?? ({ "Content-Type": ct } as Record<string, string>);
-        await putWithRetry(row.uploadUrl, bytes, extraHeaders, 2);
+        if (isWeb) {
+          await putViaApiProxy(
+            "/upload/vehicle-photo",
+            { vehicleId, key: row.key },
+            bytes,
+            ct
+          );
+        } else {
+          await putWithRetry(row.uploadUrl, bytes, extraHeaders, 2);
+        }
       }
 
       setStatus("Confirmando no servidor…");

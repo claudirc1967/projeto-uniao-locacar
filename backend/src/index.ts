@@ -6,6 +6,11 @@ import { fileURLToPath } from "node:url";
 import { createContext } from "./context.js";
 import { startHighlightExpirationScheduler } from "./highlights/scheduler.js";
 import { appRouter } from "./router.js";
+import {
+  handleRentalInspectionPhotoProxyUpload,
+  handleVehiclePhotoProxyUpload,
+} from "./storage/proxyUpload.js";
+import { MAX_UPLOAD_BYTES } from "./storage/s3.js";
 
 const port = Number(process.env.PORT ?? 4000);
 const sampleAdsDir = path.join(
@@ -254,9 +259,22 @@ const resetPasswordPageHtml = `<!doctype html>
   </body>
 </html>`;
 
+const rawPhotoUpload = express.raw({
+  type: ["image/jpeg", "image/png", "image/webp"],
+  limit: MAX_UPLOAD_BYTES,
+});
+
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "1mb" }));
+
+/** Web: PUT binário via API (evita CORS no bucket S3). */
+app.put("/upload/vehicle-photo", rawPhotoUpload, handleVehiclePhotoProxyUpload);
+app.put(
+  "/upload/rental-inspection-photo",
+  rawPhotoUpload,
+  handleRentalInspectionPhotoProxyUpload
+);
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });

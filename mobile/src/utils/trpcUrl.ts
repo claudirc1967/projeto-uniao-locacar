@@ -1,5 +1,10 @@
 import { Platform } from "react-native";
 
+/** Base da API (sem `/trpc`), ex.: `https://api.uniaolocacar.com.br`. */
+export function getApiBaseUrl(): string {
+  return getTrpcUrl().replace(/\/trpc\/?$/, "");
+}
+
 /** URL completa do endpoint tRPC (inclui `/trpc`). */
 export function getTrpcUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_TRPC_URL?.trim();

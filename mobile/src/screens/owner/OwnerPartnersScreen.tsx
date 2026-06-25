@@ -2,7 +2,6 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -30,6 +29,7 @@ import { trpc } from "../../api/trpc";
 import { maskPhone, onlyDigits } from "../../utils/masks";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
+import { appAlert } from "../../utils/appAlert";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerPartners">;
 
@@ -255,7 +255,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
       await invalidatePartners();
     },
     onError: (e) => {
-      Alert.alert("Erro", trpcErrorMessage(e));
+      appAlert("Erro", trpcErrorMessage(e));
     },
   });
 
@@ -299,7 +299,7 @@ export function OwnerPartnersScreen({ navigation }: Props) {
   };
 
   const onDelete = (partnerId: string, partnerName: string) => {
-    Alert.alert(
+    appAlert(
       "Excluir parceiro",
       `Excluir "${partnerName}"? Veículos vinculados ficarão sem este parceiro.`,
       [

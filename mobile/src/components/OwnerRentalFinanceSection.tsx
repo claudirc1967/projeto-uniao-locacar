@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Modal, ScrollView, StyleSheet, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, View } from "react-native";
 import {
   Button,
   Card,
@@ -19,6 +19,7 @@ import {
   onlyDigits,
 } from "../utils/masks";
 import { trpcErrorMessage } from "../utils/trpcError";
+import { appAlert } from "../utils/appAlert";
 
 type PaymentStatus = "PENDING" | "PARTIAL" | "PAID" | "OVERDUE" | "CANCELLED";
 type EntryType =
@@ -203,7 +204,7 @@ export function OwnerRentalFinanceSection({
     onSuccess: async () => {
       await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
     },
-    onError: (error) => Alert.alert("Falha", trpcErrorMessage(error)),
+    onError: (error) => appAlert("Falha", trpcErrorMessage(error)),
   });
 
   useEffect(() => {
@@ -278,7 +279,7 @@ export function OwnerRentalFinanceSection({
   };
 
   const confirmDeleteEntry = (entryId: string) => {
-    Alert.alert("Excluir lançamento", "Deseja remover este lançamento financeiro?", [
+    appAlert("Excluir lançamento", "Deseja remover este lançamento financeiro?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Excluir",

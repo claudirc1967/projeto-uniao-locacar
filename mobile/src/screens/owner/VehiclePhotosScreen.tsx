@@ -4,7 +4,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Image,
   Platform,
@@ -30,6 +29,7 @@ import { imageUriToUint8Array } from "../../utils/imageUriToBlob";
 import { prepareImageForUpload } from "../../utils/prepareImageForUpload";
 import { putWithRetry } from "../../utils/uploadWithRetry";
 import { putViaApiProxy } from "../../utils/uploadViaApiProxy";
+import { appAlert } from "../../utils/appAlert";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -95,7 +95,7 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
   const pickImages = async () => {
     setErr(null);
     if (maxSelectable <= 0) {
-      Alert.alert("Limite", "Já existem 6 fotos para este veículo.");
+      appAlert("Limite", "Já existem 6 fotos para este veículo.");
       return;
     }
 
@@ -180,17 +180,7 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
     const slot = viewerSlots[index];
     if (!slot) return;
     if (slot.kind === "pending") {
-      if (isWeb) {
-        const ok = globalThis.confirm?.(
-          "Descartar esta imagem da fila de envio?"
-        );
-        if (ok) {
-          removePending(slot.uri);
-          setViewerVisible(false);
-        }
-        return;
-      }
-      Alert.alert("Remover foto", "Descartar esta imagem da fila de envio?", [
+      appAlert("Remover foto", "Descartar esta imagem da fila de envio?", [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Remover",
@@ -203,14 +193,8 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
       ]);
       return;
     }
-    if (isWeb) {
-      const ok = globalThis.confirm?.(
-        "A foto será removida do veículo e do armazenamento. Excluir?"
-      );
-      if (ok) void runDeleteSaved(slot.id);
-      return;
-    }
-    Alert.alert(
+
+    appAlert(
       "Excluir foto",
       "A foto será removida do veículo e do armazenamento.",
       [
@@ -302,7 +286,7 @@ export function VehiclePhotosScreen({ navigation, route }: Props) {
       await utils.owner.getMyVehicle.invalidate({ vehicleId });
       setPending([]);
       setStatus(null);
-      Alert.alert("Pronto", "Fotos salvas com sucesso.");
+      appAlert("Pronto", "Fotos salvas com sucesso.");
     } catch (e) {
       setErr(trpcErrorMessage(e, "Falha no fluxo de upload."));
       setStatus(null);

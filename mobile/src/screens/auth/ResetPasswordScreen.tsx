@@ -1,7 +1,6 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,6 +16,7 @@ import {
 } from "react-native-paper";
 import { trpc } from "../../api/trpc";
 import type { RootStackParamList } from "../../navigation/types";
+import { appAlert } from "../../utils/appAlert";
 import {
   validatePasswordForAuth,
   validateResetToken,
@@ -32,9 +32,16 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
   const [secure, setSecure] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  const [success, setSuccess] = useState<string | null>(null);
+
   const reset = trpc.auth.resetPassword.useMutation({
     onSuccess: () => {
-      Alert.alert("Senha alterada", "Faça login com a nova senha.", [
+      setErr(null);
+      if (Platform.OS === "web") {
+        setSuccess("Senha alterada. Faça login com a nova senha.");
+        return;
+      }
+      appAlert("Senha alterada", "Faça login com a nova senha.", [
         { text: "OK", onPress: () => navigation.navigate("Login") },
       ]);
     },
@@ -81,6 +88,16 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         <HelperText type="error" visible={!!err}>
           {err ?? ""}
         </HelperText>
+        {success ? (
+          <>
+            <HelperText type="info" visible style={styles.success}>
+              {success}
+            </HelperText>
+            <Button mode="contained" onPress={() => navigation.navigate("Login")}>
+              Ir para login
+            </Button>
+          </>
+        ) : (
         <Button
           mode="contained"
           onPress={() => {
@@ -103,6 +120,7 @@ export function ResetPasswordScreen({ navigation, route }: Props) {
         >
           Redefinir
         </Button>
+        )}
         <View style={styles.spacer} />
       </ScrollView>
     </KeyboardAvoidingView>
@@ -114,5 +132,6 @@ const styles = StyleSheet.create({
   container: { padding: 24, paddingTop: 48, paddingBottom: 40, gap: 8 },
   field: { marginBottom: 4, backgroundColor: "#fff" },
   btn: { marginTop: 8 },
+  success: { marginBottom: 8 },
   spacer: { height: 24 },
 });

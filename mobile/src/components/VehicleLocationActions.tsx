@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ActionSheetIOS,
-  Alert,
   Platform,
   StyleSheet,
   View,
@@ -9,6 +8,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Button, Dialog, Icon, Portal, Surface, Text, useTheme } from "react-native-paper";
+import { appAlert } from "../utils/appAlert";
 import {
   buildVehiclePickupSearchQuery,
   googleMapsSearchUrl,
@@ -66,7 +66,7 @@ export function VehicleLocationActions({ vehicle, style }: Props) {
       return;
     }
 
-    Alert.alert("Localização do veículo", query, [
+    appAlert("Localização do veículo", query, [
       { text: "Cancelar", style: "cancel" },
       { text: "Google Maps", onPress: () => openExternalUrl(googleUrl) },
       { text: "Waze", onPress: () => openExternalUrl(wazeUrl) },

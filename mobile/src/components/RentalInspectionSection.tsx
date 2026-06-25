@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Alert, Image, Pressable, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import { Button, Card, Text, useTheme } from "react-native-paper";
 import { ImageViewerModal } from "./ImageViewerModal";
 import { trpc } from "../api/trpc";
+import { appAlert } from "../utils/appAlert";
 import { formatDateTimeDisplay } from "../utils/masks";
 import { trpcErrorMessage } from "../utils/trpcError";
 
@@ -78,7 +79,7 @@ export function RentalInspectionSection({
       await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
       await utils.driver.getRentalDetail.invalidate({ rentalId });
     },
-    onError: (e) => Alert.alert("Falha", trpcErrorMessage(e)),
+    onError: (e) => appAlert("Falha", trpcErrorMessage(e)),
   });
 
   const inspections = (q.data?.items ?? []) as Inspection[];

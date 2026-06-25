@@ -549,7 +549,7 @@ model AdEvent {
   id         String          @id @default(cuid())
   eventId    String          @unique
   campaignId String?
-  campaign   AdCampaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaign   AdCampaign?     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   userId     String?
   placement  AdPlacementKey
   eventType  AdEventType

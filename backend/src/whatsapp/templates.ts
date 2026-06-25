@@ -98,7 +98,7 @@ export function rentalRequestedWhatsApp(input: {
       `Motorista: ${variables[2]}.`,
       `WhatsApp: ${variables[3]}.`,
       `E-mail: ${variables[4]}.`,
-      "Abra o app para analisar.",
+      "Abra o app uniaolocacar.com.br para analisar.",
     ].join("\n")
   );
 }
@@ -114,7 +114,7 @@ export function driverApprovedWhatsApp(input: {
     [
       `Olá, ${variables[0]}.`,
       "Seu cadastro de motorista foi aprovado na União Locacar.",
-      "Acesse o app para ver veículos e solicitar locações.",
+      "Acesse o app uniaolocacar.com.br para ver veículos e solicitar locações.",
     ].join("\n")
   );
 }
@@ -135,7 +135,7 @@ export function driverRejectedWhatsApp(input: {
       `Olá, ${variables[0]}.`,
       "Seu cadastro de motorista não foi aprovado.",
       `Motivo: ${variables[1]}.`,
-      "Você poderá solicitar nova análise no app quando permitido.",
+      "Você poderá solicitar nova análise no app uniaolocacar.com.br quando permitido.",
     ].join("\n")
   );
 }
@@ -167,7 +167,7 @@ export function rentalApprovedWhatsApp(input: {
       `Locador: ${variables[2]}.`,
       `WhatsApp: ${variables[3]}.`,
       `Retirada: ${variables[4]}.`,
-      "Detalhes no app.",
+      "Detalhes no app uniaolocacar.com.br",
     ].join("\n")
   );
 }
@@ -198,7 +198,7 @@ export function highlightExpiringWhatsApp(input: {
     [
       `Olá, ${variables[0]}.`,
       `O destaque ${variables[1]} do veículo ${variables[2]} expira ${variables[3]}.`,
-      "Para manter a prioridade na listagem, renove pelo app em Meus veículos → Destacar.",
+      "Para manter a prioridade na listagem, renove pelo app uniaolocacar.com.br em Meus veículos → Destacar.",
     ].join("\n")
   );
 }
@@ -227,7 +227,7 @@ export function rentalRejectedWhatsApp(input: {
       `Locador: ${variables[2]}.`,
       `WhatsApp: ${variables[3]}.`,
       `Motivo: ${variables[4]}.`,
-      "Dúvidas: contate o locador ou use o app.",
+      "Dúvidas: contate o locador ou use o app uniaolocacar.com.br",
     ].join("\n")
   );
 }

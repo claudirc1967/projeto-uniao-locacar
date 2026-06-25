@@ -4,7 +4,6 @@ import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Keyboard,
   Linking,
@@ -19,6 +18,7 @@ import { RentalInspectionSection } from "../../components/RentalInspectionSectio
 import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { VehicleLocationActions } from "../../components/VehicleLocationActions";
 import { trpc } from "../../api/trpc";
+import { appAlert } from "../../utils/appAlert";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { formatDateDisplay, maskPhone, onlyDigits } from "../../utils/masks";
@@ -237,13 +237,13 @@ export function RentalDetailScreen({ navigation, route }: Props) {
           mode="contained-tonal"
           icon="file-pdf-box"
           onPress={() =>
-            Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
+            appAlert("Contrato (PDF)", "O que deseja fazer?", [
               { text: "Cancelar", style: "cancel" },
               {
                 text: "Compartilhar PDF",
                 onPress: () =>
                   void sharePdfFromUrl(r.contractUrl!, rentalId).catch((e) =>
-                    Alert.alert(
+                    appAlert(
                       "Falha",
                       `Não foi possível baixar/compartilhar (${e instanceof Error ? e.message : "erro desconhecido"}).`
                     )

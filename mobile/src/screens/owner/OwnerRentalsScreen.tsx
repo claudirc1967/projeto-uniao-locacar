@@ -2,7 +2,6 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -23,6 +22,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
+import { appAlert } from "../../utils/appAlert";
 import type { RootStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerRentals">;
@@ -162,11 +162,7 @@ export function OwnerRentalsScreen({ navigation }: Props) {
       setDeletingRentalId(rentalId);
       deleteRejected.mutate({ rentalId });
     };
-    if (Platform.OS === "web") {
-      if (globalThis.confirm?.(message)) runDelete();
-      return;
-    }
-    Alert.alert("Tem certeza?", message, [
+    appAlert("Tem certeza?", message, [
       { text: "Cancelar", style: "cancel" },
       { text: "Excluir", style: "destructive", onPress: runDelete },
     ]);

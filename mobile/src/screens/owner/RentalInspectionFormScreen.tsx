@@ -3,7 +3,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Image,
   KeyboardAvoidingView,
@@ -20,6 +19,7 @@ import { ImageViewerModal } from "../../components/ImageViewerModal";
 import type { RootStackParamList } from "../../navigation/types";
 import { imageUriToUint8Array } from "../../utils/imageUriToBlob";
 import { prepareImageForUpload } from "../../utils/prepareImageForUpload";
+import { appAlert } from "../../utils/appAlert";
 import {
   isAllowedImageType,
   validatePhotosForUpload,
@@ -140,7 +140,7 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
     const slot = viewerSlots[index];
     if (!slot) return;
     if (slot.kind === "pending") {
-      Alert.alert("Remover foto", "Descartar esta imagem da fila de envio?", [
+      appAlert("Remover foto", "Descartar esta imagem da fila de envio?", [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Remover",
@@ -154,7 +154,7 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
       return;
     }
 
-    Alert.alert("Excluir foto", "A foto será removida da vistoria e do armazenamento.", [
+    appAlert("Excluir foto", "A foto será removida da vistoria e do armazenamento.", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Excluir",
@@ -172,7 +172,7 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
   const pickImages = async () => {
     setErr(null);
     if (maxSelectable <= 0) {
-      Alert.alert("Limite", "Esta vistoria já tem o máximo de fotos.");
+      appAlert("Limite", "Esta vistoria já tem o máximo de fotos.");
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -317,7 +317,7 @@ export function RentalInspectionFormScreen({ navigation, route }: Props) {
       await utils.rentalInspection.list.invalidate({ rentalId });
       await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
       setPending([]);
-      Alert.alert("Pronto", "Vistoria salva com sucesso.", [
+      appAlert("Pronto", "Vistoria salva com sucesso.", [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } catch (e) {

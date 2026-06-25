@@ -3,7 +3,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -25,6 +24,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
+import { appAlert } from "../../utils/appAlert";
 import {
   contractTimeSuffix,
   formatMoneyWithContractPeriod,
@@ -221,7 +221,7 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const onSameAsOwnerChange = (next: boolean) => {
     if (next) {
       if (!ownerProfile) {
-        Alert.alert(
+        appAlert(
           "Endereço do proprietário",
           "Cadastre seu endereço em Perfil do proprietário antes de usar esta opção."
         );
@@ -229,28 +229,28 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       }
       const cepDigits = ownerProfile.cep.replace(/\D/g, "");
       if (cepDigits.length !== 8) {
-        Alert.alert(
+        appAlert(
           "CEP inválido",
           "Informe um CEP válido (8 dígitos) no perfil do proprietário."
         );
         return;
       }
       if (!ownerProfile.logradouro.trim() || !ownerProfile.bairro.trim()) {
-        Alert.alert(
+        appAlert(
           "Endereço incompleto",
           "Complete logradouro e bairro no perfil do proprietário."
         );
         return;
       }
       if (!ownerProfile.cidade.trim() || ownerProfile.uf.trim().length !== 2) {
-        Alert.alert(
+        appAlert(
           "Endereço incompleto",
           "Complete cidade e UF no perfil do proprietário."
         );
         return;
       }
       if (!ownerProfile.numero.trim()) {
-        Alert.alert(
+        appAlert(
           "Número obrigatório",
           "Informe o número do endereço no perfil do proprietário."
         );

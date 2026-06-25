@@ -4,7 +4,6 @@ import * as Sharing from "expo-sharing";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Linking,
@@ -29,6 +28,7 @@ import { RentalInspectionSection } from "../../components/RentalInspectionSectio
 import { RentalReviewSection } from "../../components/RentalReviewSection";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
+import { appAlert } from "../../utils/appAlert";
 import type { RootStackParamList } from "../../navigation/types";
 import {
   formatDateDisplay,
@@ -209,14 +209,7 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       returnSituation === "LIBERADA" &&
       !inspectionsQ.data?.items.some((inspection) => inspection.type === "CHECKIN")
     ) {
-      if (Platform.OS === "web") {
-        const ok = globalThis.confirm?.(
-          "A vistoria de devolução ainda não foi feita. Deseja concluir mesmo assim?"
-        );
-        if (ok) submitReturnNow();
-        return;
-      }
-      Alert.alert(
+      appAlert(
         "Vistoria recomendada",
         "A vistoria de devolução ainda não foi feita. Deseja concluir mesmo assim?",
         [
@@ -362,13 +355,13 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
                 mode="contained-tonal"
                 style={{ marginTop: 8 }}
                 onPress={() =>
-                  Alert.alert("Contrato (PDF)", "O que deseja fazer?", [
+                  appAlert("Contrato (PDF)", "O que deseja fazer?", [
                     { text: "Cancelar", style: "cancel" },
                     {
                       text: "Compartilhar PDF",
                       onPress: () =>
                         void sharePdfFromUrl(row.contractUrl!, row.rentalId).catch((e) =>
-                          Alert.alert(
+                          appAlert(
                             "Falha",
                             `Não foi possível baixar/compartilhar (${e instanceof Error ? e.message : "erro desconhecido"}).`
                           )

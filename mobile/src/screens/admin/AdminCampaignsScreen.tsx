@@ -1,14 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Card, Chip, Text, useTheme } from "react-native-paper";
+import { Button, Card, Chip, HelperText, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
@@ -19,6 +18,7 @@ import {
 import type { AdPlacementKey } from "../../constants/adPlacements";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import { appAlert } from "../../utils/appAlert";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AdminCampaigns">;
@@ -44,9 +44,18 @@ export function AdminCampaignsScreen({ navigation }: Props) {
     enabled: user?.role === "ADMIN",
   });
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+
   const deleteM = trpc.ads.admin.delete.useMutation({
     onSuccess: async () => {
+      setDeleteErr(null);
+      setDeletingId(null);
       await utils.ads.admin.list.invalidate();
+    },
+    onError: (e) => {
+      setDeletingId(null);
+      setDeleteErr(trpcErrorMessage(e));
     },
   });
 
@@ -55,18 +64,16 @@ export function AdminCampaignsScreen({ navigation }: Props) {
   }, [listQ]);
 
   const confirmDelete = (id: string, title: string) => {
-    Alert.alert(
-      "Excluir campanha",
-      `Remover "${title}"? Os eventos de métricas permanecem sem vínculo.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: () => deleteM.mutate({ id }),
-        },
-      ]
-    );
+    const message = `Remover "${title}"? Impressões e cliques desta campanha também serão excluídos. Use "Pausada" se quiser retomar depois.`;
+    const runDelete = () => {
+      setDeleteErr(null);
+      setDeletingId(id);
+      deleteM.mutate({ id });
+    };
+    appAlert("Excluir campanha", message, [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Excluir", style: "destructive", onPress: runDelete },
+    ]);
   };
 
   if (listQ.isLoading) {
@@ -117,6 +124,11 @@ export function AdminCampaignsScreen({ navigation }: Props) {
             >
               Nova campanha
             </Button>
+            {deleteErr ? (
+              <HelperText type="error" visible>
+                {deleteErr}
+              </HelperText>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -174,7 +186,8 @@ export function AdminCampaignsScreen({ navigation }: Props) {
                   icon="delete-outline"
                   textColor={theme.colors.error}
                   onPress={() => confirmDelete(item.id, item.title)}
-                  loading={deleteM.isPending}
+                  loading={deleteM.isPending && deletingId === item.id}
+                  disabled={deleteM.isPending}
                 >
                   Excluir
                 </Button>

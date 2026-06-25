@@ -4,7 +4,6 @@ import * as FileSystem from "expo-file-system/legacy";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -22,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import { appAlert } from "../../utils/appAlert";
 import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "OwnerContractTemplate">;
@@ -84,7 +84,7 @@ export function OwnerContractTemplateScreen({ navigation }: Props) {
         return;
       }
       setText(content);
-      Alert.alert("Template importado", "Texto do contrato carregado com sucesso.");
+      appAlert("Template importado", "Texto do contrato carregado com sucesso.");
     } catch (e) {
       if (uri) {
         try {
@@ -92,7 +92,7 @@ export function OwnerContractTemplateScreen({ navigation }: Props) {
           const txt = await resp.text();
           if (txt.trim()) {
             setText(txt);
-            Alert.alert(
+            appAlert(
               "Template importado",
               "Texto do contrato carregado com sucesso."
             );

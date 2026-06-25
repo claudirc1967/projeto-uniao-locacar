@@ -4,7 +4,6 @@ import * as Sharing from "expo-sharing";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -23,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
+import { appAlert } from "../../utils/appAlert";
 
 type Props = NativeStackScreenProps<RootStackParamList, "RentalInstructions">;
 
@@ -30,7 +30,6 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { rentalId } = route.params;
-  const isWeb = Platform.OS === "web";
   const detail = trpc.owner.getIncomingRentalDetail.useQuery({ rentalId });
   const inspections = trpc.rentalInspection.list.useQuery({ rentalId });
   const [pickupInstructions, setPickup] = useState("");
@@ -65,18 +64,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
       }
 
       setContractUrl(url);
-      if (isWeb) {
-        // No Web o Alert nativo pode não aparecer; abrimos o link direto.
-        try {
-          globalThis.open?.(url, "_blank", "noopener,noreferrer");
-        } catch {
-          // ignore
-        }
-        navigation.goBack();
-        return;
-      }
-
-      Alert.alert(
+      appAlert(
         "Locação ativada",
         "Contrato em PDF gerado. O que deseja fazer?",
         [
@@ -91,6 +79,10 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
                   if (!base) throw new Error("Diretório do app indisponível.");
                   const localUri = `${base}contract-${rentalId}.pdf`;
                   await FileSystem.downloadAsync(url, localUri);
+                  if (Platform.OS === "web") {
+                    globalThis.open?.(url, "_blank", "noopener,noreferrer");
+                    return;
+                  }
                   await Sharing.shareAsync(localUri, {
                     mimeType: "application/pdf",
                     dialogTitle: "Contrato de locação",
@@ -127,14 +119,7 @@ export function RentalInstructionsScreen({ navigation, route }: Props) {
 
   const confirmSave = () => {
     if (!inspections.data?.items.some((inspection) => inspection.type === "CHECKOUT")) {
-      if (isWeb) {
-        const ok = globalThis.confirm?.(
-          "A vistoria de retirada ainda não foi feita. Deseja ativar a locação mesmo assim?"
-        );
-        if (ok) runSave();
-        return;
-      }
-      Alert.alert(
+      appAlert(
         "Vistoria recomendada",
         "A vistoria de retirada ainda não foi feita. Deseja ativar a locação mesmo assim?",
         [

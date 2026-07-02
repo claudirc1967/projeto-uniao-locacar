@@ -1,13 +1,19 @@
 # Deploy do app web (Expo export estático) para GitHub Pages.
 #
-# Primeira vez no repositório:
-#   Settings → Pages → Build and deployment → Source: "GitHub Actions" (obrigatório).
-#   Sem isso o job deploy pode falhar ao publicar.
+# Publica via push na branch `gh-pages` (sem a API deploy-pages, que estava
+# travando em deployment_queued até timeout de 10 min).
+#
+# Após o PRIMEIRO deploy bem-sucedido com este workflow:
+#   Settings → Pages → Build and deployment → Source: "Deploy from a branch"
+#   Branch: gh-pages / (root)   ← substituir "GitHub Actions"
+#
+# Settings → Actions → General → Workflow permissions: "Read and write permissions"
+# (necessário para o GITHUB_TOKEN publicar na branch gh-pages).
 #
 # Secrets (Settings → Secrets and variables → Actions):
 #   EXPO_PUBLIC_TRPC_URL — URL pública do tRPC na EC2 (ex.: https://api.uniaolocacar.com.br/trpc)
-#   EXPO_BASE_URL — "/" para domínio customizado na raiz (uniaolocacar.com.br); omita para github.io/<repo>/
-#   EXPO_PUBLIC_SITE_URL — opcional; ex.: https://uniaolocacar.com.br (ajuda o build a usar baseUrl "/")
+#   EXPO_BASE_URL — "/" para domínio customizado na raiz (uniaolocacar.com.br)
+#   EXPO_PUBLIC_SITE_URL — opcional; ex.: https://uniaolocacar.com.br
 #
 name: Deploy Expo Web to GitHub Pages
 
@@ -17,19 +23,14 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-  actions: write
+  contents: write
 
-# cancel-in-progress: true cancela o job no Actions, mas o deploy no backend do Pages
-# pode continuar — o próximo run fica preso em deployment_queued até dar timeout (10 min).
 concurrency:
-  group: "pages"
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -66,51 +67,10 @@ jobs:
       - name: Disable Jekyll
         run: touch mobile/dist/.nojekyll
 
-      # Re-run do workflow acumula artefatos "github-pages" no mesmo run; deploy-pages exige 1 só.
-      - name: Remove duplicate Pages artifacts (re-run safe)
-        uses: actions/github-script@v7
+      - name: Publish to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          script: |
-            const { owner, repo } = context.repo;
-            const runId = context.runId;
-            const { data } = await github.rest.actions.listWorkflowRunArtifacts({
-              owner,
-              repo,
-              run_id: runId,
-            });
-            const pages = data.artifacts.filter((a) => a.name === "github-pages");
-            for (const artifact of pages) {
-              core.info(`Deleting artifact ${artifact.id} (${artifact.name})`);
-              await github.rest.actions.deleteArtifact({
-                owner,
-                repo,
-                artifact_id: artifact.id,
-              });
-            }
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: mobile/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment_retry.outputs.page_url || steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        # Falhas intermitentes (deployment_queued / purging_cdn) são comuns; uma nova tentativa costuma resolver.
-        continue-on-error: true
-
-      - name: Retry deploy (Pages API timeout)
-        if: steps.deployment.outcome == 'failure'
-        id: deployment_retry
-        uses: actions/deploy-pages@v4
-
-      - name: Fail if deploy did not succeed
-        if: steps.deployment.outcome == 'failure' && steps.deployment_retry.outcome == 'failure'
-        run: exit 1
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: mobile/dist
+          cname: uniaolocacar.com.br
+          force_orphan: true

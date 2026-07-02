@@ -31,6 +31,7 @@
     "test:highlights": "tsx --test src/highlights/tier.test.ts src/highlights/expiration.test.ts",
     "test:driver": "tsx --test src/driverProfileEligibility.test.ts",
     "test:support": "tsx --test src/support/publicSupport.test.ts",
+    "test:contracts": "tsx --test src/contracts/fillRentalContract.test.ts",
     "highlights:expire": "tsx scripts/expire-highlights.mjs",
     "s3:cors": "node --env-file=.env scripts/apply-s3-cors.mjs"
   },

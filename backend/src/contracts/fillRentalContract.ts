@@ -1,4 +1,9 @@
 import type { ContractTime, DriverProfile, OwnerProfile, Rental, User, Vehicle } from "@prisma/client";
+import { maskCpf, maskCpfCnpj } from "../utils/masks.js";
+import {
+  formatCaucaoWithExtenso,
+  moneyInWordsFromCents,
+} from "../utils/moneyInWords.js";
 
 /** Placeholders disponíveis para o template (.txt ou campo no perfil). Formato: {{NOME_DA_CHAVE}} */
 export const RENTAL_CONTRACT_PLACEHOLDER_KEYS = [
@@ -120,6 +125,13 @@ function moneyBRLFromCents(cents: number | null | undefined) {
   return (cents / 100).toFixed(2).replace(".", ",");
 }
 
+function formatMoneyWithExtenso(cents: number | null | undefined): string {
+  if (typeof cents !== "number") return "";
+  const formatted = moneyBRLFromCents(cents);
+  const extenso = moneyInWordsFromCents(cents);
+  return extenso ? `${formatted} (${extenso})` : formatted;
+}
+
 function ownerAddressLine(
   o: RentalContractInput["owner"]["ownerProfile"]
 ): string {
@@ -147,18 +159,17 @@ function buildPlaceholderMap(input: RentalContractInput): Record<string, string>
   const o = input.owner.ownerProfile;
   const d = input.driver.driverProfile;
   const v = input.vehicle;
-  const valor = moneyBRLFromCents(v.dailyRateCents);
   const periodo = contractPeriodLabel(v.contractTime);
 
   return {
     RENTAL_ID: input.rental.id,
     LOCADOR_NOME_RAZAO: (o?.nomeRazaoSocial ?? "").trim(),
-    LOCADOR_CPF_CNPJ: (o?.cpfCnpj ?? "").trim(),
+    LOCADOR_CPF_CNPJ: maskCpfCnpj(o?.cpfCnpj ?? ""),
     LOCADOR_ENDERECO: ownerAddressLine(o),
     LOCADOR_TELEFONE: (o?.phone ?? "").trim(),
     LOCADOR_EMAIL: (o?.emailLocador ?? input.owner.email ?? "").trim(),
     LOCATARIO_NOME_COMPLETO: (d?.fullName ?? "").trim(),
-    LOCATARIO_CPF: (d?.cpf ?? "").trim(),
+    LOCATARIO_CPF: maskCpf(d?.cpf ?? ""),
     LOCATARIO_CNH: (d?.cnh ?? "").trim(),
     LOCATARIO_ENDERECO: driverAddressLine(d),
     LOCATARIO_TELEFONE: (d?.phone ?? "").trim(),
@@ -168,10 +179,10 @@ function buildPlaceholderMap(input: RentalContractInput): Record<string, string>
     VEICULO_PLACA: (v.plate ?? "").trim(),
     VEICULO_COR: (v.cor ?? "").trim(),
     VEICULO_TITULO: (v.title ?? "").trim(),
-    VALOR_LOCACAO_BRL: valor,
+    VALOR_LOCACAO_BRL: formatMoneyWithExtenso(v.dailyRateCents),
     PERIODO_COBRANCA: periodo,
     FORMA_PAGAMENTO: (v.paymentNotes ?? "").trim(),
-    CAUCAO: (v.caucao ?? "").trim(),
+    CAUCAO: formatCaucaoWithExtenso(v.caucao),
   };
 }
 
@@ -193,7 +204,7 @@ function applyLegacyFillForOldFormat(template: string, input: RentalContractInpu
   out = replaceInSection(out, "**LOCADOR:**", "**LOCATÁRIO:**", (section) => {
     let s = section;
     s = lineReplace(s, "Nome/Razão Social:", o?.nomeRazaoSocial ?? null);
-    s = lineReplace(s, "CPF/CNPJ:", o?.cpfCnpj ?? null);
+    s = lineReplace(s, "CPF/CNPJ:", o?.cpfCnpj ? maskCpfCnpj(o.cpfCnpj) : null);
     s = lineReplace(
       s,
       "Endereço:",
@@ -213,7 +224,7 @@ function applyLegacyFillForOldFormat(template: string, input: RentalContractInpu
     (section) => {
       let s = section;
       s = lineReplace(s, "Nome Completo:", d?.fullName ?? null);
-      s = lineReplace(s, "CPF:", d?.cpf ?? null);
+      s = lineReplace(s, "CPF:", d?.cpf ? maskCpf(d.cpf) : null);
       s = lineReplace(s, "CNH:", d?.cnh ?? null);
       s = lineReplace(
         s,
@@ -238,7 +249,7 @@ function applyLegacyFillForOldFormat(template: string, input: RentalContractInpu
   out = bulletReplace(out, "Placa:", input.vehicle.plate);
   out = bulletReplace(out, "Cor:", input.vehicle.cor ?? null);
 
-  const value = moneyBRLFromCents(input.vehicle.dailyRateCents);
+  const value = formatMoneyWithExtenso(input.vehicle.dailyRateCents);
   if (value) {
     out = out.replace(
       /O LOCATÁRIO pagará ao LOCADOR o valor de R\$ __________ por \(semana\/mês\), mediante:/,
@@ -256,7 +267,7 @@ function applyLegacyFillForOldFormat(template: string, input: RentalContractInpu
   if (input.vehicle.caucao?.trim()) {
     out = out.replace(
       "### **CLÁUSULA 3 – DO VALOR E FORMA DE PAGAMENTO**",
-      `### **CLÁUSULA 3 – DO VALOR E FORMA DE PAGAMENTO**\n\nCaução (conforme acordado): ${input.vehicle.caucao.trim()}`
+      `### **CLÁUSULA 3 – DO VALOR E FORMA DE PAGAMENTO**\n\nCaução (conforme acordado): ${formatCaucaoWithExtenso(input.vehicle.caucao)}`
     );
   }
 
@@ -272,6 +283,5 @@ export function fillRentalContract(template: string, input: RentalContractInput)
   if (isLegacyTemplateFormat(out)) {
     out = applyLegacyFillForOldFormat(out, input);
   }
-  out += `\n\n---\nGerado automaticamente pelo sistema (Rental ID: ${input.rental.id}).\n`;
-  return out;
+  return out.trimEnd() + "\n";
 }

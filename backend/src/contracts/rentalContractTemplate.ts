@@ -31,7 +31,4 @@ VALOR E FORMA DE PAGAMENTO
 Valor da locação (referência): R$ {{VALOR_LOCACAO_BRL}} por {{PERIODO_COBRANCA}}
 Formas / observações: {{FORMA_PAGAMENTO}}
 Caução: {{CAUCAO}}
-
----
-Identificador da locação: {{RENTAL_ID}}
 `;

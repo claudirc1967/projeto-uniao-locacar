@@ -1,0 +1,37 @@
+Lista completa de placeholders disponíveis
+Formato sempre: {{NOME_EM_MAIUSCULAS}}
+
+Observações:
+- {{LOCADOR_CPF_CNPJ}} e {{LOCATARIO_CPF}} saem mascarados (000.000.000-00).
+- {{VALOR_LOCACAO_BRL}} e {{CAUCAO}} incluem valor por extenso entre parênteses quando for valor monetário.
+- {{CAUCAO}} numérica vira R$ 1.500,00; se já estiver mascarada (ex.: R$ 1.500,00), o texto não é alterado — só entra o extenso.
+- {{RENTAL_ID}} ainda funciona em modelos antigos, mas não é mais usado no modelo padrão.
+
+Locador
+
+{{LOCADOR_NOME_RAZAO}}
+{{LOCADOR_CPF_CNPJ}}
+{{LOCADOR_ENDERECO}}
+{{LOCADOR_TELEFONE}}
+{{LOCADOR_EMAIL}}
+Locatário (motorista)
+
+{{LOCATARIO_NOME_COMPLETO}}
+{{LOCATARIO_CPF}}
+{{LOCATARIO_CNH}}
+{{LOCATARIO_ENDERECO}}
+{{LOCATARIO_TELEFONE}}
+{{LOCATARIO_EMAIL}}
+Veículo
+
+{{VEICULO_MARCA_MODELO}}
+{{VEICULO_ANO}}
+{{VEICULO_PLACA}}
+{{VEICULO_COR}}
+{{VEICULO_TITULO}}
+Valores
+
+{{VALOR_LOCACAO_BRL}}
+{{PERIODO_COBRANCA}}
+{{FORMA_PAGAMENTO}}
+{{CAUCAO}}

@@ -1584,7 +1584,6 @@ export const ownerRouter = router({
       let contractS3Key: string | null = null;
       if (!input.contractUrl && contractText) {
         const pdfBytes = await contractTextToPdfBytes({
-          title: `Contrato de locação (Rental ${r.id})`,
           text: contractText,
         });
         contractS3Key = `rentals/${r.id}/contract.pdf`;

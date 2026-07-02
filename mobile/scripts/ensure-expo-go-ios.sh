@@ -8,7 +8,13 @@ if ! xcrun simctl list devices booted 2>/dev/null | grep -q Booted; then
   exit 1
 fi
 
+launch_expo_go() {
+  xcrun simctl launch booted "$APP_ID" >/dev/null 2>&1 || true
+  sleep 2
+}
+
 if xcrun simctl get_app_container booted "$APP_ID" >/dev/null 2>&1; then
+  launch_expo_go
   exit 0
 fi
 
@@ -25,3 +31,4 @@ fi
 
 echo "Instalando Expo Go no simulador: $APP"
 xcrun simctl install booted "$APP"
+launch_expo_go

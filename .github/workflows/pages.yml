@@ -22,9 +22,11 @@ permissions:
   id-token: write
   actions: write
 
+# cancel-in-progress: true cancela o job no Actions, mas o deploy no backend do Pages
+# pode continuar — o próximo run fica preso em deployment_queued até dar timeout (10 min).
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -96,8 +98,19 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment_retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        # Falhas intermitentes (deployment_queued / purging_cdn) são comuns; uma nova tentativa costuma resolver.
+        continue-on-error: true
+
+      - name: Retry deploy (Pages API timeout)
+        if: steps.deployment.outcome == 'failure'
+        id: deployment_retry
+        uses: actions/deploy-pages@v4
+
+      - name: Fail if deploy did not succeed
+        if: steps.deployment.outcome == 'failure' && steps.deployment_retry.outcome == 'failure'
+        run: exit 1

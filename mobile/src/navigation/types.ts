@@ -42,4 +42,7 @@ export type RootStackParamList = {
   AdminCampaigns: undefined;
   AdminHighlights: undefined;
   AdminCampaignForm: { campaignId?: string };
+  AdminOwners: undefined;
+  AdminOwnerDetail: { ownerUserId: string };
+  AdminOwnerVehicleDetail: { vehicleId: string };
 };

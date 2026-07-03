@@ -40,6 +40,9 @@ import { AdminHubScreen } from "../screens/admin/AdminHubScreen";
 import { AdminCampaignsScreen } from "../screens/admin/AdminCampaignsScreen";
 import { AdminHighlightsScreen } from "../screens/admin/AdminHighlightsScreen";
 import { AdminCampaignFormScreen } from "../screens/admin/AdminCampaignFormScreen";
+import { AdminOwnerDetailScreen } from "../screens/admin/AdminOwnerDetailScreen";
+import { AdminOwnerVehicleDetailScreen } from "../screens/admin/AdminOwnerVehicleDetailScreen";
+import { AdminOwnersScreen } from "../screens/admin/AdminOwnersScreen";
 import type { RootStackParamList } from "./types";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -208,6 +211,21 @@ export function RootNavigator() {
           options={({ route }) => ({
             title: route.params?.campaignId ? "Editar campanha" : "Nova campanha",
           })}
+        />
+        <Stack.Screen
+          name="AdminOwners"
+          component={AdminOwnersScreen}
+          options={{ title: "Locadores" }}
+        />
+        <Stack.Screen
+          name="AdminOwnerDetail"
+          component={AdminOwnerDetailScreen}
+          options={{ title: "Locador" }}
+        />
+        <Stack.Screen
+          name="AdminOwnerVehicleDetail"
+          component={AdminOwnerVehicleDetailScreen}
+          options={{ title: "Veículo" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

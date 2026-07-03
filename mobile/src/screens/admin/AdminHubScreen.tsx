@@ -22,12 +22,20 @@ export function AdminHubScreen({ navigation }: Props) {
   });
   const pendingDriversCount = pendingDriversQ.data?.length ?? 0;
 
+  const ownersQ = trpc.admin.owners.list.useQuery(undefined, {
+    enabled: user?.role === "ADMIN",
+    staleTime: 60_000,
+  });
+  const ownersWithIssues =
+    ownersQ.data?.filter((o) => !o.profileComplete).length ?? 0;
+
   useFocusEffect(
     useCallback(() => {
       if (user?.role === "ADMIN") {
         void pendingDriversQ.refetch();
+        void ownersQ.refetch();
       }
-    }, [pendingDriversQ, user?.role])
+    }, [ownersQ, pendingDriversQ, user?.role])
   );
 
   return (
@@ -85,6 +93,45 @@ export function AdminHubScreen({ navigation }: Props) {
           </Card>
         ) : null}
 
+        {ownersWithIssues > 0 ? (
+          <Card
+            mode="elevated"
+            style={[
+              styles.pendingCard,
+              { backgroundColor: theme.colors.tertiaryContainer },
+            ]}
+          >
+            <Card.Content style={styles.pendingCardContent}>
+              <View style={styles.pendingTextWrap}>
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onTertiaryContainer }}
+                >
+                  {ownersWithIssues === 1
+                    ? "1 locador com pendências no perfil"
+                    : `${ownersWithIssues} locadores com pendências no perfil`}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.pendingHint,
+                    { color: theme.colors.onTertiaryContainer },
+                  ]}
+                >
+                  Verifique cadastro, contrato e dados de contato (somente leitura).
+                </Text>
+              </View>
+              <Button
+                mode="contained"
+                icon="account-tie-outline"
+                onPress={() => navigation.navigate("AdminOwners")}
+              >
+                Ver locadores
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : null}
+
         <View style={styles.grid}>
           <View style={styles.cell}>
             <MenuTile
@@ -114,6 +161,17 @@ export function AdminHubScreen({ navigation }: Props) {
           }
           icon="account-clock-outline"
           onPress={() => navigation.navigate("OwnerPendingDrivers")}
+        />
+        <MenuTile
+          fullWidth
+          title="Locadores"
+          subtitle={
+            ownersWithIssues > 0
+              ? `${ownersWithIssues} com pendências · ${ownersQ.data?.length ?? 0} no total`
+              : `${ownersQ.data?.length ?? 0} cadastrado${ownersQ.data?.length === 1 ? "" : "s"}`
+          }
+          icon="account-tie-outline"
+          onPress={() => navigation.navigate("AdminOwners")}
         />
       </ScrollView>
 

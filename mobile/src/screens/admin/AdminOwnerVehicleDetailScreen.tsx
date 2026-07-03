@@ -6,7 +6,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Card, Divider, Text, useTheme } from "react-native-paper";
+import { Button, Card, Divider, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import {
@@ -36,7 +36,7 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function AdminOwnerVehicleDetailScreen({ route }: Props) {
+export function AdminOwnerVehicleDetailScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -78,13 +78,14 @@ export function AdminOwnerVehicleDetailScreen({ route }: Props) {
         : "—";
 
   return (
-    <ScrollView
-      style={[styles.flex, { backgroundColor: theme.colors.background }]}
-      contentContainerStyle={[
-        styles.container,
-        { paddingBottom: 16 + insets.bottom },
-      ]}
-    >
+    <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 8 + insets.bottom },
+        ]}
+      >
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
         Somente visualização — dados do locador {v.ownerName}
       </Text>
@@ -171,7 +172,13 @@ export function AdminOwnerVehicleDetailScreen({ route }: Props) {
           <Field label="Atualizado em" value={formatDateDisplay(v.updatedAt)} />
         </Card.Content>
       </Card>
-    </ScrollView>
+      </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
+    </View>
   );
 }
 
@@ -191,4 +198,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     backgroundColor: "#f1f5f9",
   },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

@@ -106,7 +106,7 @@ export function AdminOwnerDetailScreen({ navigation, route }: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: 16 + insets.bottom },
+          { paddingBottom: 8 + insets.bottom },
         ]}
       >
         {!data.profileComplete ? (
@@ -257,6 +257,11 @@ export function AdminOwnerDetailScreen({ navigation, route }: Props) {
           })
         )}
       </ScrollView>
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </View>
   );
 }
@@ -280,4 +285,5 @@ const styles = StyleSheet.create({
   vehicleBody: { flex: 1, padding: 12, justifyContent: "center", gap: 2 },
   meta: { opacity: 0.85 },
   tapHint: { opacity: 0.65, marginTop: 4 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

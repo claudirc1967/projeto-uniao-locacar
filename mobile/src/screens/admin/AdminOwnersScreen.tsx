@@ -7,7 +7,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { Card, Chip, Searchbar, Text, useTheme } from "react-native-paper";
+import { Card, Chip, Searchbar, Text, Button, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
@@ -77,7 +77,7 @@ export function AdminOwnersScreen({ navigation }: Props) {
         keyExtractor={(item) => item.ownerUserId}
         contentContainerStyle={[
           styles.list,
-          { paddingBottom: 16 + insets.bottom },
+          { paddingBottom: 8 + insets.bottom },
         ]}
         ListHeaderComponent={
           <View style={styles.header}>
@@ -149,6 +149,11 @@ export function AdminOwnersScreen({ navigation }: Props) {
           </Pressable>
         )}
       />
+      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </View>
   );
 }
@@ -165,4 +170,5 @@ const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 4 },
   tapHint: { opacity: 0.65, marginTop: 4 },
   empty: { opacity: 0.75, textAlign: "center", paddingVertical: 24 },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
 });

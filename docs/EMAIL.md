@@ -97,7 +97,7 @@ No **AWS Console** → **Amazon SES** → região **`sa-east-1`** (mesma de `AWS
    - **Mail type:** Transactional.
    - **Use case:** Notificações do app União Locacar (locação, aprovação de motorista,
      recuperação de senha, lembrete de destaque).
-   - **Website:** URL do app (`uniaolocacar.com.br`) ou da API na EC2.
+   - **Website:** URL do app (`uniaolocacar.com.br`) e da API (`api.uniaolocacar.com.br`).
    - **Opt-in:** Cadastro no app + aceite de termos e política de privacidade.
    - **Volume:** estimativa inicial (ex.: dezenas a centenas de e-mails/mês).
    - **Bounces/complaints:** monitorar métricas no console SES; apenas mensagens

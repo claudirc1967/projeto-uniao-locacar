@@ -23,8 +23,7 @@ API: `http://localhost:4000/trpc` (health: `GET /health`).
 Para recuperação de senha em produção, configure o envio por Amazon SES com
 `SES_FROM_EMAIL`, `AWS_REGION`, `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`.
 Defina `PASSWORD_RESET_URL` apontando para a rota estática do backend, por
-exemplo `https://uniaolocacar.com.br/reset-password` (ou o domínio público da API
-na EC2). Sem essa variável, o
+exemplo `https://api.uniaolocacar.com.br/reset-password`. Sem essa variável, o
 e-mail envia apenas o código para colar no app.
 
 Contato de suporte na login (público): `ADMIN_SUPPORT_EMAIL` e
@@ -35,7 +34,7 @@ Contato de suporte na login (público): `ADMIN_SUPPORT_EMAIL` e
 ```bash
 cd mobile
 cp .env.example .env
-# Ajuste EXPO_PUBLIC_TRPC_URL para seu IP/servidor (veja comentários no .env.example)
+# Ajuste EXPO_PUBLIC_TRPC_URL (produção: https://api.uniaolocacar.com.br/trpc)
 npm run start
 ```
 

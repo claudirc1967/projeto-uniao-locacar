@@ -11,11 +11,14 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_TRPC_URL": "https://uniaolocacar.com.br/trpc"
+        "EXPO_PUBLIC_TRPC_URL": "https://api.uniaolocacar.com.br/trpc"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_TRPC_URL": "https://api.uniaolocacar.com.br/trpc"
+      }
     }
   },
   "submit": {

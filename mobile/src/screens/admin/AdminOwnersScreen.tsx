@@ -135,9 +135,9 @@ export function AdminOwnersScreen({ navigation }: Props) {
                       Perfil completo
                     </Chip>
                   )}
-                  {!item.hasContractTemplate ? (
+                  {item.hasContractTemplate ? (
                     <Chip compact icon="file-document-outline" mode="outlined">
-                      Sem contrato
+                      Contrato customizado
                     </Chip>
                   ) : null}
                 </View>

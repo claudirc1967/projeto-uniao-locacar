@@ -147,7 +147,9 @@ export function AdminOwnerDetailScreen({ navigation, route }: Props) {
             <Field
               label="Modelo de contrato"
               value={
-                p?.contractTemplateText?.trim() ? "Configurado" : "Não configurado"
+                p?.contractTemplateText?.trim()
+                  ? "Customizado"
+                  : "Modelo padrão do app"
               }
             />
             <Field

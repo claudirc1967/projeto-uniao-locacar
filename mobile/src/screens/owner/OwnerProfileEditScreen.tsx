@@ -170,8 +170,8 @@ export function OwnerProfileEditScreen({ navigation }: Props) {
         </Text>
         <Text variant="bodySmall" style={styles.hint}>
           {current.contractTemplateText?.trim()
-            ? `Configurado (${current.contractTemplateText.trim().length} caracteres)`
-            : "Não configurado"}
+            ? `Customizado (${current.contractTemplateText.trim().length} caracteres)`
+            : "Modelo padrão do app (opcional configurar um personalizado)"}
         </Text>
         <Button
           mode="outlined"

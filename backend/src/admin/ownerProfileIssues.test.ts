@@ -12,7 +12,6 @@ describe("ownerProfileIssues", () => {
       ownerProfileIssues({
         nomeRazaoSocial: "João Locações",
         emailLocador: "joao@example.com",
-        contractTemplateText: "Contrato padrão",
         cpfCnpj: "12345678901",
         phone: "31999998888",
         cep: "30130000",
@@ -26,11 +25,28 @@ describe("ownerProfileIssues", () => {
     );
   });
 
-  it("flags missing contract template and empty name", () => {
+  it("does not flag missing contract template when other fields are complete", () => {
+    assert.deepEqual(
+      ownerProfileIssues({
+        nomeRazaoSocial: "João Locações",
+        emailLocador: "joao@example.com",
+        cpfCnpj: "12345678901",
+        phone: "31999998888",
+        cep: "30130000",
+        logradouro: "Rua A",
+        numero: "100",
+        bairro: "Centro",
+        cidade: "Belo Horizonte",
+        uf: "MG",
+      }),
+      []
+    );
+  });
+
+  it("flags empty name", () => {
     const issues = ownerProfileIssues({
       nomeRazaoSocial: "",
       emailLocador: "joao@example.com",
-      contractTemplateText: null,
       cpfCnpj: "12345678901",
       phone: "31999998888",
       cep: "30130000",
@@ -40,7 +56,6 @@ describe("ownerProfileIssues", () => {
       cidade: "Belo Horizonte",
       uf: "MG",
     });
-    assert.ok(issues.includes("Nome / razão social"));
-    assert.ok(issues.includes("Modelo de contrato"));
+    assert.deepEqual(issues, ["Nome / razão social"]);
   });
 });

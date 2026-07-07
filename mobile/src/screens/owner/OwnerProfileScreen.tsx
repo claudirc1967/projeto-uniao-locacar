@@ -78,8 +78,8 @@ export function OwnerProfileScreen({ navigation }: Props) {
                     label="Modelo de contrato"
                     value={
                       o.contractTemplateText?.trim()
-                        ? "Configurado"
-                        : "Não configurado"
+                        ? "Customizado"
+                        : "Modelo padrão do app"
                     }
                   />
                   <Field label="CPF/CNPJ" value={maskCpfCnpj(o.cpfCnpj)} />

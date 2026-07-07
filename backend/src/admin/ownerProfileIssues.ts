@@ -6,7 +6,6 @@ export function ownerProfileIssues(
     OwnerProfile,
     | "nomeRazaoSocial"
     | "emailLocador"
-    | "contractTemplateText"
     | "cpfCnpj"
     | "phone"
     | "cep"
@@ -30,7 +29,6 @@ export function ownerProfileIssues(
   if (!profile.bairro?.trim()) issues.push("Bairro");
   if (!profile.cidade?.trim()) issues.push("Cidade");
   if (!profile.uf?.trim()) issues.push("UF");
-  if (!profile.contractTemplateText?.trim()) issues.push("Modelo de contrato");
 
   return issues;
 }

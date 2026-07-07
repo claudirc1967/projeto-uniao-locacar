@@ -118,7 +118,7 @@ export function AdminHubScreen({ navigation }: Props) {
                     { color: theme.colors.onTertiaryContainer },
                   ]}
                 >
-                  Verifique cadastro, contrato e dados de contato (somente leitura).
+                  Verifique cadastro e dados de contato (somente leitura).
                 </Text>
               </View>
               <Button

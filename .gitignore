@@ -4,6 +4,7 @@
 backend/.env
 backend/backups/
 mobile/.env
+mobile/static-web/support-config.json
 .expo/
 
 # Logs
@@ -145,3 +146,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# macOS
+.DS_Store
+**/.DS_Store

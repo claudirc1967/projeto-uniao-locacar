@@ -164,6 +164,19 @@
         border-color: var(--primary);
       }
 
+      .btn-whatsapp {
+        background: #25d366;
+        color: #fff;
+      }
+
+      .btn-whatsapp:hover {
+        background: #1ebe57;
+      }
+
+      .btn[hidden] {
+        display: none !important;
+      }
+
       footer {
         margin-top: 40px;
         padding-top: 20px;
@@ -215,8 +228,21 @@
           conhecer oportunidades de divulgação na plataforma.
         </p>
         <div class="cta">
-          <a class="btn btn-primary" href="mailto:contato@uniaolocacar.com.br"
-            >Falar com a equipe</a
+          <a
+            class="btn btn-primary"
+            href="mailto:uniaolocacar@gmail.com"
+            data-support-email
+            >Falar com a equipe (e-mail)</a
+          >
+          <a
+            class="btn btn-whatsapp"
+            href="#"
+            hidden
+            rel="noopener noreferrer"
+            target="_blank"
+            data-support-whatsapp
+            data-wa-message="Olá! Tenho interesse em ser parceiro comercial da União LocaCar."
+            >WhatsApp</a
           >
           <a class="btn btn-outline" href="/">Abrir o app</a>
         </div>
@@ -226,5 +252,6 @@
         © União LocaCar · Plataforma de locação entre proprietários e motoristas
       </footer>
     </div>
+    <script src="/support-contact.js"></script>
   </body>
 </html>

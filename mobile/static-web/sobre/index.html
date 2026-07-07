@@ -179,6 +179,21 @@
         background: rgba(255, 255, 255, 0.08);
       }
 
+      .button.whatsapp {
+        border-color: transparent;
+        background: #25d366;
+        color: #fff;
+        box-shadow: 0 16px 36px rgba(37, 211, 102, 0.28);
+      }
+
+      .button.whatsapp:hover {
+        background: #1ebe57;
+      }
+
+      .button[hidden] {
+        display: none !important;
+      }
+
       .side {
         display: grid;
         gap: 18px;
@@ -319,7 +334,7 @@
             />
             <span>
               <span class="brand-name">União LocaCar</span>
-              <span class="brand-status">Aplicativo em desenvolvimento</span>
+              <span class="brand-status">Aplicativo em fase inicial</span>
             </span>
           </div>
 
@@ -337,8 +352,23 @@
 
           <div class="actions" aria-label="Contatos e status">
             <a class="button primary open-app-link" href="/">Abrir o app</a>
-            <a class="button secondary" href="mailto:contato@uniaolocacar.com.br">
-              Fale conosco
+            <a
+              class="button secondary"
+              href="mailto:uniaolocacar@gmail.com"
+              data-support-email
+            >
+              Fale conosco (e-mail)
+            </a>
+            <a
+              class="button whatsapp"
+              href="#"
+              hidden
+              rel="noopener noreferrer"
+              target="_blank"
+              data-support-whatsapp
+              data-wa-message="Olá! Gostaria de falar com a equipe União LocaCar."
+            >
+              WhatsApp
             </a>
             <a class="button secondary" href="#proposito">
               Conheça o propósito
@@ -348,7 +378,6 @@
 
         <aside class="side" id="proposito" aria-label="Propósito do aplicativo">
           <article class="card panel">
-            <span class="tag">Em breve</span>
             <strong>Uma ponte entre locadores e motoristas</strong>
             <p>
               Menos mensagens soltas, menos papelada e mais controle em cada
@@ -438,5 +467,6 @@
         });
       })();
     </script>
+    <script src="/support-contact.js"></script>
   </body>
 </html>

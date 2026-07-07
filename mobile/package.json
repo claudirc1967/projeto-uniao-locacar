@@ -12,7 +12,9 @@
     "ios:offline": "EXPO_OFFLINE=1 REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 sh scripts/start-ios-dev.sh",
     "start:ios": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 npx expo start --lan",
     "web": "npx expo start --web",
-    "predeploy": "npx expo export -p web && node scripts/copy-static-web.mjs && node scripts/gzip-static-assets.mjs && node scripts/inject-web-font.mjs && node scripts/patch-index-html-loader.mjs",
+    "predeploy": "npx expo export -p web && node scripts/inject-static-support.mjs && node scripts/copy-static-web.mjs && node scripts/gzip-static-assets.mjs && node scripts/inject-web-font.mjs && node scripts/patch-index-html-loader.mjs",
+    "static-web:inject": "node scripts/inject-static-support.mjs",
+    "static-web:serve": "node scripts/inject-static-support.mjs && npx serve static-web -p 3333",
     "deploy": "gh-pages --nojekyll -d dist",
     "eas:android": "eas build -p android --profile preview",
     "eas:ios": "eas build -p ios --profile preview"

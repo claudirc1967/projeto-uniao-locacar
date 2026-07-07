@@ -11,6 +11,7 @@ import {
   handleVehiclePhotoProxyUpload,
 } from "./storage/proxyUpload.js";
 import { MAX_UPLOAD_BYTES } from "./storage/s3.js";
+import { getPublicSupportConfig } from "./support/publicSupport.js";
 
 const port = Number(process.env.PORT ?? 4000);
 const sampleAdsDir = path.join(
@@ -278,6 +279,11 @@ app.put(
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+/** Contato público (páginas estáticas web). */
+app.get("/public/support", (_req, res) => {
+  res.json(getPublicSupportConfig());
 });
 
 app.get("/reset-password", (_req, res) => {

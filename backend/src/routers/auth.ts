@@ -5,8 +5,10 @@ import { z } from "zod";
 import { signJwt } from "../auth/jwt.js";
 import type { AuthedContext } from "../context.js";
 import { prisma } from "../db.js";
+import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
-import { passwordResetEmail } from "../email/templates.js";
+import { ownerWelcomeEmail, passwordResetEmail } from "../email/templates.js";
+import { ownerWelcomeWhatsApp, sendWhatsApp } from "../whatsapp/sendWhatsApp.js";
 import { PRIVACY_POLICY_VERSION } from "../privacy.js";
 import { TERMS_OF_USE_VERSION } from "../terms.js";
 import { deleteUserAccountData } from "../services/deleteUserAccount.js";
@@ -122,6 +124,33 @@ export const authRouter = router({
             : { driverProfile: { create: { status: "PENDING" } } }),
         },
       });
+      if (input.role === "OWNER") {
+        const ownerName = input.nomeRazaoSocial.trim();
+        const ownerWelcomeMessage = ownerWelcomeWhatsApp({
+          owner: { name: ownerName },
+        });
+        void sendEmail({
+          to: user.email,
+          ...ownerWelcomeEmail({ owner: { name: ownerName } }),
+        }).catch(() => {
+          /* não falha o cadastro por e-mail */
+        });
+        void sendWhatsApp({
+          to: input.phone,
+          ...ownerWelcomeMessage,
+        }).catch(() => {
+          /* não falha o cadastro por WhatsApp */
+        });
+        void notifyAdminWhatsAppRelay({
+          event: "Cadastro de locador (boas-vindas)",
+          recipientName: ownerName,
+          recipientPhone: input.phone,
+          message: ownerWelcomeMessage,
+        }).catch(() => {
+          /* não falha o cadastro por aviso admin */
+        });
+      }
+
       const token = signJwt({
         sub: user.id,
         email: user.email,

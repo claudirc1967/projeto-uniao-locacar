@@ -1,5 +1,6 @@
 export const WHATSAPP_TEMPLATE_IDS = [
   "rental_requested",
+  "owner_welcome",
   "driver_approved",
   "driver_rejected",
   "rental_approved",

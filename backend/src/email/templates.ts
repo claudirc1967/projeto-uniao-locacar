@@ -96,6 +96,32 @@ export function rentalRequestedEmail(input: {
   };
 }
 
+export function ownerWelcomeEmail(input: {
+  owner: Pick<PersonEmailData, "name">;
+}): EmailTemplate {
+  return {
+    subject: "Bem-vindo(a) à União Locacar",
+    text: [
+      `Olá, ${valueOrDash(input.owner.name)}`,
+      "",
+      "Bem-vindo(a) à União Locacar!",
+      "",
+      "Sua conta de locador foi criada com sucesso.",
+      "A partir de agora você pode usar a plataforma para cadastrar veículos, receber solicitações de locação e acompanhar contratos, vistorias e locações pelo app.",
+      "",
+      "Próximos passos:",
+      "1. Acesse uniaolocacar.com.br e faça login com seu e-mail.",
+      "2. Cadastre seu primeiro veículo (fotos, valores e condições).",
+      "3. Quando receber uma solicitação, analise o perfil do motorista e aprove ou recuse no app.",
+      "4. O contrato pode usar o modelo padrão da plataforma ou um modelo personalizado, se preferir.",
+      "",
+      "Se precisar de ajuda, fale conosco pelo suporte informado no app.",
+      "",
+      ...signatureLines(),
+    ].join("\n"),
+  };
+}
+
 export function driverApprovedEmail(input: {
   driver: Pick<PersonEmailData, "name">;
 }): EmailTemplate {
@@ -107,7 +133,7 @@ export function driverApprovedEmail(input: {
       "Bem-vindo(a) à União Locacar!",
       "",
       "Seu cadastro de motorista foi aprovado na plataforma.",
-      "A partir de agora, você já pode acessar o app, ver os veículos disponíveis e solicitar locações.",
+      "Agora que os seus dados foram verificados, você já pode acessar o app e solicitar locações dos veículos disponíveis.",
       "",
       ...signatureLines(),
     ].join("\n"),

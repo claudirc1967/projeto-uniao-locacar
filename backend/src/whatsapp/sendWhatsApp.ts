@@ -9,6 +9,7 @@ export {
   driverApprovedWhatsApp,
   driverRejectedWhatsApp,
   highlightExpiringWhatsApp,
+  ownerWelcomeWhatsApp,
   rentalApprovedWhatsApp,
   rentalRejectedWhatsApp,
   rentalRequestedWhatsApp,

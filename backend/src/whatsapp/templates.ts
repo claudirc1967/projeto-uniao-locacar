@@ -103,6 +103,23 @@ export function rentalRequestedWhatsApp(input: {
   );
 }
 
+export function ownerWelcomeWhatsApp(input: {
+  owner: Pick<PersonWhatsAppData, "name">;
+}): WhatsAppMessage {
+  const variables = [valueOrDash(input.owner.name)];
+
+  return buildMessage(
+    "owner_welcome",
+    variables,
+    [
+      `Olá, ${variables[0]}.`,
+      "Bem-vindo(a) à União Locacar!",
+      "Sua conta de locador foi criada.",
+      "Cadastre veículos, receba solicitações e gerencie locações pelo app uniaolocacar.com.br.",
+    ].join("\n")
+  );
+}
+
 export function driverApprovedWhatsApp(input: {
   driver: Pick<PersonWhatsAppData, "name">;
 }): WhatsAppMessage {

@@ -2,6 +2,7 @@ import type { WhatsAppTemplateId } from "./types.js";
 
 const TEMPLATE_ENV_KEYS: Record<WhatsAppTemplateId, string> = {
   rental_requested: "WHATSAPP_TEMPLATE_RENTAL_REQUESTED",
+  owner_welcome: "WHATSAPP_TEMPLATE_OWNER_WELCOME",
   driver_approved: "WHATSAPP_TEMPLATE_DRIVER_APPROVED",
   driver_rejected: "WHATSAPP_TEMPLATE_DRIVER_REJECTED",
   rental_approved: "WHATSAPP_TEMPLATE_RENTAL_APPROVED",

@@ -2,7 +2,8 @@ import { prisma } from "../db.js";
 import { deleteObject } from "../storage/s3.js";
 
 /**
- * Remove arquivos no S3 ligados ao usuário e apaga o registro (cascade no banco).
+ * Remove arquivos no S3 ligados ao usuário e apaga o registro (cascade no banco):
+ * fotos de veículo, PDFs de contrato e fotos de vistoria das locações relacionadas.
  * Falhas no S3 não impedem a exclusão da conta.
  */
 export async function deleteUserAccountData(userId: string): Promise<void> {
@@ -29,10 +30,18 @@ export async function deleteUserAccountData(userId: string): Promise<void> {
         { vehicle: { ownerUserId: userId } },
       ],
     },
-    select: { contractS3Key: true },
+    select: { id: true, contractS3Key: true },
   });
+  const rentalIds = rentals.map((r) => r.id);
   for (const r of rentals) {
     if (r.contractS3Key) keys.add(r.contractS3Key);
+  }
+  if (rentalIds.length > 0) {
+    const inspectionPhotos = await prisma.rentalInspectionPhoto.findMany({
+      where: { inspection: { rentalId: { in: rentalIds } } },
+      select: { key: true },
+    });
+    for (const p of inspectionPhotos) keys.add(p.key);
   }
 
   if (bucketConfigured) {

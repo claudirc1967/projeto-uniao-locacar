@@ -42,6 +42,11 @@ import {
   VEHICLE_TYPE_OPTIONS,
   type VehicleType,
 } from "../../constants/vehicleType";
+import {
+  resolveVehicleColorLabel,
+  VEHICLE_COLORS,
+  vehicleColorDisplayLabel,
+} from "../../constants/vehicleColors";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -51,6 +56,11 @@ const CONTRACT_OPTIONS = [
   { value: "DIARIO" as const, label: "Diário" },
   { value: "SEMANAL" as const, label: "Semanal" },
   { value: "MENSAL" as const, label: "Mensal" },
+];
+
+const COLOR_PICKER_ROWS: ReadonlyArray<{ label: string; value: string }> = [
+  { label: "Não informado", value: "" },
+  ...VEHICLE_COLORS.map((c) => ({ label: c.label, value: c.label })),
 ];
 
 const plateLegacyNormalizedRegex = /^[A-Z]{3}[0-9]{4}$/; // ABC1234
@@ -111,8 +121,17 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const [plate, setPlate] = useState("");
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
+  const [legacyBrandHint, setLegacyBrandHint] = useState<string | null>(null);
+  const [legacyModelHint, setLegacyModelHint] = useState<string | null>(null);
+  const [brandPickerOpen, setBrandPickerOpen] = useState(false);
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [catalogHydratedForId, setCatalogHydratedForId] = useState<
+    string | null
+  >(null);
   const [year, setYear] = useState("");
   const [cor, setCor] = useState("");
+  const [legacyCorHint, setLegacyCorHint] = useState<string | null>(null);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [vehicleType, setVehicleType] = useState<VehicleType>("CAR");
   const [portasStr, setPortasStr] = useState("4");
   const [lugaresStr, setLugaresStr] = useState("5");
@@ -150,6 +169,28 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const [sameAsOwner, setSameAsOwner] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const brandsQ = trpc.marketplace.listVehicleBrands.useQuery();
+  const modelsQ = trpc.marketplace.listVehicleModels.useQuery(
+    { brandName: brand, vehicleType },
+    { enabled: brand.trim().length > 0 }
+  );
+
+  const brandPickerRows = useMemo(() => {
+    const rows = (brandsQ.data ?? []).map((b) => ({
+      value: b.name,
+      label: b.name,
+    }));
+    return [{ value: "", label: "Não informado" }, ...rows];
+  }, [brandsQ.data]);
+
+  const modelPickerRows = useMemo(() => {
+    const rows = (modelsQ.data ?? []).map((m) => ({
+      value: m.name,
+      label: m.name,
+    }));
+    return [{ value: "", label: "Não informado" }, ...rows];
+  }, [modelsQ.data]);
+
   const insurancePickerRows = useMemo(() => {
     const none = { id: null as string | null, label: "Nenhum selecionado" };
     const partners = (insurancePartnersQ.data ?? []).map((p) => ({
@@ -174,10 +215,24 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     setTitle(v.title);
     setDescription(v.description ?? "");
     setPlate(formatPlate(v.plate ?? ""));
-    setBrand(v.brand ?? "");
-    setModel(v.model ?? "");
+    setBrand(typeof v.brand === "string" ? v.brand.trim() : "");
+    setModel(typeof v.model === "string" ? v.model.trim() : "");
+    setLegacyBrandHint(null);
+    setLegacyModelHint(null);
+    setCatalogHydratedForId(null);
     setYear(String(v.year ?? ""));
-    setCor(v.cor ?? "");
+    const rawCor = typeof v.cor === "string" ? v.cor.trim() : "";
+    const resolved = resolveVehicleColorLabel(rawCor);
+    if (resolved) {
+      setCor(resolved);
+      setLegacyCorHint(null);
+    } else if (rawCor) {
+      setCor("");
+      setLegacyCorHint(rawCor);
+    } else {
+      setCor("");
+      setLegacyCorHint(null);
+    }
     setVehicleType(v.vehicleType === "MOTORCYCLE" ? "MOTORCYCLE" : "CAR");
     setPortasStr(
       v.portas != null && Number.isFinite(v.portas) ? String(v.portas) : "4"
@@ -217,6 +272,78 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     });
     setSameAsOwner(!!v.pickupSameAsOwner);
   }, [existing.data]);
+
+  useEffect(() => {
+    if (!vehicleId || !existing.data || !brandsQ.data) return;
+    if (catalogHydratedForId === `${vehicleId}:brand`) return;
+    const fold = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .trim();
+    const rawBrand =
+      typeof existing.data.brand === "string" ? existing.data.brand.trim() : "";
+    const rawModel =
+      typeof existing.data.model === "string" ? existing.data.model.trim() : "";
+
+    if (!rawBrand) {
+      setBrand("");
+      setModel("");
+      setLegacyBrandHint(null);
+      setLegacyModelHint(rawModel || null);
+      setCatalogHydratedForId(`${vehicleId}:done`);
+      return;
+    }
+
+    const foundBrand = brandsQ.data.find((b) => fold(b.name) === fold(rawBrand));
+    if (!foundBrand) {
+      setBrand("");
+      setModel("");
+      setLegacyBrandHint(rawBrand);
+      setLegacyModelHint(rawModel || null);
+      setCatalogHydratedForId(`${vehicleId}:done`);
+      return;
+    }
+
+    setBrand(foundBrand.name);
+    setLegacyBrandHint(null);
+    setCatalogHydratedForId(`${vehicleId}:brand`);
+  }, [vehicleId, existing.data, brandsQ.data, catalogHydratedForId]);
+
+  useEffect(() => {
+    if (!vehicleId || !existing.data || !brand || !modelsQ.data) return;
+    if (catalogHydratedForId !== `${vehicleId}:brand`) return;
+    const fold = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .trim();
+    const rawModel =
+      typeof existing.data.model === "string" ? existing.data.model.trim() : "";
+    if (!rawModel) {
+      setModel("");
+      setLegacyModelHint(null);
+      setCatalogHydratedForId(`${vehicleId}:done`);
+      return;
+    }
+    const foundModel = modelsQ.data.find((m) => fold(m.name) === fold(rawModel));
+    if (foundModel) {
+      setModel(foundModel.name);
+      setLegacyModelHint(null);
+    } else {
+      setModel("");
+      setLegacyModelHint(rawModel);
+    }
+    setCatalogHydratedForId(`${vehicleId}:done`);
+  }, [
+    vehicleId,
+    existing.data,
+    brand,
+    modelsQ.data,
+    catalogHydratedForId,
+  ]);
 
   const onSameAsOwnerChange = (next: boolean) => {
     if (next) {
@@ -313,6 +440,24 @@ export function VehicleFormScreen({ navigation, route }: Props) {
     const cents = parseCents();
     if (cents == null) {
       setErr("Informe um valor válido.");
+      return;
+    }
+    if (legacyCorHint) {
+      setErr(
+        `Selecione a cor canônica correspondente a "${legacyCorHint}" antes de salvar.`
+      );
+      return;
+    }
+    if (legacyBrandHint) {
+      setErr(
+        `Selecione a marca do catálogo correspondente a "${legacyBrandHint}" antes de salvar.`
+      );
+      return;
+    }
+    if (legacyModelHint) {
+      setErr(
+        `Selecione o modelo do catálogo correspondente a "${legacyModelHint}" antes de salvar.`
+      );
       return;
     }
     if (!isValidPlate(plate)) {
@@ -498,27 +643,90 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           autoCorrect={false}
           autoCapitalize="characters"
         />
-        <Field label="Marca" value={brand} onChangeText={setBrand} />
-        <Field label="Modelo" value={model} onChangeText={setModel} />
-        <Field
-          label="Ano"
-          value={year}
-          onChangeText={setYear}
-          keyboardType="number-pad"
-        />
-        <Field label="Cor" value={cor} onChangeText={setCor} />
         <Text variant="labelLarge" style={{ marginTop: 14 }}>
           Tipo de veículo
         </Text>
         <SegmentedButtons
           value={vehicleType}
-          onValueChange={(v) => setVehicleType(v as VehicleType)}
+          onValueChange={(v) => {
+            const next = v as VehicleType;
+            setVehicleType(next);
+            setModel("");
+            setLegacyModelHint(null);
+          }}
           buttons={VEHICLE_TYPE_OPTIONS.map((opt) => ({
             value: opt.value,
             label: opt.label,
           }))}
           style={{ marginTop: 8 }}
         />
+        <Text variant="labelLarge" style={{ marginTop: 14 }}>
+          Marca
+        </Text>
+        <Button
+          mode="outlined"
+          onPress={() => setBrandPickerOpen(true)}
+          icon="chevron-down"
+          contentStyle={{ justifyContent: "flex-start" }}
+          style={{ marginTop: 8 }}
+          loading={brandsQ.isLoading}
+        >
+          {brand.trim() ? brand : "Selecionar marca"}
+        </Button>
+        {legacyBrandHint ? (
+          <HelperText type="info" visible>
+            Marca atual no cadastro: {legacyBrandHint}. Selecione a marca do
+            catálogo correspondente antes de salvar.
+          </HelperText>
+        ) : null}
+        <Text variant="labelLarge" style={{ marginTop: 14 }}>
+          Modelo
+        </Text>
+        <Button
+          mode="outlined"
+          onPress={() => setModelPickerOpen(true)}
+          icon="chevron-down"
+          contentStyle={{ justifyContent: "flex-start" }}
+          style={{ marginTop: 8 }}
+          disabled={!brand.trim()}
+          loading={!!brand && modelsQ.isLoading}
+        >
+          {!brand.trim()
+            ? "Selecione a marca primeiro"
+            : model.trim()
+              ? model
+              : "Selecionar modelo"}
+        </Button>
+        {legacyModelHint ? (
+          <HelperText type="info" visible>
+            Modelo atual no cadastro: {legacyModelHint}. Selecione o modelo do
+            catálogo correspondente antes de salvar.
+          </HelperText>
+        ) : null}
+        <Field
+          label="Ano"
+          value={year}
+          onChangeText={setYear}
+          keyboardType="number-pad"
+        />
+        <Text variant="labelLarge" style={{ marginTop: 14 }}>
+          Cor
+        </Text>
+        <Button
+          mode="outlined"
+          onPress={() => setColorPickerOpen(true)}
+          icon="chevron-down"
+          contentStyle={{ justifyContent: "flex-start" }}
+          style={{ marginTop: 8 }}
+        >
+          {vehicleColorDisplayLabel(cor || null)}
+        </Button>
+        {legacyCorHint ? (
+          <HelperText type="info" visible>
+            Cor atual no cadastro: {legacyCorHint}. Selecione a cor canônica
+            correspondente antes de salvar.
+          </HelperText>
+        ) : null}
         {vehicleType === "CAR" ? (
           <>
             <Field
@@ -683,6 +891,229 @@ export function VehicleFormScreen({ navigation, route }: Props) {
           </View>
         ) : null}
       </ScrollView>
+
+      <Modal
+        visible={brandPickerOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setBrandPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setBrandPickerOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.pickerSheet,
+              { backgroundColor: theme.colors.surface },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleMedium" style={styles.pickerTitle}>
+              Marca do veículo
+            </Text>
+            <FlatList
+              data={brandPickerRows}
+              keyExtractor={(item) => item.value || "__none__"}
+              renderItem={({ item }) => {
+                const selected = item.value === brand;
+                return (
+                  <Pressable
+                    onPress={() => {
+                      setBrand(item.value);
+                      setModel("");
+                      setLegacyBrandHint(null);
+                      setLegacyModelHint(null);
+                      setBrandPickerOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.pickerItem,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <Text variant="bodyMedium">{item.label}</Text>
+                    {selected ? (
+                      <Text
+                        variant="labelMedium"
+                        style={styles.pickerSelected}
+                      >
+                        Selecionado
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+              style={{ maxHeight: 420 }}
+            />
+            <Button mode="text" onPress={() => setBrandPickerOpen(false)}>
+              Fechar
+            </Button>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={modelPickerOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setModelPickerOpen(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setModelPickerOpen(false)}
+        >
+          <Pressable
+            style={[
+              styles.pickerSheet,
+              { backgroundColor: theme.colors.surface },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleMedium" style={styles.pickerTitle}>
+              Modelo do veículo
+            </Text>
+            <FlatList
+              data={modelPickerRows}
+              keyExtractor={(item) => item.value || "__none__"}
+              renderItem={({ item }) => {
+                const selected = item.value === model;
+                return (
+                  <Pressable
+                    onPress={() => {
+                      setModel(item.value);
+                      setLegacyModelHint(null);
+                      setModelPickerOpen(false);
+                    }}
+                    style={({ pressed }) => [
+                      styles.pickerItem,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    <Text variant="bodyMedium">{item.label}</Text>
+                    {selected ? (
+                      <Text
+                        variant="labelMedium"
+                        style={styles.pickerSelected}
+                      >
+                        Selecionado
+                      </Text>
+                    ) : null}
+                  </Pressable>
+                );
+              }}
+              ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+              style={{ maxHeight: 420 }}
+            />
+            <Button mode="text" onPress={() => setModelPickerOpen(false)}>
+              Fechar
+            </Button>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={colorPickerOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setColorPickerOpen(false)}
+      >
+        {isWeb ? (
+          <View style={styles.modalBackdrop}>
+            <View
+              style={[styles.pickerSheet, { backgroundColor: theme.colors.surface }]}
+            >
+              <Text variant="titleMedium" style={styles.pickerTitle}>
+                Cor do veículo
+              </Text>
+              <FlatList
+                data={COLOR_PICKER_ROWS}
+                keyExtractor={(item) => item.value || "__none__"}
+                renderItem={({ item }) => {
+                  const selected = item.value === cor;
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        setCor(item.value);
+                        setLegacyCorHint(null);
+                        setColorPickerOpen(false);
+                      }}
+                      style={({ pressed }) => [
+                        styles.pickerItem,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      <Text variant="bodyMedium">{item.label}</Text>
+                      {selected ? (
+                        <Text variant="labelMedium" style={styles.pickerSelected}>
+                          Selecionado
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                }}
+                ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+                style={{ maxHeight: 420 }}
+              />
+              <Button mode="text" onPress={() => setColorPickerOpen(false)}>
+                Fechar
+              </Button>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setColorPickerOpen(false)}
+          >
+            <Pressable
+              style={[
+                styles.pickerSheet,
+                { backgroundColor: theme.colors.surface },
+              ]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text variant="titleMedium" style={styles.pickerTitle}>
+                Cor do veículo
+              </Text>
+              <FlatList
+                data={COLOR_PICKER_ROWS}
+                keyExtractor={(item) => item.value || "__none__"}
+                renderItem={({ item }) => {
+                  const selected = item.value === cor;
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        setCor(item.value);
+                        setLegacyCorHint(null);
+                        setColorPickerOpen(false);
+                      }}
+                      style={({ pressed }) => [
+                        styles.pickerItem,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      <Text variant="bodyMedium">{item.label}</Text>
+                      {selected ? (
+                        <Text
+                          variant="labelMedium"
+                          style={styles.pickerSelected}
+                        >
+                          Selecionado
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                }}
+                ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+                style={{ maxHeight: 420 }}
+              />
+              <Button mode="text" onPress={() => setColorPickerOpen(false)}>
+                Fechar
+              </Button>
+            </Pressable>
+          </Pressable>
+        )}
+      </Modal>
 
       <Modal
         visible={insurancePartnerPickerOpen}

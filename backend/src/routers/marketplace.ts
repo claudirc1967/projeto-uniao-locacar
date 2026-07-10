@@ -11,6 +11,7 @@ import {
 } from "../highlights/tier.js";
 import { presignGetRead } from "../storage/s3.js";
 import { protectedProcedure, router } from "../trpc.js";
+import { findVehicleIdsByFoldedContains } from "../utils/textSearch.js";
 import { vehicleTypeSchema } from "../vehicleCapacity.js";
 
 const listFiltersSchema = z.object({
@@ -52,45 +53,24 @@ async function safePresignGetRead(key: string): Promise<string | null> {
 }
 
 function buildVehicleWhere(
-  f: z.infer<typeof listFiltersSchema>
+  f: z.infer<typeof listFiltersSchema>,
+  textMatchIds?: string[]
 ): Prisma.VehicleWhereInput {
   const and: Prisma.VehicleWhereInput[] = [{ available: true }];
 
-  const brand = f.brandContains?.trim();
-  if (brand) {
-    and.push({ brand: { contains: brand } });
-  }
-  const model = f.modelContains?.trim();
-  if (model) {
-    and.push({ model: { contains: model } });
-  }
-  const cor = f.corContains?.trim();
-  if (cor) {
-    and.push({ cor: { contains: cor } });
+  // Marca/modelo/cor/cidade/nome do locador: case + acento via findVehicleIdsByFoldedContains
+  if (textMatchIds) {
+    and.push({ id: { in: textMatchIds } });
   }
 
   const uf = f.pickupUf?.trim().toUpperCase();
   if (uf) {
     and.push({ pickupUf: uf });
   }
-  const city = f.pickupCityContains?.trim();
-  if (city) {
-    and.push({ pickupCity: { contains: city } });
-  }
 
   const ownerUserId = f.ownerUserId?.trim();
   if (ownerUserId) {
     and.push({ ownerUserId });
-  }
-  const ownerName = f.ownerNameContains?.trim();
-  if (ownerName) {
-    and.push({
-      owner: {
-        ownerProfile: {
-          is: { nomeRazaoSocial: { contains: ownerName } },
-        },
-      },
-    });
   }
 
   if (f.ownerMinAverageStars != null) {
@@ -135,6 +115,39 @@ function buildVehicleWhere(
 }
 
 export const marketplaceRouter = router({
+  listVehicleBrands: protectedProcedure.query(async () => {
+    const rows = await prisma.vehicleBrand.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+    });
+    return rows;
+  }),
+
+  listVehicleModels: protectedProcedure
+    .input(
+      z.object({
+        brandName: z.string().min(1).max(120),
+        vehicleType: vehicleTypeSchema.optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const brand = await prisma.vehicleBrand.findFirst({
+        where: { name: input.brandName.trim(), active: true },
+        select: { id: true },
+      });
+      if (!brand) return [];
+      return prisma.vehicleModel.findMany({
+        where: {
+          brandId: brand.id,
+          active: true,
+          ...(input.vehicleType ? { vehicleType: input.vehicleType } : {}),
+        },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, name: true, vehicleType: true },
+      });
+    }),
+
   listAvailableVehicles: protectedProcedure
     .input(listFiltersSchema)
     .query(async ({ ctx, input }) => {
@@ -160,7 +173,8 @@ export const marketplaceRouter = router({
         });
       }
 
-      const where = buildVehicleWhere(f);
+      const textMatchIds = await findVehicleIdsByFoldedContains(f);
+      const where = buildVehicleWhere(f, textMatchIds);
       const rawList = await prisma.vehicle.findMany({
         where,
         include: {

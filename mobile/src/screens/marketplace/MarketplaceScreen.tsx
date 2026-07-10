@@ -26,6 +26,10 @@ import { HighlightTierBadge } from "../../components/HighlightTierBadge";
 import { AD_PLACEMENTS, MARKETPLACE_AD_EVERY_N } from "../../constants/adPlacements";
 import type { VehicleHighlightTier } from "../../constants/highlightTier";
 import type { VehicleType } from "../../constants/vehicleType";
+import {
+  VEHICLE_COLORS,
+  vehicleColorDisplayLabel,
+} from "../../constants/vehicleColors";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
 import { formatMoneyWithContractPeriod } from "../../utils/masks";
@@ -75,6 +79,16 @@ function pickupUfDisplayLabel(uf: string): string {
   if (!uf.trim()) return "Qualquer";
   const found = UFS.find((x) => x.value === uf);
   return found?.label ?? uf;
+}
+
+const COLOR_MENU_ITEMS: ReadonlyArray<{ value: string; label: string }> = [
+  { value: "", label: "Qualquer cor" },
+  ...VEHICLE_COLORS.map((c) => ({ value: c.label, label: c.label })),
+];
+
+function pickupCorDisplayLabel(cor: string): string {
+  if (!cor.trim()) return "Qualquer";
+  return vehicleColorDisplayLabel(cor);
 }
 
 type MarketplaceListFilters = {
@@ -283,12 +297,52 @@ export function MarketplaceScreen({ navigation }: Props) {
   const [applied, setApplied] = useState<MarketplaceListFilters>({});
   const [filterOpen, setFilterOpen] = useState(false);
   const [ufPickerExpanded, setUfPickerExpanded] = useState(false);
+  const [corPickerExpanded, setCorPickerExpanded] = useState(false);
+  const [brandPickerExpanded, setBrandPickerExpanded] = useState(false);
+  const [modelPickerExpanded, setModelPickerExpanded] = useState(false);
   const [draft, setDraft] = useState<FilterDraft>(emptyDraft);
   const [modalErr, setModalErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!filterOpen) setUfPickerExpanded(false);
+    if (!filterOpen) {
+      setUfPickerExpanded(false);
+      setCorPickerExpanded(false);
+      setBrandPickerExpanded(false);
+      setModelPickerExpanded(false);
+    }
   }, [filterOpen]);
+
+  const brandsQ = trpc.marketplace.listVehicleBrands.useQuery(undefined, {
+    enabled: filterOpen,
+  });
+  const modelsQ = trpc.marketplace.listVehicleModels.useQuery(
+    {
+      brandName: draft.brand,
+      ...(draft.vehicleType !== "ANY"
+        ? { vehicleType: draft.vehicleType }
+        : {}),
+    },
+    { enabled: filterOpen && draft.brand.trim().length > 0 }
+  );
+
+  const brandMenuItems = useMemo(() => {
+    const rows = (brandsQ.data ?? []).map((b) => ({
+      value: b.name,
+      label: b.name,
+    }));
+    return [{ value: "", label: "Qualquer marca" }, ...rows];
+  }, [brandsQ.data]);
+
+  const modelMenuItems = useMemo(() => {
+    const seen = new Set<string>();
+    const rows: { value: string; label: string }[] = [];
+    for (const m of modelsQ.data ?? []) {
+      if (seen.has(m.name)) continue;
+      seen.add(m.name);
+      rows.push({ value: m.name, label: m.name });
+    }
+    return [{ value: "", label: "Qualquer modelo" }, ...rows];
+  }, [modelsQ.data]);
 
   const rotationSeed = useMemo(() => {
     if (!user?.id) return 0;
@@ -355,6 +409,9 @@ export function MarketplaceScreen({ navigation }: Props) {
     }
     setModalErr(null);
     setUfPickerExpanded(false);
+    setCorPickerExpanded(false);
+    setBrandPickerExpanded(false);
+    setModelPickerExpanded(false);
     setFilterOpen(false);
   };
 
@@ -363,6 +420,9 @@ export function MarketplaceScreen({ navigation }: Props) {
     setDraft(emptyDraft());
     setModalErr(null);
     setUfPickerExpanded(false);
+    setCorPickerExpanded(false);
+    setBrandPickerExpanded(false);
+    setModelPickerExpanded(false);
     setFilterOpen(false);
   };
 
@@ -374,6 +434,9 @@ export function MarketplaceScreen({ navigation }: Props) {
     setDraft(d);
     setModalErr(null);
     setUfPickerExpanded(false);
+    setCorPickerExpanded(false);
+    setBrandPickerExpanded(false);
+    setModelPickerExpanded(false);
     setFilterOpen(true);
   };
 
@@ -623,7 +686,12 @@ export function MarketplaceScreen({ navigation }: Props) {
                   </Text>
                   <Button
                     mode="outlined"
-                    onPress={() => setUfPickerExpanded((open) => !open)}
+                    onPress={() => {
+                      setUfPickerExpanded((open) => !open);
+                      setCorPickerExpanded(false);
+                      setBrandPickerExpanded(false);
+                      setModelPickerExpanded(false);
+                    }}
                     icon={ufPickerExpanded ? "chevron-up" : "chevron-down"}
                     contentStyle={styles.ufFieldButtonContent}
                     labelStyle={styles.ufFieldButtonLabel}
@@ -690,8 +758,8 @@ export function MarketplaceScreen({ navigation }: Props) {
                 </View>
               ) : null}
               {user?.role !== "OWNER" ? (
-                <TextInput
-                  label="Locador (contém)"
+              <TextInput
+                label="Locador (contém)"
                   value={draft.ownerName}
                   onChangeText={(t) =>
                     setDraft((d) => ({ ...d, ownerName: t }))
@@ -700,27 +768,219 @@ export function MarketplaceScreen({ navigation }: Props) {
                   style={styles.field}
                 />
               ) : null}
-              <TextInput
-                label="Marca (contém)"
-                value={draft.brand}
-                onChangeText={(t) => setDraft((d) => ({ ...d, brand: t }))}
-                mode="outlined"
-                style={styles.field}
-              />
-              <TextInput
-                label="Modelo (contém)"
-                value={draft.model}
-                onChangeText={(t) => setDraft((d) => ({ ...d, model: t }))}
-                mode="outlined"
-                style={styles.field}
-              />
-              <TextInput
-                label="Cor (contém)"
-                value={draft.cor}
-                onChangeText={(t) => setDraft((d) => ({ ...d, cor: t }))}
-                mode="outlined"
-                style={styles.field}
-              />
+              <View style={styles.corFieldWrap}>
+                <Text variant="labelSmall" style={styles.ufFieldLabel}>
+                  Marca
+                </Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setBrandPickerExpanded((open) => !open);
+                    setModelPickerExpanded(false);
+                    setCorPickerExpanded(false);
+                    setUfPickerExpanded(false);
+                  }}
+                  icon={brandPickerExpanded ? "chevron-up" : "chevron-down"}
+                  contentStyle={styles.ufFieldButtonContent}
+                  labelStyle={styles.ufFieldButtonLabel}
+                  style={styles.ufFieldButton}
+                  loading={brandsQ.isLoading}
+                >
+                  {draft.brand.trim() ? draft.brand : "Qualquer"}
+                </Button>
+              </View>
+              {brandPickerExpanded ? (
+                <View
+                  style={[
+                    styles.ufInlinePanel,
+                    {
+                      borderColor: theme.colors.outlineVariant,
+                      backgroundColor: theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <ScrollView
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.ufInlineScroll}
+                  >
+                    {brandMenuItems.map((item) => {
+                      const selected = draft.brand === item.value;
+                      return (
+                        <Pressable
+                          key={item.value || "ANY_BRAND"}
+                          onPress={() => {
+                            setDraft((d) => ({
+                              ...d,
+                              brand: item.value,
+                              model: "",
+                            }));
+                            setBrandPickerExpanded(false);
+                          }}
+                          style={({ pressed }) => [
+                            styles.ufInlineItem,
+                            selected && {
+                              backgroundColor: theme.colors.secondaryContainer,
+                            },
+                            pressed && { opacity: 0.85 },
+                          ]}
+                        >
+                          <Text variant="bodyMedium">{item.label}</Text>
+                          {selected ? (
+                            <Text
+                              variant="labelMedium"
+                              style={{ color: theme.colors.primary }}
+                            >
+                              ✓
+                            </Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ) : null}
+              <View style={styles.corFieldWrap}>
+                <Text variant="labelSmall" style={styles.ufFieldLabel}>
+                  Modelo
+                </Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    if (!draft.brand.trim()) return;
+                    setModelPickerExpanded((open) => !open);
+                    setBrandPickerExpanded(false);
+                    setCorPickerExpanded(false);
+                    setUfPickerExpanded(false);
+                  }}
+                  icon={modelPickerExpanded ? "chevron-up" : "chevron-down"}
+                  contentStyle={styles.ufFieldButtonContent}
+                  labelStyle={styles.ufFieldButtonLabel}
+                  style={styles.ufFieldButton}
+                  disabled={!draft.brand.trim()}
+                  loading={!!draft.brand && modelsQ.isLoading}
+                >
+                  {!draft.brand.trim()
+                    ? "Selecione a marca"
+                    : draft.model.trim()
+                      ? draft.model
+                      : "Qualquer"}
+                </Button>
+              </View>
+              {modelPickerExpanded && draft.brand.trim() ? (
+                <View
+                  style={[
+                    styles.ufInlinePanel,
+                    {
+                      borderColor: theme.colors.outlineVariant,
+                      backgroundColor: theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <ScrollView
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.ufInlineScroll}
+                  >
+                    {modelMenuItems.map((item) => {
+                      const selected = draft.model === item.value;
+                      return (
+                        <Pressable
+                          key={item.value || "ANY_MODEL"}
+                          onPress={() => {
+                            setDraft((d) => ({ ...d, model: item.value }));
+                            setModelPickerExpanded(false);
+                          }}
+                          style={({ pressed }) => [
+                            styles.ufInlineItem,
+                            selected && {
+                              backgroundColor: theme.colors.secondaryContainer,
+                            },
+                            pressed && { opacity: 0.85 },
+                          ]}
+                        >
+                          <Text variant="bodyMedium">{item.label}</Text>
+                          {selected ? (
+                            <Text
+                              variant="labelMedium"
+                              style={{ color: theme.colors.primary }}
+                            >
+                              ✓
+                            </Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ) : null}
+              <View style={styles.corFieldWrap}>
+                <Text variant="labelSmall" style={styles.ufFieldLabel}>
+                  Cor
+                </Text>
+                <Button
+                  mode="outlined"
+                  onPress={() => {
+                    setCorPickerExpanded((open) => !open);
+                    setUfPickerExpanded(false);
+                    setBrandPickerExpanded(false);
+                    setModelPickerExpanded(false);
+                  }}
+                  icon={corPickerExpanded ? "chevron-up" : "chevron-down"}
+                  contentStyle={styles.ufFieldButtonContent}
+                  labelStyle={styles.ufFieldButtonLabel}
+                  style={styles.ufFieldButton}
+                >
+                  {pickupCorDisplayLabel(draft.cor)}
+                </Button>
+              </View>
+              {corPickerExpanded ? (
+                <View
+                  style={[
+                    styles.ufInlinePanel,
+                    {
+                      borderColor: theme.colors.outlineVariant,
+                      backgroundColor: theme.colors.surface,
+                    },
+                  ]}
+                >
+                  <ScrollView
+                    nestedScrollEnabled
+                    keyboardShouldPersistTaps="handled"
+                    style={styles.ufInlineScroll}
+                  >
+                    {COLOR_MENU_ITEMS.map((item) => {
+                      const selected = draft.cor === item.value;
+                      return (
+                        <Pressable
+                          key={item.value || "ANY_COR"}
+                          onPress={() => {
+                            setDraft((d) => ({ ...d, cor: item.value }));
+                            setCorPickerExpanded(false);
+                          }}
+                          style={({ pressed }) => [
+                            styles.ufInlineItem,
+                            selected && {
+                              backgroundColor: theme.colors.secondaryContainer,
+                            },
+                            pressed && { opacity: 0.85 },
+                          ]}
+                        >
+                          <Text variant="bodyMedium">{item.label}</Text>
+                          {selected ? (
+                            <Text
+                              variant="labelMedium"
+                              style={{ color: theme.colors.primary }}
+                            >
+                              ✓
+                            </Text>
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              ) : null}
               <View style={styles.rowFields}>
                 <TextInput
                   label="Ano mín."
@@ -748,6 +1008,7 @@ export function MarketplaceScreen({ navigation }: Props) {
                   setDraft((d) => ({
                     ...d,
                     vehicleType: v as FilterDraft["vehicleType"],
+                    model: "",
                     ...(v === "MOTORCYCLE" ? { portas: "", lugares: "" } : {}),
                   }))
                 }
@@ -929,6 +1190,9 @@ const styles = StyleSheet.create({
   fieldHalf: { flex: 1 },
   ufFieldWrap: {
     flex: 1,
+    marginBottom: 10,
+  },
+  corFieldWrap: {
     marginBottom: 10,
   },
   ufFieldLabel: {

@@ -14,6 +14,11 @@ import {
   normalizeVehicleCapacity,
   vehicleTypeSchema,
 } from "../vehicleCapacity.js";
+import { parseOptionalVehicleColor } from "../vehicleColors.js";
+import {
+  resolveBrandModelForCreate,
+  resolveBrandModelForUpdate,
+} from "../vehicleCatalog/resolve.js";
 import type { AuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { ownerOrAdminProcedure, ownerProcedure, router } from "../trpc.js";
@@ -372,16 +377,30 @@ export const ownerRouter = router({
         input.portas,
         input.lugares
       );
+      let cor: string | null | undefined;
+      try {
+        cor = parseOptionalVehicleColor(input.cor);
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: e instanceof Error ? e.message : "Cor inválida.",
+        });
+      }
+      const brandModel = await resolveBrandModelForCreate({
+        brand: input.brand,
+        model: input.model,
+        vehicleType: input.vehicleType,
+      });
       const v = await prisma.vehicle.create({
         data: {
           ownerUserId: user.id,
           title: input.title,
           description: input.description,
           plate: input.plate,
-          brand: input.brand,
-          model: input.model,
+          brand: brandModel.brand ?? undefined,
+          model: brandModel.model ?? undefined,
           year: input.year,
-          cor: input.cor,
+          cor: cor ?? undefined,
           vehicleType: input.vehicleType,
           portas: capacity.portas,
           lugares: capacity.lugares,
@@ -471,6 +490,8 @@ export const ownerRouter = router({
           vehicleType: true,
           portas: true,
           lugares: true,
+          brand: true,
+          model: true,
         },
       });
       if (!existing) {
@@ -484,11 +505,33 @@ export const ownerRouter = router({
         portas?: number | null;
         lugares?: number | null;
         vehicleType?: typeof existing.vehicleType;
+        cor?: string | null;
+        brand?: string | null;
+        model?: string | null;
       };
+      if (data.cor !== undefined) {
+        try {
+          data.cor = parseOptionalVehicleColor(data.cor) ?? null;
+        } catch (e) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: e instanceof Error ? e.message : "Cor inválida.",
+          });
+        }
+      }
       if (data.insuranceMaintenanceIncluded === false) {
         data.insurerPolicy = null;
       }
       const vehicleType = data.vehicleType ?? existing.vehicleType;
+      const brandModelPatch = await resolveBrandModelForUpdate({
+        brand: data.brand,
+        model: data.model,
+        vehicleType,
+        currentBrand: existing.brand,
+        currentModel: existing.model,
+      });
+      if (brandModelPatch.brand !== undefined) data.brand = brandModelPatch.brand;
+      if (brandModelPatch.model !== undefined) data.model = brandModelPatch.model;
       const portas =
         data.portas !== undefined ? data.portas : existing.portas;
       const lugares =

@@ -26,6 +26,7 @@
     "db:backup": "node scripts/backup-db.mjs",
     "ads:seed": "node scripts/seed-ad-campaign.mjs",
     "admin:seed": "node scripts/seed-admin.mjs",
+    "catalog:seed": "tsx scripts/seed-vehicle-catalog.ts",
     "test:ads": "tsx --test src/ads/eligibility.test.ts",
     "test:vehicle": "tsx --test src/vehicleCapacity.test.ts",
     "test:highlights": "tsx --test src/highlights/tier.test.ts src/highlights/expiration.test.ts",

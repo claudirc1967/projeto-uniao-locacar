@@ -204,8 +204,8 @@ model OwnerProfile {
   nomeRazaoSocial String @default("")
   emailLocador   String @default("")
   contractTemplateText String?
-  cpfCnpj     String @default("")
-  phone       String @default("")
+  cpfCnpj     String @unique @default("")
+  phone       String @unique @default("")
   cep         String @default("")
   logradouro  String @default("")
   numero      String @default("")
@@ -227,8 +227,8 @@ model DriverProfile {
   rejectionReason String?
 
   fullName    String?
-  phone       String?
-  cpf         String?
+  phone       String? @unique
+  cpf         String? @unique
   cnh         String?
   cnhCategory String?
   cnhValidity String?

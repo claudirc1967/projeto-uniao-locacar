@@ -16,6 +16,11 @@ import {
 } from "../whatsapp/sendWhatsApp.js";
 import { driverProcedure, router } from "../trpc.js";
 import { cpfValidationMessage } from "../validation/cpfCnpj.js";
+import {
+  assertUniqueCpfCnpj,
+  assertUniquePhone,
+  rethrowUniqueIdentityError,
+} from "../validation/uniqueIdentity.js";
 
 export const driverRouter = router({
   completePreRegistration: driverProcedure
@@ -64,28 +69,35 @@ export const driverRouter = router({
           message: "Ative a opção de Atestado de Antecedentes Criminais.",
         });
       }
-      await prisma.driverProfile.update({
-        where: { userId: (ctx as AuthedContext).user.id },
-        data: {
-          fullName: input.fullName,
-          phone: input.phone,
-          cpf: input.cpf.replace(/\D/g, ""),
-          cnh: input.cnh,
-          cnhCategory: input.cnhCategory,
-          cnhValidity: input.cnhValidity,
-          cnhYears: input.cnhYears,
-          cnhHasEar: input.cnhHasEar,
-          criminalAttestation: input.criminalAttestation,
-          uberRegistered: input.uberRegistered,
-          cep: input.cep.replace(/\D/g, ""),
-          logradouro: input.logradouro,
-          bairro: input.bairro,
-          cidade: input.cidade,
-          uf: input.uf.toUpperCase(),
-          numero: input.numero,
-          complemento: input.complemento?.trim() ?? "",
-        },
-      });
+      const userId = (ctx as AuthedContext).user.id;
+      const cpf = await assertUniqueCpfCnpj(input.cpf, { excludeUserId: userId });
+      const phone = await assertUniquePhone(input.phone, { excludeUserId: userId });
+      try {
+        await prisma.driverProfile.update({
+          where: { userId },
+          data: {
+            fullName: input.fullName,
+            phone,
+            cpf,
+            cnh: input.cnh,
+            cnhCategory: input.cnhCategory,
+            cnhValidity: input.cnhValidity,
+            cnhYears: input.cnhYears,
+            cnhHasEar: input.cnhHasEar,
+            criminalAttestation: input.criminalAttestation,
+            uberRegistered: input.uberRegistered,
+            cep: input.cep.replace(/\D/g, ""),
+            logradouro: input.logradouro,
+            bairro: input.bairro,
+            cidade: input.cidade,
+            uf: input.uf.toUpperCase(),
+            numero: input.numero,
+            complemento: input.complemento?.trim() ?? "",
+          },
+        });
+      } catch (error) {
+        rethrowUniqueIdentityError(error);
+      }
       return { ok: true as const };
     }),
 

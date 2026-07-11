@@ -43,6 +43,11 @@ import { rentalContractTemplate } from "../contracts/rentalContractTemplate.js";
 import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
 import { putObjectBuffer } from "../storage/s3.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
+import {
+  assertUniqueCpfCnpj,
+  assertUniquePhone,
+  rethrowUniqueIdentityError,
+} from "../validation/uniqueIdentity.js";
 
 const contentTypeSchema = z.enum(
   ALLOWED_CONTENT_TYPES as unknown as [string, ...string[]]
@@ -599,42 +604,52 @@ export const ownerRouter = router({
     .input(ownerProfileInput)
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx as AuthedContext;
-      await prisma.ownerProfile.upsert({
-        where: { userId: user.id },
-        create: {
-          userId: user.id,
-          nomeRazaoSocial: input.nomeRazaoSocial,
-          emailLocador: input.emailLocador.trim().toLowerCase(),
-          contractTemplateText: input.contractTemplateText?.trim()
-            ? input.contractTemplateText
-            : null,
-          cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
-          phone: input.phone,
-          cep: input.cep.replace(/\D/g, ""),
-          logradouro: input.logradouro,
-          bairro: input.bairro,
-          cidade: input.cidade,
-          uf: input.uf.toUpperCase(),
-          numero: input.numero,
-          complemento: input.complemento.trim(),
-        },
-        update: {
-          nomeRazaoSocial: input.nomeRazaoSocial,
-          emailLocador: input.emailLocador.trim().toLowerCase(),
-          contractTemplateText: input.contractTemplateText?.trim()
-            ? input.contractTemplateText
-            : null,
-          cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
-          phone: input.phone,
-          cep: input.cep.replace(/\D/g, ""),
-          logradouro: input.logradouro,
-          bairro: input.bairro,
-          cidade: input.cidade,
-          uf: input.uf.toUpperCase(),
-          numero: input.numero,
-          complemento: input.complemento.trim(),
-        },
+      const cpfCnpj = await assertUniqueCpfCnpj(input.cpfCnpj, {
+        excludeUserId: user.id,
       });
+      const phone = await assertUniquePhone(input.phone, {
+        excludeUserId: user.id,
+      });
+      try {
+        await prisma.ownerProfile.upsert({
+          where: { userId: user.id },
+          create: {
+            userId: user.id,
+            nomeRazaoSocial: input.nomeRazaoSocial,
+            emailLocador: input.emailLocador.trim().toLowerCase(),
+            contractTemplateText: input.contractTemplateText?.trim()
+              ? input.contractTemplateText
+              : null,
+            cpfCnpj,
+            phone,
+            cep: input.cep.replace(/\D/g, ""),
+            logradouro: input.logradouro,
+            bairro: input.bairro,
+            cidade: input.cidade,
+            uf: input.uf.toUpperCase(),
+            numero: input.numero,
+            complemento: input.complemento.trim(),
+          },
+          update: {
+            nomeRazaoSocial: input.nomeRazaoSocial,
+            emailLocador: input.emailLocador.trim().toLowerCase(),
+            contractTemplateText: input.contractTemplateText?.trim()
+              ? input.contractTemplateText
+              : null,
+            cpfCnpj,
+            phone,
+            cep: input.cep.replace(/\D/g, ""),
+            logradouro: input.logradouro,
+            bairro: input.bairro,
+            cidade: input.cidade,
+            uf: input.uf.toUpperCase(),
+            numero: input.numero,
+            complemento: input.complemento.trim(),
+          },
+        });
+      } catch (error) {
+        rethrowUniqueIdentityError(error);
+      }
       return { ok: true as const };
     }),
 

@@ -15,6 +15,11 @@ import { deleteUserAccountData } from "../services/deleteUserAccount.js";
 import { getPublicSupportConfig } from "../support/publicSupport.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
+import {
+  assertUniqueCpfCnpj,
+  assertUniquePhone,
+  rethrowUniqueIdentityError,
+} from "../validation/uniqueIdentity.js";
 
 const PASSWORD_RESET_EXPIRES_IN_MINUTES = 60;
 
@@ -89,41 +94,52 @@ export const authRouter = router({
       if (exists) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "E-mail já cadastrado",
+          message: "E-mail já existe em nosso cadastrado. Verifique se você já possui uma conta.",
         });
       }
+      let ownerCpfCnpj: string | undefined;
+      let ownerPhone: string | undefined;
+      if (input.role === "OWNER") {
+        ownerCpfCnpj = await assertUniqueCpfCnpj(input.cpfCnpj);
+        ownerPhone = await assertUniquePhone(input.phone);
+      }
       const passwordHash = await bcrypt.hash(input.password, 10);
-      const user = await prisma.user.create({
-        data: {
-          email: input.email.toLowerCase(),
-          passwordHash,
-          role: input.role,
-          privacyPolicyVersion: input.privacyPolicyAcceptedVersion,
-          privacyPolicyAcceptedAt: new Date(),
-          termsOfUseVersion: input.termsOfUseAcceptedVersion,
-          termsOfUseAcceptedAt: new Date(),
-          ...(input.role === "OWNER"
-            ? {
-                ownerProfile: {
-                  create: {
-                    nomeRazaoSocial: input.nomeRazaoSocial.trim(),
-                    emailLocador: input.email.toLowerCase(),
-                    contractTemplateText: null,
-                    cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
-                    phone: input.phone,
-                    cep: input.cep.replace(/\D/g, ""),
-                    logradouro: input.logradouro,
-                    bairro: input.bairro,
-                    cidade: input.cidade,
-                    uf: input.uf.toUpperCase(),
-                    numero: input.numero,
-                    complemento: input.complemento.trim(),
+      let user;
+      try {
+        user = await prisma.user.create({
+          data: {
+            email: input.email.toLowerCase(),
+            passwordHash,
+            role: input.role,
+            privacyPolicyVersion: input.privacyPolicyAcceptedVersion,
+            privacyPolicyAcceptedAt: new Date(),
+            termsOfUseVersion: input.termsOfUseAcceptedVersion,
+            termsOfUseAcceptedAt: new Date(),
+            ...(input.role === "OWNER"
+              ? {
+                  ownerProfile: {
+                    create: {
+                      nomeRazaoSocial: input.nomeRazaoSocial.trim(),
+                      emailLocador: input.email.toLowerCase(),
+                      contractTemplateText: null,
+                      cpfCnpj: ownerCpfCnpj!,
+                      phone: ownerPhone!,
+                      cep: input.cep.replace(/\D/g, ""),
+                      logradouro: input.logradouro,
+                      bairro: input.bairro,
+                      cidade: input.cidade,
+                      uf: input.uf.toUpperCase(),
+                      numero: input.numero,
+                      complemento: input.complemento.trim(),
+                    },
                   },
-                },
-              }
-            : { driverProfile: { create: { status: "PENDING" } } }),
-        },
-      });
+                }
+              : { driverProfile: { create: { status: "PENDING" } } }),
+          },
+        });
+      } catch (error) {
+        rethrowUniqueIdentityError(error);
+      }
       if (input.role === "OWNER") {
         const ownerName = input.nomeRazaoSocial.trim();
         const ownerWelcomeMessage = ownerWelcomeWhatsApp({
@@ -136,7 +152,7 @@ export const authRouter = router({
           /* não falha o cadastro por e-mail */
         });
         void sendWhatsApp({
-          to: input.phone,
+          to: ownerPhone!,
           ...ownerWelcomeMessage,
         }).catch(() => {
           /* não falha o cadastro por WhatsApp */
@@ -144,7 +160,7 @@ export const authRouter = router({
         void notifyAdminWhatsAppRelay({
           event: "Cadastro de locador (boas-vindas)",
           recipientName: ownerName,
-          recipientPhone: input.phone,
+          recipientPhone: ownerPhone!,
           message: ownerWelcomeMessage,
         }).catch(() => {
           /* não falha o cadastro por aviso admin */

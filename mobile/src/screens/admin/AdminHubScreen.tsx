@@ -153,6 +153,13 @@ export function AdminHubScreen({ navigation }: Props) {
 
         <MenuTile
           fullWidth
+          title="Solicitações de locação"
+          subtitle="Buscar por CPF/telefone do locador"
+          icon="clipboard-text-outline"
+          onPress={() => navigation.navigate("AdminRentals")}
+        />
+        <MenuTile
+          fullWidth
           title="Motoristas"
           subtitle={
             pendingDriversCount > 0

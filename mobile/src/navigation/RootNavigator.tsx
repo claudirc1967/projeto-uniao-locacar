@@ -42,6 +42,8 @@ import { AdminHighlightsScreen } from "../screens/admin/AdminHighlightsScreen";
 import { AdminCampaignFormScreen } from "../screens/admin/AdminCampaignFormScreen";
 import { AdminOwnerDetailScreen } from "../screens/admin/AdminOwnerDetailScreen";
 import { AdminOwnerVehicleDetailScreen } from "../screens/admin/AdminOwnerVehicleDetailScreen";
+import { AdminRentalsScreen } from "../screens/admin/AdminRentalsScreen";
+import { AdminRentalDetailScreen } from "../screens/admin/AdminRentalDetailScreen";
 import { AdminOwnersScreen } from "../screens/admin/AdminOwnersScreen";
 import type { RootStackParamList } from "./types";
 
@@ -226,6 +228,16 @@ export function RootNavigator() {
           name="AdminOwnerVehicleDetail"
           component={AdminOwnerVehicleDetailScreen}
           options={{ title: "Veículo" }}
+        />
+        <Stack.Screen
+          name="AdminRentals"
+          component={AdminRentalsScreen}
+          options={{ title: "Solicitações de locação" }}
+        />
+        <Stack.Screen
+          name="AdminRentalDetail"
+          component={AdminRentalDetailScreen}
+          options={{ title: "Detalhes da solicitação" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

@@ -45,4 +45,6 @@ export type RootStackParamList = {
   AdminOwners: undefined;
   AdminOwnerDetail: { ownerUserId: string };
   AdminOwnerVehicleDetail: { vehicleId: string };
+  AdminRentals: undefined;
+  AdminRentalDetail: { rentalId: string };
 };

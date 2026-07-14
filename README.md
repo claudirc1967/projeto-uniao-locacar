@@ -13,10 +13,17 @@ Monorepo com **API Node (Express + tRPC + JWT + Prisma)** e **app Expo (React Na
 ```bash
 cd backend
 cp .env.example .env
+# DATABASE_URL = projeto Supabase de DEV (não use o mesmo banco da EC2/produção)
+# NODE_ENV=development no .env local
 # Preencha AWS_S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-npm run db:push
+npm run db:migrate:deploy
+npm run admin:seed
 npm run dev
 ```
+
+**Dev vs produção:** o schema é PostgreSQL (Supabase). Crie um segundo projeto
+Supabase para desenvolvimento e mantenha produção só na EC2. Passo a passo:
+[`backend/docs/DATABASE.md`](backend/docs/DATABASE.md).
 
 API: `http://localhost:4000/trpc` (health: `GET /health`).
 

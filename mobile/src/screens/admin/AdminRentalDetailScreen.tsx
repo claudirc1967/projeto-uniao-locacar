@@ -1,11 +1,20 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-import { Button, Card, Text, useTheme } from "react-native-paper";
+import {
+  Button,
+  Card,
+  Text,
+  TextInput,
+  useTheme,
+} from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { vehicleTypeLabel } from "../../constants/vehicleType";
@@ -22,6 +31,9 @@ import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "AdminRentalDetail">;
 
+const DEFAULT_MOTIVO =
+  "Locador não respondeu no prazo. A solicitação foi encerrada pela plataforma.";
+
 const statusLabel: Record<string, string> = {
   PENDING_OWNER: "Aguardando locador",
   APPROVED: "Aprovada",
@@ -36,11 +48,45 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { rentalId } = route.params;
+  const utils = trpc.useUtils();
+
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [motivoRecusa, setMotivoRecusa] = useState(DEFAULT_MOTIVO);
+  const [modalErr, setModalErr] = useState<string | null>(null);
 
   const q = trpc.admin.rentals.getDetail.useQuery(
     { rentalId },
     { enabled: user?.role === "ADMIN" }
   );
+
+  const reject = trpc.admin.rentals.rejectRental.useMutation({
+    onSuccess: async () => {
+      setRejectOpen(false);
+      setModalErr(null);
+      await Promise.all([
+        utils.admin.rentals.getDetail.invalidate({ rentalId }),
+        utils.admin.rentals.listPendingOlderThan.invalidate(),
+        utils.admin.rentals.countPendingOlderThan.invalidate(),
+      ]);
+    },
+    onError: (e) => setModalErr(trpcErrorMessage(e)),
+  });
+
+  const openReject = () => {
+    setMotivoRecusa(DEFAULT_MOTIVO);
+    setModalErr(null);
+    setRejectOpen(true);
+  };
+
+  const confirmReject = () => {
+    const t = motivoRecusa.trim();
+    if (t.length < 3) {
+      setModalErr("Informe o motivo (mínimo 3 caracteres).");
+      return;
+    }
+    setModalErr(null);
+    reject.mutate({ rentalId, motivoRecusa: t });
+  };
 
   if (q.isLoading) {
     return (
@@ -70,13 +116,14 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
 
   const row = q.data;
   const driverProfile = row.driver.driverProfile;
+  const canReject = row.status === "PENDING_OWNER";
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingBottom: 72 + insets.bottom },
+          { paddingBottom: 88 + insets.bottom },
         ]}
       >
         <Card mode="outlined" style={styles.cardWrap}>
@@ -89,6 +136,31 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
             </Text>
             <Text variant="bodySmall" style={styles.meta}>
               Situação: {statusLabel[row.status] ?? row.status}
+              {row.rejectedByAdmin ? " (encerrada pelo admin)" : ""}
+            </Text>
+            {row.status === "REJECTED" && row.motivoRecusa ? (
+              <Text variant="bodySmall" style={styles.meta}>
+                Motivo: {row.motivoRecusa}
+              </Text>
+            ) : null}
+          </Card.Content>
+        </Card>
+
+        <View style={styles.divider} />
+
+        <Card mode="outlined" style={styles.cardWrap}>
+          <Card.Content style={styles.cardContent}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Locador
+            </Text>
+            <Text variant="titleSmall" style={styles.valueTitle}>
+              {row.owner.nomeRazaoSocial || "—"}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              E-mail: {row.owner.emailLocador || row.owner.email}
+            </Text>
+            <Text variant="bodySmall" style={styles.meta}>
+              Telefone: {row.owner.phone ? maskPhone(row.owner.phone) : "—"}
             </Text>
           </Card.Content>
         </Card>
@@ -245,10 +317,88 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
           },
         ]}
       >
-        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
-          Voltar
-        </Button>
+        <View style={styles.footerRow}>
+          <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+            Voltar
+          </Button>
+          {canReject ? (
+            <Button
+              mode="contained"
+              buttonColor={theme.colors.error}
+              textColor={theme.colors.onError}
+              icon="close-circle-outline"
+              onPress={openReject}
+            >
+              Recusar (admin)
+            </Button>
+          ) : null}
+        </View>
       </View>
+
+      <Modal
+        visible={rejectOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!reject.isPending) setRejectOpen(false);
+        }}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => {
+            if (!reject.isPending) setRejectOpen(false);
+          }}
+        >
+          <Pressable
+            style={[styles.modalCard, { backgroundColor: theme.colors.surface }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleMedium" style={styles.modalTitle}>
+              Encerrar solicitação
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}
+            >
+              O motorista será notificado. Ele poderá solicitar este veículo de
+              novo (não há bloqueio).
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Motivo"
+              value={motivoRecusa}
+              onChangeText={setMotivoRecusa}
+              multiline
+              numberOfLines={4}
+              style={styles.motivoInput}
+            />
+            {modalErr ? (
+              <Text style={{ color: theme.colors.error, marginBottom: 8 }}>
+                {modalErr}
+              </Text>
+            ) : null}
+            <View style={styles.modalActions}>
+              <Button
+                mode="outlined"
+                disabled={reject.isPending}
+                onPress={() => setRejectOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                mode="contained"
+                buttonColor={theme.colors.error}
+                textColor={theme.colors.onError}
+                loading={reject.isPending}
+                disabled={reject.isPending}
+                onPress={confirmReject}
+              >
+                Confirmar recusa
+              </Button>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -274,5 +424,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    borderRadius: 12,
+    padding: 16,
+  },
+  modalTitle: { marginBottom: 8 },
+  motivoInput: { marginBottom: 12, minHeight: 100 },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 8,
+    flexWrap: "wrap",
   },
 });

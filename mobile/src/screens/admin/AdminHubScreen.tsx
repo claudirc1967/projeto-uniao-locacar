@@ -29,13 +29,23 @@ export function AdminHubScreen({ navigation }: Props) {
   const ownersWithIssues =
     ownersQ.data?.filter((o) => !o.profileComplete).length ?? 0;
 
+  const staleRentalsQ = trpc.admin.rentals.countPendingOlderThan.useQuery(
+    { olderThanHours: 24 },
+    {
+      enabled: user?.role === "ADMIN",
+      staleTime: 30_000,
+    }
+  );
+  const staleRentalsCount = staleRentalsQ.data?.count ?? 0;
+
   useFocusEffect(
     useCallback(() => {
       if (user?.role === "ADMIN") {
         void pendingDriversQ.refetch();
         void ownersQ.refetch();
+        void staleRentalsQ.refetch();
       }
-    }, [ownersQ, pendingDriversQ, user?.role])
+    }, [ownersQ, pendingDriversQ, staleRentalsQ, user?.role])
   );
 
   return (
@@ -132,6 +142,46 @@ export function AdminHubScreen({ navigation }: Props) {
           </Card>
         ) : null}
 
+        {staleRentalsCount > 0 ? (
+          <Card
+            mode="elevated"
+            style={[
+              styles.pendingCard,
+              { backgroundColor: theme.colors.errorContainer },
+            ]}
+          >
+            <Card.Content style={styles.pendingCardContent}>
+              <View style={styles.pendingTextWrap}>
+                <Text
+                  variant="titleMedium"
+                  style={{ color: theme.colors.onErrorContainer }}
+                >
+                  {staleRentalsCount === 1
+                    ? "1 solicitação aguardando locador há 24h+"
+                    : `${staleRentalsCount} solicitações aguardando locador há 24h+`}
+                </Text>
+                <Text
+                  variant="bodySmall"
+                  style={[
+                    styles.pendingHint,
+                    { color: theme.colors.onErrorContainer },
+                  ]}
+                >
+                  Contate o locador. Se não houver resposta, recuse pela
+                  plataforma para o motorista não ficar sem retorno.
+                </Text>
+              </View>
+              <Button
+                mode="contained"
+                icon="timer-sand"
+                onPress={() => navigation.navigate("AdminPendingRentals")}
+              >
+                Ver fila
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : null}
+
         <View style={styles.grid}>
           <View style={styles.cell}>
             <MenuTile
@@ -151,6 +201,17 @@ export function AdminHubScreen({ navigation }: Props) {
           </View>
         </View>
 
+        <MenuTile
+          fullWidth
+          title="Pendentes há 24h+"
+          subtitle={
+            staleRentalsCount > 0
+              ? `${staleRentalsCount} aguardando locador`
+              : "Fila operacional de solicitações"
+          }
+          icon="timer-sand"
+          onPress={() => navigation.navigate("AdminPendingRentals")}
+        />
         <MenuTile
           fullWidth
           title="Solicitações de locação"

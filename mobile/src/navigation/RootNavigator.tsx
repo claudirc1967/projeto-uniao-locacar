@@ -43,6 +43,7 @@ import { AdminCampaignFormScreen } from "../screens/admin/AdminCampaignFormScree
 import { AdminOwnerDetailScreen } from "../screens/admin/AdminOwnerDetailScreen";
 import { AdminOwnerVehicleDetailScreen } from "../screens/admin/AdminOwnerVehicleDetailScreen";
 import { AdminRentalsScreen } from "../screens/admin/AdminRentalsScreen";
+import { AdminPendingRentalsScreen } from "../screens/admin/AdminPendingRentalsScreen";
 import { AdminRentalDetailScreen } from "../screens/admin/AdminRentalDetailScreen";
 import { AdminOwnersScreen } from "../screens/admin/AdminOwnersScreen";
 import type { RootStackParamList } from "./types";
@@ -232,7 +233,12 @@ export function RootNavigator() {
         <Stack.Screen
           name="AdminRentals"
           component={AdminRentalsScreen}
-          options={{ title: "Solicitações de locação" }}
+          options={{ title: "Solicitações por locador" }}
+        />
+        <Stack.Screen
+          name="AdminPendingRentals"
+          component={AdminPendingRentalsScreen}
+          options={{ title: "Pendentes há 24h+" }}
         />
         <Stack.Screen
           name="AdminRentalDetail"

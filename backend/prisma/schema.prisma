@@ -427,6 +427,8 @@ model Rental {
   driver             User         @relation("DriverRentals", fields: [driverUserId], references: [id], onDelete: Cascade)
   status             RentalStatus @default(PENDING_OWNER)
   motivoRecusa       String?
+  /** True quando a recusa foi feita pelo admin (ex.: locador sem resposta no prazo). */
+  rejectedByAdmin    Boolean      @default(false)
   pickupInstructions String?
   contractText       String?
   contractS3Key      String?

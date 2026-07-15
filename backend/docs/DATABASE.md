@@ -90,7 +90,52 @@ Com banco pequeno (~30 MB), o uso normal do app gera **pouco egress**. Picos de
 local apontando para prod** — não do número de usuários.
 
 Estimativa saudável: app + 4 backups/mês + deploys **< 1 GB/mês** (limite free:
-5 GB).
+5 GB). No **Pro** (250 GB de egress), o app deve ficar bem abaixo da cota após
+as otimizações abaixo.
+
+## Otimização de egress (backend e app)
+
+Em jul/2026 o suporte Supabase apontou egress alto (**Shared Pooler / Supavisor**)
+com atividade pesada na tabela `User` (~milhões de leituras). A causa no código
+era o carregamento do usuário **a cada procedure autenticada** no batch tRPC,
+incluindo o campo grande `contractTemplateText` em toda requisição.
+
+### O que foi alterado
+
+| Camada | Mudança | Arquivo |
+|--------|---------|---------|
+| Backend | **`resolveSessionUser`** — no máximo **1** query em `User` por request HTTP (cache no `req` do Express; deduplica batch tRPC) | `src/context.ts`, `src/trpc.ts` |
+| Backend | Sessão **sem** `contractTemplateText` no perfil do locador (payload menor) | `src/context.ts` |
+| Backend | Contrato carregado **só quando necessário** (`auth.me`, aprovação de locação) | `src/routers/auth.ts`, `src/routers/owner.ts` |
+| Mobile | **`refetchOnWindowFocus: false`** no React Query (menos refetch ao voltar ao app/aba) | `mobile/src/api/TrpcProvider.tsx` |
+
+### Detalhes técnicos
+
+**Antes:** cada rota `protectedProcedure` chamava `loadUser` com
+`include: { ownerProfile: true, driverProfile: true }`. Com `httpBatchLink`, um
+único HTTP com 3 procedures (ex.: marketplace) gerava **3 leituras** idênticas em
+`User` + perfis, muitas vezes trazendo o texto inteiro do contrato.
+
+**Depois:** o middleware chama `resolveSessionUser(ctx.req, userId)`, que
+reutiliza a mesma promise por request. O `select` do Prisma omite
+`contractTemplateText`; funções auxiliares:
+
+- `loadOwnerContractTemplateText(userId)` — usada em `auth.me` e ao aprovar locação.
+
+### Pooler na EC2
+
+Se o `DATABASE_URL` de produção usa **Supavisor** (`pooler.supabase.com`,
+`pgbouncer=true`), todo tráfego Prisma aparece como **Shared Pooler Egress** no
+painel — isso é esperado. Trocar para conexão **Direct** (`db....supabase.co:5432`,
+sem `pgbouncer=true`) muda a **categoria** no gráfico; o ganho de volume vem
+sobretudo das otimizações acima, não só da URL.
+
+### Após deploy
+
+1. EC2: `git pull`, `npm run build`, reiniciar a API.
+2. Supabase → **Settings → Usage** → acompanhar egress/dia por alguns dias.
+3. Se ainda estiver alto, seguir o checklist abaixo (backup, cron, dev apontando
+   para prod).
 
 ### 1. Conferir no EC2
 
@@ -245,10 +290,11 @@ Egress do backup: ~tamanho do banco por semana (ex.: 29 MB × 4 ≈ 116 MB/mês)
 
 | Item | Ação |
 |------|------|
-| Origem provável de picos | Leituras repetidas (backup/migrate/dev), não usuários |
+| Origem provável de picos | Leituras repetidas (backup/migrate/dev) ou `loadUser` antes da otimização |
+| Já implementado | `resolveSessionUser`, sessão enxuta, contrato sob demanda, menos refetch no app |
 | Backup ideal | 1×/semana no EC2, manter 8 arquivos |
 | Dev local | Supabase **dev**, não prod |
-| Próximo passo | Rodar a seção 1 no EC2 e anotar cron/history |
+| Próximo passo | Usage no painel; se persistir, rodar a seção 1 no EC2 |
 
 ## O que não misturar
 

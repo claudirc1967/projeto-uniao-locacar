@@ -59,6 +59,14 @@ export function AdminPendingRentalsScreen({ navigation }: Props) {
         <Button mode="outlined" onPress={() => void q.refetch()}>
           Tentar de novo
         </Button>
+        <Button
+          mode="outlined"
+          icon="arrow-left"
+          style={{ marginTop: 8 }}
+          onPress={() => navigation.goBack()}
+        >
+          Voltar
+        </Button>
       </View>
     );
   }
@@ -140,6 +148,21 @@ export function AdminPendingRentalsScreen({ navigation }: Props) {
           </Card>
         )}
       />
+
+      <View
+        style={[
+          styles.footerBar,
+          {
+            paddingBottom: insets.bottom,
+            borderTopColor: theme.colors.outlineVariant,
+            backgroundColor: theme.colors.surface,
+          },
+        ]}
+      >
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </View>
   );
 }
@@ -154,4 +177,13 @@ const styles = StyleSheet.create({
   cardContent: { gap: 4 },
   meta: { opacity: 0.85 },
   openBtn: { flexDirection: "row-reverse" },
+  footerBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

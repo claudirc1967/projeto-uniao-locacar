@@ -14,6 +14,7 @@ export function TrpcProvider({ children }: { children: React.ReactNode }) {
           queries: {
             staleTime: 20_000,
             retry: 1,
+            refetchOnWindowFocus: false,
           },
           mutations: {
             retry: 0,

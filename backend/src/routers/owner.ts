@@ -20,6 +20,7 @@ import {
   resolveBrandModelForUpdate,
 } from "../vehicleCatalog/resolve.js";
 import type { AuthedContext } from "../context.js";
+import { loadOwnerContractTemplateText } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { ownerOrAdminProcedure, ownerProcedure, router } from "../trpc.js";
 import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
@@ -1152,8 +1153,9 @@ export const ownerRouter = router({
 
       const owner = (ctx as AuthedContext).user;
       const pickupInstructions = input.pickupInstructions.trim();
+      const ownerContractTemplate = await loadOwnerContractTemplateText(owner.id);
       const baseTemplate =
-        owner.ownerProfile?.contractTemplateText?.trim() || rentalContractTemplate;
+        ownerContractTemplate?.trim() || rentalContractTemplate;
       const contractText = fillRentalContract(baseTemplate, {
         rental: { id: r.id },
         vehicle: {

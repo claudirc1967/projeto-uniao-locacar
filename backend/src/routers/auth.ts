@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { signJwt } from "../auth/jwt.js";
 import type { AuthedContext } from "../context.js";
+import { loadOwnerContractTemplateText } from "../context.js";
 import { prisma } from "../db.js";
 import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
@@ -262,12 +263,19 @@ export const authRouter = router({
       u.privacyPolicyVersion !== PRIVACY_POLICY_VERSION;
     const needsTermsOfUseAcceptance =
       !u.termsOfUseAcceptedAt || u.termsOfUseVersion !== TERMS_OF_USE_VERSION;
+    const ownerProfile =
+      u.role === "OWNER" && u.ownerProfile
+        ? {
+            ...u.ownerProfile,
+            contractTemplateText: await loadOwnerContractTemplateText(u.id),
+          }
+        : u.ownerProfile;
     return {
       id: u.id,
       email: u.email,
       role: u.role,
       driverProfile: u.driverProfile,
-      ownerProfile: u.ownerProfile,
+      ownerProfile,
       privacyPolicyVersion: u.privacyPolicyVersion,
       privacyPolicyAcceptedAt: u.privacyPolicyAcceptedAt,
       needsPrivacyPolicyAcceptance,

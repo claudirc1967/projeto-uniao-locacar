@@ -1,7 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { AuthedContext, Context } from "./context.js";
-import { loadUser } from "./context.js";
+import { resolveSessionUser } from "./context.js";
 
 const t = initTRPC.context<Context>().create({ transformer: superjson });
 
@@ -12,7 +12,7 @@ const requireAuth = t.middleware(async ({ ctx, next }) => {
   if (!ctx.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Não autenticado" });
   }
-  const user = await loadUser(ctx.userId);
+  const user = await resolveSessionUser(ctx.req, ctx.userId);
   if (!user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário inválido" });
   }

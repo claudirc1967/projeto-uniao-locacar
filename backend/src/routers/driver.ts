@@ -16,6 +16,7 @@ import {
 } from "../whatsapp/sendWhatsApp.js";
 import { driverProcedure, router } from "../trpc.js";
 import { cpfValidationMessage } from "../validation/cpfCnpj.js";
+import { phoneValidationMessage } from "../validation/phone.js";
 import {
   assertUniqueCpfCnpj,
   assertUniquePhone,
@@ -28,7 +29,7 @@ export const driverRouter = router({
       z
         .object({
           fullName: z.string().min(3),
-          phone: z.string().min(8),
+          phone: z.string().min(10),
           cpf: z.string().min(11).max(14),
           cnh: z.string().min(5),
           cnhCategory: z.string().min(1),
@@ -52,6 +53,14 @@ export const driverRouter = router({
               code: z.ZodIssueCode.custom,
               message: msg,
               path: ["cpf"],
+            });
+          }
+          const phoneMsg = phoneValidationMessage(data.phone, { required: true });
+          if (phoneMsg) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: phoneMsg,
+              path: ["phone"],
             });
           }
         })

@@ -28,6 +28,7 @@ import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
 import { cpfCnpjValidationMessage } from "../../utils/cpfCnpj";
 import { cepDigits, maskCpfCnpj, maskPhone, onlyDigits } from "../../utils/masks";
+import { phoneValidationMessage } from "../../utils/phone";
 import {
   validateEmailForAuth,
   validatePasswordForAuth,
@@ -79,8 +80,9 @@ export function SignupScreen({ navigation }: Props) {
       setErr(docErr);
       return false;
     }
-    if (!onlyDigits(phone) || onlyDigits(phone).length < 8) {
-      setErr("Telefone / WhatsApp é obrigatório.");
+    const phoneErr = phoneValidationMessage(phone, { required: true });
+    if (phoneErr) {
+      setErr(phoneErr);
       return false;
     }
     const cep = cepDigits(addr.cep);

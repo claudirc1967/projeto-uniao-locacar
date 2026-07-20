@@ -2,10 +2,12 @@ import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { prisma } from "../db.js";
 import { digitsOnly } from "./cpfCnpj.js";
+import {
+  normalizePhoneDigits,
+  phoneValidationMessage,
+} from "./phone.js";
 
-export function normalizePhoneDigits(raw: string): string {
-  return digitsOnly(raw);
-}
+export { normalizePhoneDigits } from "./phone.js";
 
 export function normalizeCpfCnpjDigits(raw: string): string {
   return digitsOnly(raw);
@@ -58,6 +60,14 @@ export async function assertUniquePhone(
 ): Promise<string> {
   const digits = normalizePhoneDigits(raw);
   if (!digits) return digits;
+
+  const formatMsg = phoneValidationMessage(digits, { required: true });
+  if (formatMsg) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: formatMsg,
+    });
+  }
 
   const excludeUserId = options?.excludeUserId;
   const userFilter = excludeUserId ? { not: excludeUserId } : undefined;

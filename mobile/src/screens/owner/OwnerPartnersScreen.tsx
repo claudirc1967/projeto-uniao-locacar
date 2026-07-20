@@ -27,6 +27,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
 import { maskPhone, onlyDigits } from "../../utils/masks";
+import { phoneValidationMessage } from "../../utils/phone";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { appAlert } from "../../utils/appAlert";
@@ -273,9 +274,15 @@ export function OwnerPartnersScreen({ navigation }: Props) {
       return;
     }
     const phDigits = onlyDigits(phone);
-    if (phDigits && phDigits.length < 10) {
-      setFormErr("Telefone muito curto.");
-      return;
+    if (phDigits) {
+      const phoneErr = phoneValidationMessage(phDigits, {
+        required: false,
+        label: "Telefone",
+      });
+      if (phoneErr) {
+        setFormErr(phoneErr);
+        return;
+      }
     }
 
     if (editingId) {

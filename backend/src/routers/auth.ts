@@ -16,6 +16,7 @@ import { deleteUserAccountData } from "../services/deleteUserAccount.js";
 import { getPublicSupportConfig } from "../support/publicSupport.js";
 import { protectedProcedure, publicProcedure, router } from "../trpc.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
+import { phoneValidationMessage } from "../validation/phone.js";
 import {
   assertUniqueCpfCnpj,
   assertUniquePhone,
@@ -49,7 +50,7 @@ function buildPasswordResetLink(token: string): string | undefined {
 const ownerSignupFields = {
   nomeRazaoSocial: z.string().min(1),
   cpfCnpj: z.string().min(11).max(18),
-  phone: z.string().min(8).max(20),
+  phone: z.string().min(10).max(20),
   cep: z.string().min(8).max(9),
   logradouro: z.string().min(1),
   bairro: z.string().min(1),
@@ -82,6 +83,14 @@ const signupInput = z.union([
           code: z.ZodIssueCode.custom,
           message: msg,
           path: ["cpfCnpj"],
+        });
+      }
+      const phoneMsg = phoneValidationMessage(data.phone, { required: true });
+      if (phoneMsg) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: phoneMsg,
+          path: ["phone"],
         });
       }
     }),

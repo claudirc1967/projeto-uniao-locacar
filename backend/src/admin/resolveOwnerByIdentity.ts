@@ -4,6 +4,7 @@ import {
   normalizeCpfCnpjDigits,
   normalizePhoneDigits,
 } from "../validation/uniqueIdentity.js";
+import { phoneValidationMessage } from "../validation/phone.js";
 
 const ownerProfileSelect = {
   userId: true,
@@ -45,11 +46,17 @@ export async function resolveOwnerByIdentity(input: {
     });
   }
 
-  if (phoneDigits && phoneDigits.length < 10) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Telefone incompleto.",
+  if (phoneDigits) {
+    const phoneMsg = phoneValidationMessage(phoneDigits, {
+      required: false,
+      label: "Telefone",
     });
+    if (phoneMsg) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: phoneMsg,
+      });
+    }
   }
 
   const [byCpf, byPhone] = await Promise.all([

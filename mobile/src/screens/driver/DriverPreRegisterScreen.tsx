@@ -29,6 +29,7 @@ import type { RootStackParamList } from "../../navigation/types";
 import { cpfValidationMessage } from "../../utils/cpfCnpj";
 import { maskCpf, maskDate, maskPhone, onlyDigits } from "../../utils/masks";
 import { maskCep } from "../../utils/masks";
+import { phoneValidationMessage } from "../../utils/phone";
 
 type Props = NativeStackScreenProps<RootStackParamList, "DriverPreRegister">;
 
@@ -154,8 +155,9 @@ export function DriverPreRegisterScreen({ navigation }: Props) {
       setErr("Informe o nome completo.");
       return;
     }
-    if (onlyDigits(phone).length < 8) {
-      setErr("Informe um telefone válido.");
+    const phoneErr = phoneValidationMessage(phone, { required: true });
+    if (phoneErr) {
+      setErr(phoneErr);
       return;
     }
     if (!cnhHasEar) {

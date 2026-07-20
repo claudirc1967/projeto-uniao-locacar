@@ -45,6 +45,10 @@ import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
 import { putObjectBuffer } from "../storage/s3.js";
 import { cpfCnpjValidationMessage } from "../validation/cpfCnpj.js";
 import {
+  normalizePhoneDigits,
+  phoneValidationMessage,
+} from "../validation/phone.js";
+import {
   assertUniqueCpfCnpj,
   assertUniquePhone,
   rethrowUniqueIdentityError,
@@ -97,7 +101,7 @@ const ownerProfileInput = z
     emailLocador: z.string().email(),
     contractTemplateText: z.string().optional().nullable(),
     cpfCnpj: z.string().min(11).max(18),
-    phone: z.string().min(8).max(20),
+    phone: z.string().min(10).max(20),
     cep: z.string().min(8).max(9),
     logradouro: z.string().min(1),
     bairro: z.string().min(1),
@@ -113,6 +117,14 @@ const ownerProfileInput = z
         code: z.ZodIssueCode.custom,
         message: msg,
         path: ["cpfCnpj"],
+      });
+    }
+    const phoneMsg = phoneValidationMessage(data.phone, { required: true });
+    if (phoneMsg) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: phoneMsg,
+        path: ["phone"],
       });
     }
   });
@@ -256,23 +268,41 @@ export const ownerRouter = router({
 
   createPartner: ownerProcedure
     .input(
-      z.object({
-        name: z.string().min(2).max(200),
-        category: partnerCategorySchema.default("OTHER"),
-        email: z.string().email().optional().nullable(),
-        phone: z.string().min(8).max(30).optional().nullable(),
-        notes: z.string().max(4000).optional().nullable(),
-      })
+      z
+        .object({
+          name: z.string().min(2).max(200),
+          category: partnerCategorySchema.default("OTHER"),
+          email: z.string().email().optional().nullable(),
+          phone: z.string().max(30).optional().nullable(),
+          notes: z.string().max(4000).optional().nullable(),
+        })
+        .superRefine((data, ctx) => {
+          if (data.phone == null || !String(data.phone).trim()) return;
+          const msg = phoneValidationMessage(data.phone, {
+            required: false,
+            label: "Telefone",
+          });
+          if (msg) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msg,
+              path: ["phone"],
+            });
+          }
+        })
     )
     .mutation(async ({ ctx, input }) => {
       const ownerUserId = (ctx as AuthedContext).user.id;
+      const phoneDigits = input.phone?.trim()
+        ? normalizePhoneDigits(input.phone)
+        : null;
       const p = await prisma.partner.create({
         data: {
           ownerUserId,
           name: input.name.trim(),
           category: input.category,
           email: input.email?.trim() ? input.email.trim().toLowerCase() : null,
-          phone: input.phone?.trim() ? input.phone.trim() : null,
+          phone: phoneDigits || null,
           notes: input.notes?.trim() ? input.notes.trim() : null,
         },
       });
@@ -281,18 +311,40 @@ export const ownerRouter = router({
 
   updatePartner: ownerProcedure
     .input(
-      z.object({
-        partnerId: z.string(),
-        name: z.string().min(2).max(200).optional(),
-        category: partnerCategorySchema.optional(),
-        email: z.string().email().optional().nullable(),
-        phone: z.string().min(8).max(30).optional().nullable(),
-        notes: z.string().max(4000).optional().nullable(),
-      })
+      z
+        .object({
+          partnerId: z.string(),
+          name: z.string().min(2).max(200).optional(),
+          category: partnerCategorySchema.optional(),
+          email: z.string().email().optional().nullable(),
+          phone: z.string().max(30).optional().nullable(),
+          notes: z.string().max(4000).optional().nullable(),
+        })
+        .superRefine((data, ctx) => {
+          if (data.phone === undefined) return;
+          if (data.phone == null || !String(data.phone).trim()) return;
+          const msg = phoneValidationMessage(data.phone, {
+            required: false,
+            label: "Telefone",
+          });
+          if (msg) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: msg,
+              path: ["phone"],
+            });
+          }
+        })
     )
     .mutation(async ({ ctx, input }) => {
       const ownerUserId = (ctx as AuthedContext).user.id;
       await assertOwnsPartner(ownerUserId, input.partnerId);
+      const phone =
+        input.phone === undefined
+          ? undefined
+          : input.phone?.trim()
+            ? normalizePhoneDigits(input.phone)
+            : null;
       await prisma.partner.update({
         where: { id: input.partnerId },
         data: {
@@ -304,12 +356,7 @@ export const ownerRouter = router({
               : input.email?.trim()
                 ? input.email.trim().toLowerCase()
                 : null,
-          phone:
-            input.phone === undefined
-              ? undefined
-              : input.phone?.trim()
-                ? input.phone.trim()
-                : null,
+          phone,
           notes:
             input.notes === undefined
               ? undefined

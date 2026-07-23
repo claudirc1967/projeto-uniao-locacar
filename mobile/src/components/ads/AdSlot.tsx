@@ -80,8 +80,9 @@ export function AdSlot({ placement, variant = "default", rotationSeed }: Props) 
 const styles = StyleSheet.create({
   slot: {
     width: "100%",
-    marginTop: 12,
-    marginBottom: 4,
+    // Espaçamento alinhado ao marginBottom dos cards de veículo (12).
+    marginTop: 0,
+    marginBottom: 12,
     ...Platform.select({
       web: {
         position: "relative",

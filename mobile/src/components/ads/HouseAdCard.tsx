@@ -148,7 +148,13 @@ export function HouseAdCard({
   return (
     <Card
       mode={Platform.OS === "web" ? "outlined" : "elevated"}
-      style={styles.card}
+      style={[
+        styles.card,
+        {
+          backgroundColor: AD_LIST_BG,
+          ...(Platform.OS === "web" ? { borderColor: AD_LIST_BORDER } : null),
+        },
+      ]}
     >
       <Pressable onPress={onPress} {...pressableProps}>
         <Card.Content style={styles.content}>
@@ -191,6 +197,10 @@ export function HouseAdCard({
     </Card>
   );
 }
+
+/** Fundo bege claro — diferencia anúncio dos cards de veículo no marketplace. */
+const AD_LIST_BG = "#faf7f2";
+const AD_LIST_BORDER = "#e8e0d5";
 
 const styles = StyleSheet.create({
   card: { borderRadius: 16 },

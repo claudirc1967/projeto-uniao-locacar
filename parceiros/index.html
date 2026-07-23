@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Parceiros União LocaCar — seguradoras, oficinas e serviços para locadores e motoristas."
+    />
+    <title>Parceiros — União LocaCar</title>
+    <style>
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1e3a8a;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --border: #e2e8f0;
+        --radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      a {
+        color: var(--primary);
+      }
+
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px 20px 48px;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: var(--muted);
+        text-decoration: none;
+        margin-bottom: 24px;
+      }
+
+      .back:hover {
+        color: var(--primary);
+      }
+
+      header {
+        margin-bottom: 32px;
+      }
+
+      .badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--primary-dark);
+        background: #dbeafe;
+        padding: 6px 12px;
+        border-radius: 999px;
+        margin-bottom: 12px;
+      }
+
+      h1 {
+        font-size: clamp(1.75rem, 5vw, 2.25rem);
+        line-height: 1.2;
+        margin: 0 0 12px;
+        font-weight: 700;
+      }
+
+      .lead {
+        font-size: 1.05rem;
+        color: var(--muted);
+        margin: 0;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      }
+
+      .card h2 {
+        font-size: 1.1rem;
+        margin: 0 0 8px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+        margin: 28px 0;
+      }
+
+      @media (min-width: 560px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .cta {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 32px;
+      }
+
+      @media (min-width: 480px) {
+        .cta {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 20px;
+        border-radius: var(--radius);
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+
+      .btn-primary:hover {
+        background: #1d4ed8;
+      }
+
+      .btn-outline {
+        background: var(--surface);
+        color: var(--primary);
+        border: 1px solid var(--border);
+      }
+
+      .btn-outline:hover {
+        border-color: var(--primary);
+      }
+
+      .btn-whatsapp {
+        background: #25d366;
+        color: #fff;
+      }
+
+      .btn-whatsapp:hover {
+        background: #1ebe57;
+      }
+
+      .btn[hidden] {
+        display: none !important;
+      }
+
+      footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="top-nav" aria-label="Navegação" style="display:flex;gap:16px;margin-bottom:8px">
+        <a class="back" href="/">← Abrir o app</a>
+        <a class="back" href="/sobre/">Sobre</a>
+      </nav>
+
+      <header>
+        <span class="badge">Rede de parceiros</span>
+        <h1>Parceiros União LocaCar</h1>
+        <p class="lead">
+          Conectamos locadores e motoristas a seguradoras, oficinas, funilarias e
+          outros serviços de confiança para a locação de veículos.
+        </p>
+      </header>
+
+      <div class="grid">
+        <article class="card">
+          <h2>Seguradoras</h2>
+          <p>Cobertura e assistência alinhadas à operação de locação.</p>
+        </article>
+        <article class="card">
+          <h2>Oficinas e funilarias</h2>
+          <p>Manutenção e reparos com parceiros indicados pela plataforma.</p>
+        </article>
+        <article class="card">
+          <h2>Peças e acessórios</h2>
+          <p>Fornecedores para manter a frota em dia.</p>
+        </article>
+        <article class="card">
+          <h2>Benefícios</h2>
+          <p>Vantagens exclusivas para quem usa a União LocaCar.</p>
+        </article>
+      </div>
+
+      <section class="card">
+        <h2>Quer ser parceiro?</h2>
+        <p>
+          Estamos ampliando a rede de parceiros comerciais. Entre em contato para
+          conhecer oportunidades de divulgação na plataforma.
+        </p>
+        <div class="cta">
+          <a
+            class="btn btn-primary"
+            href="mailto:uniaolocacar@gmail.com"
+            data-support-email
+            >Falar com a equipe (e-mail)</a
+          >
+          <a
+            class="btn btn-whatsapp"
+            href="#"
+            hidden
+            rel="noopener noreferrer"
+            target="_blank"
+            data-support-whatsapp
+            data-wa-message="Olá! Tenho interesse em ser parceiro comercial da União LocaCar."
+            >WhatsApp</a
+          >
+          <a class="btn btn-outline" href="/">Abrir o app</a>
+        </div>
+      </section>
+
+      <footer>
+        © União LocaCar · Plataforma de locação entre proprietários e motoristas
+      </footer>
+    </div>
+    <script src="/support-contact.js"></script>
+  </body>
+</html>

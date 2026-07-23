@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>União LocaCar</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <link rel="icon" href="/favicon.ico" />  <style id="uniao-locacar-icon-font">
+@font-face {
+  font-family: "material-community";
+  src: url("/assets/_node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.6e435534bd35da5fef04168860a9b8fa.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+</style>
+</head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  <script>
+(function () {
+  var src = "/_expo/static/js/web/index-fcb32ecbce9cf494b4cbf926de2e23cd.js";
+  var el = document.createElement("script");
+  el.defer = true;
+  fetch(src, {
+    credentials: "same-origin",
+    headers: { "Accept-Encoding": "identity" },
+  })
+    .then(function (res) {
+      if (!res.ok) throw new Error("bundle load failed: " + res.status);
+      return res.blob();
+    })
+    .then(function (blob) {
+      el.src = URL.createObjectURL(blob);
+      document.head.appendChild(el);
+    })
+    .catch(function (err) {
+      console.error("[União LocaCar] Falha ao carregar bundle:", err);
+      el.src = src;
+      document.head.appendChild(el);
+    });
+})();
+</script>
+</body>
+</html>

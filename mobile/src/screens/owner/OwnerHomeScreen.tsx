@@ -16,11 +16,6 @@ export function OwnerHomeScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
-  const pendingDriversQ = trpc.owner.listPendingDrivers.useQuery(undefined, {
-    staleTime: 30_000,
-  });
-  const pendingDriversCount = pendingDriversQ.data?.length ?? 0;
-
   const pendingRentalsQ = trpc.owner.countPendingIncomingRentals.useQuery(
     undefined,
     { staleTime: 30_000 }
@@ -29,9 +24,8 @@ export function OwnerHomeScreen({ navigation }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      void pendingDriversQ.refetch();
       void pendingRentalsQ.refetch();
-    }, [pendingDriversQ, pendingRentalsQ])
+    }, [pendingRentalsQ])
   );
 
   const greeting =
@@ -64,7 +58,7 @@ export function OwnerHomeScreen({ navigation }: Props) {
           Olá, {greeting}
         </Text>
         <Text variant="bodyMedium" style={styles.sub}>
-          Gerencie veículos, motoristas e locações.
+          Gerencie veículos e locações.
         </Text>
         {user?.email ? (
           <Text
@@ -74,46 +68,6 @@ export function OwnerHomeScreen({ navigation }: Props) {
           >
             {user.email}
           </Text>
-        ) : null}
-
-        {pendingDriversCount > 0 ? (
-          <Card
-            mode="elevated"
-            style={[
-              styles.pendingCard,
-              { backgroundColor: theme.colors.secondaryContainer },
-            ]}
-          >
-            <Card.Content style={styles.pendingCardContent}>
-              <View style={styles.pendingTextWrap}>
-                <Text
-                  variant="titleMedium"
-                  style={{ color: theme.colors.onSecondaryContainer }}
-                >
-                  {pendingDriversCount === 1
-                    ? "1 cadastro de motorista para revisar"
-                    : `${pendingDriversCount} cadastros de motoristas para revisar`}
-                </Text>
-                <Text
-                  variant="bodySmall"
-                  style={[
-                    styles.pendingHint,
-                    { color: theme.colors.onSecondaryContainer },
-                  ]}
-                >
-                  Motoristas já podem solicitar locação após o pré-cadastro. Use
-                  esta fila para revisão ou reprovação na plataforma.
-                </Text>
-              </View>
-              <Button
-                mode="contained"
-                icon="account-check-outline"
-                onPress={() => navigation.navigate("OwnerPendingDrivers")}
-              >
-                Analisar agora
-              </Button>
-            </Card.Content>
-          </Card>
         ) : null}
 
         {pendingRentalsCount > 0 ? (
@@ -178,13 +132,6 @@ export function OwnerHomeScreen({ navigation }: Props) {
               subtitle: "Fornecedores e seguradora",
               icon: "handshake-outline",
               onPress: () => navigation.navigate("OwnerPartners"),
-            },
-            {
-              key: "pending",
-              title: "Motoristas pendentes",
-              subtitle: "Aprovar cadastros",
-              icon: "account-clock-outline",
-              onPress: () => navigation.navigate("OwnerPendingDrivers"),
             },
             {
               key: "rentals",

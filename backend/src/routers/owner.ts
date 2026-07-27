@@ -22,7 +22,12 @@ import {
 import type { AuthedContext } from "../context.js";
 import { loadOwnerContractTemplateText } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
-import { ownerOrAdminProcedure, ownerProcedure, router } from "../trpc.js";
+import {
+  adminProcedure,
+  ownerOrAdminProcedure,
+  ownerProcedure,
+  router,
+} from "../trpc.js";
 import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import {
@@ -846,7 +851,7 @@ export const ownerRouter = router({
       }
     }),
 
-  listPendingDrivers: ownerOrAdminProcedure.query(async () => {
+  listPendingDrivers: adminProcedure.query(async () => {
     const profiles = await prisma.driverProfile.findMany({
       where: { status: "PENDING" },
       include: { user: { select: { id: true, email: true, createdAt: true } } },
@@ -865,7 +870,7 @@ export const ownerRouter = router({
     }));
   }),
 
-  listRejectedDrivers: ownerOrAdminProcedure.query(async () => {
+  listRejectedDrivers: adminProcedure.query(async () => {
     const profiles = await prisma.driverProfile.findMany({
       where: { status: "REJECTED" },
       include: { user: { select: { id: true, email: true, createdAt: true } } },
@@ -884,7 +889,7 @@ export const ownerRouter = router({
     }));
   }),
 
-  getDriverProfile: ownerOrAdminProcedure
+  getDriverProfile: adminProcedure
     .input(z.object({ driverUserId: z.string() }))
     .query(async ({ input }) => {
       const profile = await prisma.driverProfile.findUnique({
@@ -994,7 +999,7 @@ export const ownerRouter = router({
       };
     }),
 
-  approveDriver: ownerOrAdminProcedure
+  approveDriver: adminProcedure
     .input(z.object({ driverUserId: z.string() }))
     .mutation(async ({ input }) => {
       const p = await prisma.driverProfile.findUnique({
@@ -1043,7 +1048,7 @@ export const ownerRouter = router({
       return { ok: true as const };
     }),
 
-  rejectDriver: ownerOrAdminProcedure
+  rejectDriver: adminProcedure
     .input(
       z.object({
         driverUserId: z.string(),
@@ -1102,7 +1107,7 @@ export const ownerRouter = router({
     }),
 
   /** Recoloca cadastro rejeitado na fila de análise (volta para pendente). */
-  reopenDriverForReview: ownerOrAdminProcedure
+  reopenDriverForReview: adminProcedure
     .input(z.object({ driverUserId: z.string() }))
     .mutation(async ({ input }) => {
       const p = await prisma.driverProfile.findUnique({

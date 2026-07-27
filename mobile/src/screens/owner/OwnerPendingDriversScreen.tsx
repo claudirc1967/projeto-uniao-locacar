@@ -9,6 +9,7 @@ import {
 import { Button, Card, Text, useTheme } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
+import { useAuth } from "../../hooks/AuthContext";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 
@@ -27,8 +28,27 @@ type DriverRow = {
 export function OwnerPendingDriversScreen({ navigation }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const pendingQ = trpc.owner.listPendingDrivers.useQuery();
-  const rejectedQ = trpc.owner.listRejectedDrivers.useQuery();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
+  const pendingQ = trpc.owner.listPendingDrivers.useQuery(undefined, {
+    enabled: isAdmin,
+  });
+  const rejectedQ = trpc.owner.listRejectedDrivers.useQuery(undefined, {
+    enabled: isAdmin,
+  });
+
+  if (!isAdmin) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text variant="bodyMedium" style={{ marginBottom: 16, textAlign: "center" }}>
+          Revisão de cadastro de motoristas disponível apenas para administradores.
+        </Text>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
+    );
+  }
 
   const loading = pendingQ.isLoading || rejectedQ.isLoading;
   const err = pendingQ.error ?? rejectedQ.error;

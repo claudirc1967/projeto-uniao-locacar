@@ -21,6 +21,7 @@ import {
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
+import { useAuth } from "../../hooks/AuthContext";
 import { trpcErrorMessage } from "../../utils/trpcError";
 import type { RootStackParamList } from "../../navigation/types";
 import { maskCpf, maskDate, maskPhone } from "../../utils/masks";
@@ -30,8 +31,13 @@ type Props = NativeStackScreenProps<RootStackParamList, "OwnerDriverProfile">;
 export function OwnerDriverProfileScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const { driverUserId } = route.params;
-  const q = trpc.owner.getDriverProfile.useQuery({ driverUserId });
+  const q = trpc.owner.getDriverProfile.useQuery(
+    { driverUserId },
+    { enabled: isAdmin }
+  );
   const utils = trpc.useUtils();
 
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -65,6 +71,19 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
       navigation.goBack();
     },
   });
+
+  if (!isAdmin) {
+    return (
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <Text variant="bodyMedium" style={{ marginBottom: 16, textAlign: "center" }}>
+          Revisão de cadastro de motoristas disponível apenas para administradores.
+        </Text>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
+    );
+  }
 
   if (q.isLoading) {
     return (

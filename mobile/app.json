@@ -14,7 +14,7 @@
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#003366",
-        "foregroundImage": "./assets/icon.png"
+        "foregroundImage": "./assets/splash-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -23,7 +23,7 @@
       "package": "com.claudirc.projetouniaolocacar"
     },
     "web": {
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/splash-icon.png"
     },
     "plugins": [
       [

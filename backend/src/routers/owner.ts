@@ -31,19 +31,18 @@ import {
 import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
 import {
-  driverApprovedEmail,
   driverRejectedEmail,
   rentalApprovedEmail,
   rentalRejectedEmail,
   rentalReviewReminderEmail,
 } from "../email/templates.js";
 import {
-  driverApprovedWhatsApp,
   driverRejectedWhatsApp,
   rentalApprovedWhatsApp,
   rentalRejectedWhatsApp,
   sendWhatsApp,
 } from "../whatsapp/sendWhatsApp.js";
+import { markDriverAsReviewed } from "../driverApproval.js";
 import { fillRentalContract } from "../contracts/fillRentalContract.js";
 import { rentalContractTemplate } from "../contracts/rentalContractTemplate.js";
 import { contractTextToPdfBytes } from "../contracts/contractPdf.js";
@@ -1015,35 +1014,11 @@ export const ownerRouter = router({
           message: "Só é possível aprovar motoristas com cadastro pendente.",
         });
       }
-      await prisma.driverProfile.update({
-        where: { userId: input.driverUserId },
-        data: { status: "APPROVED", rejectionReason: null },
-      });
-
-      const to = p.user.email?.trim();
-      if (to) {
-        const email = driverApprovedEmail({
-          driver: { name: p.fullName },
-        });
-        void sendEmail({ to, ...email }).catch(() => {
-          /* não falha a aprovação por e-mail */
-        });
-      }
-      const driverApprovedMessage = driverApprovedWhatsApp({
-        driver: { name: p.fullName },
-      });
-      if (p.phone) {
-        void sendWhatsApp({ to: p.phone, ...driverApprovedMessage }).catch(() => {
-          /* não falha a aprovação por WhatsApp */
-        });
-      }
-      void notifyAdminWhatsAppRelay({
-        event: "Cadastro de motorista aprovado",
-        recipientName: p.fullName,
-        recipientPhone: p.phone,
-        message: driverApprovedMessage,
-      }).catch(() => {
-        /* não falha a aprovação por aviso admin */
+      await markDriverAsReviewed({
+        driverUserId: input.driverUserId,
+        fullName: p.fullName,
+        phone: p.phone,
+        email: p.user.email,
       });
       return { ok: true as const };
     }),
@@ -1063,10 +1038,11 @@ export const ownerRouter = router({
       if (!p) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Motorista não encontrado" });
       }
-      if (p.status !== "PENDING") {
+      if (p.status !== "PENDING" && p.status !== "APPROVED") {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "Só é possível rejeitar motoristas com cadastro pendente.",
+          message:
+            "Só é possível rejeitar motoristas com cadastro pendente ou revisado.",
         });
       }
       await prisma.driverProfile.update({

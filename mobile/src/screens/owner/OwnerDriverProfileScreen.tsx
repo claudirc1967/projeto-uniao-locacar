@@ -246,6 +246,21 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
           </View>
         ) : null}
 
+        {p.status === "APPROVED" ? (
+          <View style={styles.actions}>
+            <Button
+              mode="contained"
+              buttonColor={theme.colors.error}
+              textColor={theme.colors.onError}
+              onPress={openReject}
+              loading={reject.isPending}
+              disabled={reject.isPending}
+            >
+              Rejeitar
+            </Button>
+          </View>
+        ) : null}
+
         {p.status === "REJECTED" ? (
           <Button
             mode="contained-tonal"

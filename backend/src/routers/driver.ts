@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { AuthedContext } from "../context.js";
+import { markDriverAsReviewed } from "../driverApproval.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import {
   getDriverRentalEligibility,
@@ -78,7 +79,9 @@ export const driverRouter = router({
           message: "Ative a opção de Atestado de Antecedentes Criminais.",
         });
       }
-      const userId = (ctx as AuthedContext).user.id;
+      const user = (ctx as AuthedContext).user;
+      const userId = user.id;
+      const previousStatus = user.driverProfile?.status;
       const cpf = await assertUniqueCpfCnpj(input.cpf, { excludeUserId: userId });
       const phone = await assertUniquePhone(input.phone, { excludeUserId: userId });
       try {
@@ -107,6 +110,17 @@ export const driverRouter = router({
       } catch (error) {
         rethrowUniqueIdentityError(error);
       }
+
+      // Pré-cadastro completo + ainda pendente → mesmo fluxo do admin "Marcar como revisado".
+      if (previousStatus === "PENDING") {
+        await markDriverAsReviewed({
+          driverUserId: userId,
+          fullName: input.fullName,
+          phone,
+          email: user.email,
+        });
+      }
+
       return { ok: true as const };
     }),
 

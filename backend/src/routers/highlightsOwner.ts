@@ -1,13 +1,17 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { AuthedContext } from "../context.js";
-import { isPaidHighlightTier, PAID_HIGHLIGHT_TIERS } from "../highlights/constants.js";
+import { notifyAdminHighlightOrderRequested } from "../email/adminNotify.js";
+import {
+  highlightTierLabelPt,
+  isPaidHighlightTier,
+  PAID_HIGHLIGHT_TIERS,
+} from "../highlights/constants.js";
 import {
   buildHighlightPixQrPayload,
   generateHighlightOrderReference,
 } from "../highlights/pix.js";
 import { serializePlan } from "../highlights/orders.js";
-import { effectiveHighlightTier } from "../highlights/tier.js";
 import { prisma } from "../db.js";
 import { ownerProcedure, protectedProcedure, router } from "../trpc.js";
 
@@ -25,6 +29,29 @@ async function assertOwnsVehicle(ownerUserId: string, vehicleId: string) {
     });
   }
   return vehicle;
+}
+
+function notifyNewHighlightOrder(input: {
+  owner: AuthedContext["user"];
+  vehicle: { title: string | null; plate: string | null };
+  tier: "BRONZE" | "PRATA" | "OURO";
+  amountCents: number;
+  durationDays: number;
+  orderReference: string;
+}) {
+  void notifyAdminHighlightOrderRequested({
+    ownerName: input.owner.ownerProfile?.nomeRazaoSocial,
+    ownerEmail: input.owner.email,
+    ownerPhone: input.owner.ownerProfile?.phone,
+    vehicleTitle: input.vehicle.title,
+    vehiclePlate: input.vehicle.plate,
+    tierLabel: highlightTierLabelPt(input.tier),
+    amountCents: input.amountCents,
+    durationDays: input.durationDays,
+    orderReference: input.orderReference,
+  }).catch(() => {
+    /* não falha o pedido por e-mail ao admin */
+  });
 }
 
 function serializeOrderPayment(
@@ -149,7 +176,7 @@ export const highlightsOwnerRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { user } = ctx as AuthedContext;
-      await assertOwnsVehicle(user.id, input.vehicleId);
+      const vehicle = await assertOwnsVehicle(user.id, input.vehicleId);
 
       if (!isPaidHighlightTier(input.tier)) {
         throw new TRPCError({
@@ -186,6 +213,7 @@ export const highlightsOwnerRouter = router({
         },
       });
 
+      // Mesmo plano já pendente: reutiliza o pedido (sem novo e-mail ao admin).
       if (existingPending && existingPending.tier === input.tier) {
         return serializeOrderPayment(existingPending, pixConfig);
       }
@@ -210,6 +238,14 @@ export const highlightsOwnerRouter = router({
               durationDaysSnapshot: plan.durationDays,
               orderReference,
             },
+          });
+          notifyNewHighlightOrder({
+            owner: user,
+            vehicle,
+            tier: input.tier,
+            amountCents: order.amountCents,
+            durationDays: order.durationDaysSnapshot,
+            orderReference: order.orderReference,
           });
           return serializeOrderPayment(order, pixConfig);
         } catch (e) {

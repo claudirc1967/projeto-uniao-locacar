@@ -20,6 +20,13 @@ function formatPhoneForAdmin(value: string | null | undefined): string {
   return "— (não cadastrado)";
 }
 
+function formatBrlFromCents(amountCents: number): string {
+  return (amountCents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export function adminWhatsAppRelayEmail(input: {
   event: string;
   recipientName: string | null | undefined;
@@ -61,5 +68,66 @@ export async function notifyAdminWhatsAppRelay(input: {
   if (!admin) return;
 
   const email = adminWhatsAppRelayEmail(input);
+  await sendEmail({ to: admin, ...email });
+}
+
+export function highlightOrderRequestedAdminEmail(input: {
+  ownerName: string | null | undefined;
+  ownerEmail: string | null | undefined;
+  ownerPhone: string | null | undefined;
+  vehicleTitle: string | null | undefined;
+  vehiclePlate: string | null | undefined;
+  tierLabel: string;
+  amountCents: number;
+  durationDays: number;
+  orderReference: string;
+}): { subject: string; text: string } {
+  const vehicleLine = [
+    valueOrDash(input.vehicleTitle),
+    input.vehiclePlate?.trim() ? `(${input.vehiclePlate.trim()})` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return {
+    subject: `[União Locacar] Nova solicitação de destaque: ${input.tierLabel}`,
+    text: [
+      "Aviso operacional — nova solicitação de destaque (PIX pendente)",
+      "",
+      "Confirme o pagamento em Admin → Destaques após identificar o PIX.",
+      "",
+      "Pedido:",
+      `  Referência: ${input.orderReference}`,
+      `  Plano: ${input.tierLabel}`,
+      `  Valor: ${formatBrlFromCents(input.amountCents)}`,
+      `  Duração: ${input.durationDays} dia(s)`,
+      `  Veículo: ${vehicleLine}`,
+      "",
+      "Locador:",
+      `  Nome: ${valueOrDash(input.ownerName)}`,
+      `  E-mail: ${valueOrDash(input.ownerEmail)}`,
+      `  Telefone: ${formatPhoneForAdmin(input.ownerPhone)}`,
+      "",
+      "Este aviso é interno — não responda a este e-mail.",
+    ].join("\n"),
+  };
+}
+
+/** Fire-and-forget: avisa o admin sobre pedido de destaque aguardando PIX. */
+export async function notifyAdminHighlightOrderRequested(input: {
+  ownerName: string | null | undefined;
+  ownerEmail: string | null | undefined;
+  ownerPhone: string | null | undefined;
+  vehicleTitle: string | null | undefined;
+  vehiclePlate: string | null | undefined;
+  tierLabel: string;
+  amountCents: number;
+  durationDays: number;
+  orderReference: string;
+}): Promise<void> {
+  const admin = getAdminNotifyEmail();
+  if (!admin) return;
+
+  const email = highlightOrderRequestedAdminEmail(input);
   await sendEmail({ to: admin, ...email });
 }

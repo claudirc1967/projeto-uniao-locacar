@@ -47,6 +47,7 @@ export function OwnerDriverProfileScreen({ navigation, route }: Props) {
     await utils.owner.getDriverProfile.invalidate({ driverUserId });
     await utils.owner.listPendingDrivers.invalidate();
     await utils.owner.listRejectedDrivers.invalidate();
+    await utils.admin.drivers.findByIdentity.invalidate();
   };
 
   const approve = trpc.owner.approveDriver.useMutation({

@@ -221,11 +221,18 @@ export function AdminHubScreen({ navigation }: Props) {
         />
         <MenuTile
           fullWidth
-          title="Motoristas"
+          title="Buscar motorista"
+          subtitle="CPF ou telefone · qualquer status"
+          icon="account-search-outline"
+          onPress={() => navigation.navigate("AdminDrivers")}
+        />
+        <MenuTile
+          fullWidth
+          title="Motoristas (revisão)"
           subtitle={
             pendingDriversCount > 0
               ? `${pendingDriversCount} para revisar`
-              : "Revisar cadastros"
+              : "Fila de pendentes e reprovados"
           }
           icon="account-clock-outline"
           onPress={() => navigation.navigate("OwnerPendingDrivers")}

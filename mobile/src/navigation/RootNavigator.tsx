@@ -43,6 +43,7 @@ import { AdminCampaignFormScreen } from "../screens/admin/AdminCampaignFormScree
 import { AdminOwnerDetailScreen } from "../screens/admin/AdminOwnerDetailScreen";
 import { AdminOwnerVehicleDetailScreen } from "../screens/admin/AdminOwnerVehicleDetailScreen";
 import { AdminRentalsScreen } from "../screens/admin/AdminRentalsScreen";
+import { AdminDriversScreen } from "../screens/admin/AdminDriversScreen";
 import { AdminPendingRentalsScreen } from "../screens/admin/AdminPendingRentalsScreen";
 import { AdminRentalDetailScreen } from "../screens/admin/AdminRentalDetailScreen";
 import { AdminOwnersScreen } from "../screens/admin/AdminOwnersScreen";
@@ -234,6 +235,11 @@ export function RootNavigator() {
           name="AdminRentals"
           component={AdminRentalsScreen}
           options={{ title: "Solicitações por locador" }}
+        />
+        <Stack.Screen
+          name="AdminDrivers"
+          component={AdminDriversScreen}
+          options={{ title: "Buscar motorista" }}
         />
         <Stack.Screen
           name="AdminPendingRentals"

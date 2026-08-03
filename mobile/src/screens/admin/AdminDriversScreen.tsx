@@ -82,7 +82,7 @@ export function AdminDriversScreen({ navigation }: Props) {
         <Text variant="bodyMedium" style={{ textAlign: "center", marginBottom: 16 }}>
           Disponível apenas para administradores.
         </Text>
-        <Button mode="outlined" onPress={() => navigation.goBack()}>
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
           Voltar
         </Button>
       </View>
@@ -199,6 +199,21 @@ export function AdminDriversScreen({ navigation }: Props) {
           </Card>
         ) : null}
       </ScrollView>
+
+      <View
+        style={[
+          styles.footerBar,
+          {
+            paddingBottom: insets.bottom,
+            borderTopColor: theme.colors.outlineVariant,
+            backgroundColor: theme.colors.surface,
+          },
+        ]}
+      >
+        <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          Voltar
+        </Button>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -228,4 +243,13 @@ const styles = StyleSheet.create({
   name: { flex: 1 },
   reason: { marginTop: 8, lineHeight: 18 },
   detailBtn: { marginTop: 16 },
+  footerBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
 });

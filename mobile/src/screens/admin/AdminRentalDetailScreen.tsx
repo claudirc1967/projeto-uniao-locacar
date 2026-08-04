@@ -339,6 +339,19 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
             </View>
           </Card.Content>
         </Card>
+
+        {canCancel ? (
+          <Button
+            mode="contained"
+            buttonColor={theme.colors.error}
+            textColor={theme.colors.onError}
+            onPress={openCancel}
+            loading={cancelRental.isPending}
+            disabled={cancelRental.isPending}
+          >
+            Cancelar locação aprovada
+          </Button>
+        ) : null}
       </ScrollView>
 
       <View
@@ -364,19 +377,6 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
               onPress={openReject}
             >
               Recusar (admin)
-            </Button>
-          ) : null}
-          {canCancel ? (
-            <Button
-              mode="contained"
-              buttonColor={theme.colors.error}
-              textColor={theme.colors.onError}
-              icon="cancel"
-              onPress={openCancel}
-              loading={cancelRental.isPending}
-              disabled={cancelRental.isPending}
-            >
-              Cancelar aprovada
             </Button>
           ) : null}
         </View>

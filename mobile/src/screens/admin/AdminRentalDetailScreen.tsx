@@ -53,6 +53,9 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [motivoRecusa, setMotivoRecusa] = useState(DEFAULT_MOTIVO);
   const [modalErr, setModalErr] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelMotivo, setCancelMotivo] = useState("");
+  const [cancelModalErr, setCancelModalErr] = useState<string | null>(null);
 
   const q = trpc.admin.rentals.getDetail.useQuery(
     { rentalId },
@@ -72,6 +75,15 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
     onError: (e) => setModalErr(trpcErrorMessage(e)),
   });
 
+  const cancelRental = trpc.admin.rentals.cancelRental.useMutation({
+    onSuccess: async () => {
+      setCancelOpen(false);
+      setCancelModalErr(null);
+      await utils.admin.rentals.getDetail.invalidate({ rentalId });
+    },
+    onError: (e) => setCancelModalErr(trpcErrorMessage(e)),
+  });
+
   const openReject = () => {
     setMotivoRecusa(DEFAULT_MOTIVO);
     setModalErr(null);
@@ -86,6 +98,22 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
     }
     setModalErr(null);
     reject.mutate({ rentalId, motivoRecusa: t });
+  };
+
+  const openCancel = () => {
+    setCancelMotivo("");
+    setCancelModalErr(null);
+    setCancelOpen(true);
+  };
+
+  const confirmCancel = () => {
+    const t = cancelMotivo.trim();
+    if (t.length < 3) {
+      setCancelModalErr("Informe o motivo (mínimo 3 caracteres).");
+      return;
+    }
+    setCancelModalErr(null);
+    cancelRental.mutate({ rentalId, motivo: t });
   };
 
   if (q.isLoading) {
@@ -117,6 +145,7 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
   const row = q.data;
   const driverProfile = row.driver.driverProfile;
   const canReject = row.status === "PENDING_OWNER";
+  const canCancel = row.status === "APPROVED";
 
   return (
     <View style={[styles.flex, { backgroundColor: theme.colors.background }]}>
@@ -141,6 +170,11 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
             {row.status === "REJECTED" && row.motivoRecusa ? (
               <Text variant="bodySmall" style={styles.meta}>
                 Motivo: {row.motivoRecusa}
+              </Text>
+            ) : null}
+            {row.status === "CANCELLED" && row.motivoRecusa ? (
+              <Text variant="bodySmall" style={styles.meta}>
+                Motivo do cancelamento: {row.motivoRecusa}
               </Text>
             ) : null}
           </Card.Content>
@@ -332,6 +366,19 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
               Recusar (admin)
             </Button>
           ) : null}
+          {canCancel ? (
+            <Button
+              mode="contained"
+              buttonColor={theme.colors.error}
+              textColor={theme.colors.onError}
+              icon="cancel"
+              onPress={openCancel}
+              loading={cancelRental.isPending}
+              disabled={cancelRental.isPending}
+            >
+              Cancelar aprovada
+            </Button>
+          ) : null}
         </View>
       </View>
 
@@ -394,6 +441,71 @@ export function AdminRentalDetailScreen({ navigation, route }: Props) {
                 onPress={confirmReject}
               >
                 Confirmar recusa
+              </Button>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <Modal
+        visible={cancelOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!cancelRental.isPending) setCancelOpen(false);
+        }}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => {
+            if (!cancelRental.isPending) setCancelOpen(false);
+          }}
+        >
+          <Pressable
+            style={[styles.modalCard, { backgroundColor: theme.colors.surface }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text variant="titleMedium" style={styles.modalTitle}>
+              Cancelar locação aprovada
+            </Text>
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}
+            >
+              O motorista será notificado. O veículo volta ao marketplace. Não há
+              bloqueio para nova solicitação.
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Motivo"
+              value={cancelMotivo}
+              onChangeText={setCancelMotivo}
+              multiline
+              numberOfLines={4}
+              style={styles.motivoInput}
+            />
+            {cancelModalErr ? (
+              <Text style={{ color: theme.colors.error, marginBottom: 8 }}>
+                {cancelModalErr}
+              </Text>
+            ) : null}
+            <View style={styles.modalActions}>
+              <Button
+                mode="outlined"
+                disabled={cancelRental.isPending}
+                onPress={() => setCancelOpen(false)}
+              >
+                Voltar
+              </Button>
+              <Button
+                mode="contained"
+                buttonColor={theme.colors.error}
+                textColor={theme.colors.onError}
+                loading={cancelRental.isPending}
+                disabled={cancelRental.isPending}
+                onPress={confirmCancel}
+              >
+                Confirmar cancelamento
               </Button>
             </View>
           </Pressable>

@@ -222,6 +222,16 @@ export function RentalDetailScreen({ navigation, route }: Props) {
           </Card.Content>
         </Card>
       ) : null}
+      {r.status === "CANCELLED" && r.motivoRecusa ? (
+        <Card mode="elevated" style={[styles.card, styles.warnCard]}>
+          <Card.Content>
+            <Text variant="titleSmall">Motivo do cancelamento</Text>
+            <Text variant="bodyMedium" style={styles.cardBody}>
+              {r.motivoRecusa}
+            </Text>
+          </Card.Content>
+        </Card>
+      ) : null}
       {showPickup ? (
         <Card mode="elevated" style={styles.card}>
           <Card.Content>

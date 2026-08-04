@@ -7,6 +7,7 @@ const TEMPLATE_ENV_KEYS: Record<WhatsAppTemplateId, string> = {
   driver_rejected: "WHATSAPP_TEMPLATE_DRIVER_REJECTED",
   rental_approved: "WHATSAPP_TEMPLATE_RENTAL_APPROVED",
   rental_rejected: "WHATSAPP_TEMPLATE_RENTAL_REJECTED",
+  rental_cancelled: "WHATSAPP_TEMPLATE_RENTAL_CANCELLED",
   highlight_expiring: "WHATSAPP_TEMPLATE_HIGHLIGHT_EXPIRING",
 };
 

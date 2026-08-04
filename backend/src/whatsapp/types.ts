@@ -5,6 +5,7 @@ export const WHATSAPP_TEMPLATE_IDS = [
   "driver_rejected",
   "rental_approved",
   "rental_rejected",
+  "rental_cancelled",
   "highlight_expiring",
 ] as const;
 

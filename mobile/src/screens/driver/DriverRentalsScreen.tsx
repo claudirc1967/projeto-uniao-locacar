@@ -81,6 +81,11 @@ export function DriverRentalsScreen({ navigation }: Props) {
                   Motivo da recusa: {item.motivoRecusa}
                 </Text>
               ) : null}
+              {item.status === "CANCELLED" && item.motivoRecusa ? (
+                <Text variant="bodySmall" style={styles.rejectionNote}>
+                  Motivo do cancelamento: {item.motivoRecusa}
+                </Text>
+              ) : null}
             </Card.Content>
           </Card>
         </Pressable>

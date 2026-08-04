@@ -248,3 +248,37 @@ export function rentalRejectedWhatsApp(input: {
     ].join("\n")
   );
 }
+
+export function rentalCancelledWhatsApp(input: {
+  driver: Pick<PersonWhatsAppData, "name">;
+  owner: PersonWhatsAppData;
+  vehicle: VehicleWhatsAppData;
+  cancellationReason: string;
+  cancelledByAdmin: boolean;
+}): WhatsAppMessage {
+  const variables = [
+    valueOrDash(input.driver.name),
+    vehicleSummary(input.vehicle),
+    valueOrDash(input.owner.name),
+    phoneOrDash(input.owner.phone),
+    truncate(valueOrDash(input.cancellationReason), MAX_REASON_LENGTH),
+  ];
+
+  const intro = input.cancelledByAdmin
+    ? "A locação aprovada foi cancelada pela plataforma."
+    : "O locador cancelou a locação aprovada.";
+
+  return buildMessage(
+    "rental_cancelled",
+    variables,
+    [
+      `Olá, ${variables[0]}.`,
+      intro,
+      `Veículo: ${variables[1]}.`,
+      `Locador: ${variables[2]}.`,
+      `WhatsApp: ${variables[3]}.`,
+      `Motivo: ${variables[4]}.`,
+      "Você pode solicitar novamente no app uniaolocacar.com.br",
+    ].join("\n")
+  );
+}

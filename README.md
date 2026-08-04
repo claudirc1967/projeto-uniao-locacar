@@ -2,6 +2,8 @@
 
 Monorepo com **API Node (Express + tRPC + JWT + Prisma)** e **app Expo (React Native)**.
 
+Visão completa da stack: [`docs/TECNOLOGIAS.md`](docs/TECNOLOGIAS.md).
+
 ## Requisitos
 
 - Node 20+
@@ -82,3 +84,12 @@ Ou no console AWS → bucket `AWS_S3_BUCKET` → Permissions → CORS.
 
 - **Proprietário:** veículos, fotos, requisitos, motoristas pendentes, aprovar/recusar locações, instruções de retirada e contrato.
 - **Motorista:** pré-cadastro (CEP via `address.lookupCep`), solicitação de locação após pré-cadastro completo (aprovação por locador em cada pedido; plataforma só bloqueia cadastros reprovados), marketplace, ver instruções/contrato quando ativo.
+
+## Documentação
+
+- [`docs/TECNOLOGIAS.md`](docs/TECNOLOGIAS.md) — stack e infraestrutura
+- [`docs/DESTAQUES.md`](docs/DESTAQUES.md) — destaques no marketplace
+- [`docs/ANUNCIOS.md`](docs/ANUNCIOS.md) — campanhas e anúncios
+- [`docs/EMAIL.md`](docs/EMAIL.md) — e-mail transacional (SES)
+- [`docs/WHATSAPP.md`](docs/WHATSAPP.md) — WhatsApp transacional
+- [`backend/docs/DATABASE.md`](backend/docs/DATABASE.md) — banco Supabase (dev/prod)

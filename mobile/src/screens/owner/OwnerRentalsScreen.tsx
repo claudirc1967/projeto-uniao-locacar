@@ -90,6 +90,16 @@ export function OwnerRentalsScreen({ navigation }: Props) {
     },
     onError: (e) => setModalErr(trpcErrorMessage(e)),
   });
+  const cancelRental = trpc.owner.cancelRental.useMutation({
+    onSuccess: () => {
+      invalidateRentals();
+      setCancelModalOpen(false);
+      setCancelRentalId(null);
+      setCancelMotivo("");
+      setCancelModalErr(null);
+    },
+    onError: (e) => setCancelModalErr(trpcErrorMessage(e)),
+  });
   const unblock = trpc.owner.unblockDriverAfterRejection.useMutation({
     onSuccess: invalidateRentals,
   });
@@ -110,6 +120,10 @@ export function OwnerRentalsScreen({ navigation }: Props) {
   const [rejectRentalId, setRejectRentalId] = useState<string | null>(null);
   const [motivoRecusa, setMotivoRecusa] = useState("");
   const [modalErr, setModalErr] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelRentalId, setCancelRentalId] = useState<string | null>(null);
+  const [cancelMotivo, setCancelMotivo] = useState("");
+  const [cancelModalErr, setCancelModalErr] = useState<string | null>(null);
 
   const openApproveModal = (rentalId: string) => {
     setApproveRentalId(rentalId);
@@ -133,6 +147,13 @@ export function OwnerRentalsScreen({ navigation }: Props) {
     setRejectModalOpen(true);
   };
 
+  const openCancelModal = (rentalId: string) => {
+    setCancelRentalId(rentalId);
+    setCancelMotivo("");
+    setCancelModalErr(null);
+    setCancelModalOpen(true);
+  };
+
   const confirmApprove = () => {
     const instructions = pickupInstructions.trim();
     if (instructions.length < 3) {
@@ -153,6 +174,17 @@ export function OwnerRentalsScreen({ navigation }: Props) {
     if (!rejectRentalId) return;
     setModalErr(null);
     reject.mutate({ rentalId: rejectRentalId, motivoRecusa: t });
+  };
+
+  const confirmCancel = () => {
+    const t = cancelMotivo.trim();
+    if (t.length < 3) {
+      setCancelModalErr("Informe o motivo (mínimo 3 caracteres).");
+      return;
+    }
+    if (!cancelRentalId) return;
+    setCancelModalErr(null);
+    cancelRental.mutate({ rentalId: cancelRentalId, motivo: t });
   };
 
   const confirmDeleteRejected = (rentalId: string) => {
@@ -255,16 +287,26 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                 </View>
               ) : null}
               {item.status === "APPROVED" ? (
-                <Button
-                  mode="outlined"
-                  onPress={() =>
-                    navigation.navigate("RentalInstructions", {
-                      rentalId: item.id,
-                    })
-                  }
-                >
-                  Contrato e ativação
-                </Button>
+                <View style={styles.row}>
+                  <Button
+                    mode="outlined"
+                    onPress={() =>
+                      navigation.navigate("RentalInstructions", {
+                        rentalId: item.id,
+                      })
+                    }
+                  >
+                    Contrato e ativação
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    textColor={theme.colors.error}
+                    onPress={() => openCancelModal(item.id)}
+                    loading={cancelRental.isPending && cancelRentalId === item.id}
+                  >
+                    Cancelar
+                  </Button>
+                </View>
               ) : null}
               {item.status === "REJECTED" ? (
                 <View style={styles.row}>
@@ -433,6 +475,84 @@ export function OwnerRentalsScreen({ navigation }: Props) {
                   onPress={confirmReject}
                 >
                   Confirmar recusa
+                </Button>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={cancelModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!cancelRental.isPending) {
+            setCancelModalOpen(false);
+            setCancelRentalId(null);
+            setCancelMotivo("");
+            setCancelModalErr(null);
+          }
+        }}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => {
+              if (!cancelRental.isPending) {
+                setCancelModalOpen(false);
+                setCancelRentalId(null);
+                setCancelMotivo("");
+                setCancelModalErr(null);
+              }
+            }}
+          />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={[styles.modalKeyboard, { paddingBottom: 20 + insets.bottom }]}
+          >
+            <View style={[styles.modalBox, { backgroundColor: theme.colors.surface }]}>
+              <Text variant="titleLarge">Cancelar locação aprovada</Text>
+              <Text variant="bodySmall" style={styles.modalHint}>
+                O motorista será notificado e o veículo volta ao marketplace.
+              </Text>
+              <TextInput
+                mode="outlined"
+                placeholder="Ex.: Desistência do motorista..."
+                value={cancelMotivo}
+                onChangeText={(t) => {
+                  setCancelMotivo(t);
+                  setCancelModalErr(null);
+                }}
+                multiline
+                editable={!cancelRental.isPending}
+                style={styles.modalInput}
+              />
+              <HelperText type="error" visible={!!cancelModalErr}>
+                {cancelModalErr ?? ""}
+              </HelperText>
+              <View style={styles.modalRow}>
+                <Button
+                  mode="text"
+                  onPress={() => {
+                    if (!cancelRental.isPending) {
+                      setCancelModalOpen(false);
+                      setCancelRentalId(null);
+                      setCancelMotivo("");
+                      setCancelModalErr(null);
+                    }
+                  }}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  mode="contained"
+                  buttonColor={theme.colors.error}
+                  textColor={theme.colors.onError}
+                  loading={cancelRental.isPending}
+                  onPress={confirmCancel}
+                >
+                  Confirmar cancelamento
                 </Button>
               </View>
             </View>

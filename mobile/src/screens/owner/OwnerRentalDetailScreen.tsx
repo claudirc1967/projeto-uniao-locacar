@@ -110,6 +110,16 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
       await utils.owner.countPendingIncomingRentals.invalidate();
     },
   });
+  const cancelRental = trpc.owner.cancelRental.useMutation({
+    onSuccess: async () => {
+      setCancelModalOpen(false);
+      setCancelModalErr(null);
+      await utils.owner.getIncomingRentalDetail.invalidate({ rentalId });
+      await utils.owner.listIncomingRentals.invalidate();
+      await utils.owner.countPendingIncomingRentals.invalidate();
+    },
+    onError: (e) => setCancelModalErr(trpcErrorMessage(e)),
+  });
 
   const submitReturn = trpc.owner.submitRentalReturn.useMutation({
     onSuccess: async () => {
@@ -134,6 +144,9 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
     dateToDdMmYyyy(new Date())
   );
   const [returnModalErr, setReturnModalErr] = useState<string | null>(null);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelMotivo, setCancelMotivo] = useState("");
+  const [cancelModalErr, setCancelModalErr] = useState<string | null>(null);
 
   const r = q.data;
 
@@ -255,12 +268,15 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
     row.status === "APPROVED" ||
     row.status === "ACTIVE" ||
     row.status === "REJECTED" ||
-    row.status === "COMPLETED";
+    row.status === "COMPLETED" ||
+    row.status === "CANCELLED";
 
   const showSituationBlock =
     row.status === "ACTIVE" || row.status === "COMPLETED";
   const showOperationalSections =
-    row.status !== "PENDING_OWNER" && row.status !== "REJECTED";
+    row.status !== "PENDING_OWNER" &&
+    row.status !== "REJECTED" &&
+    row.status !== "CANCELLED";
 
   return (
     <KeyboardAvoidingView
@@ -290,6 +306,8 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
             <Text variant="bodySmall" style={styles.meta}>
               {row.status === "REJECTED"
                 ? "Data recusa: "
+                : row.status === "CANCELLED"
+                  ? "Data cancelamento: "
                 : row.status === "COMPLETED"
                   ? "Data conclusão: "
                   : "Data aprovação: "}
@@ -326,6 +344,11 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
           {row.status === "REJECTED" && row.motivoRecusa ? (
             <Text variant="bodyMedium" style={styles.rejectionNote}>
               Motivo da recusa: {row.motivoRecusa}
+            </Text>
+          ) : null}
+          {row.status === "CANCELLED" && row.motivoRecusa ? (
+            <Text variant="bodyMedium" style={styles.rejectionNote}>
+              Motivo do cancelamento: {row.motivoRecusa}
             </Text>
           ) : null}
         </Card.Content>
@@ -561,6 +584,23 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
         </Button>
       ) : null}
 
+      {row.status === "APPROVED" ? (
+        <Button
+          mode="contained"
+          buttonColor={theme.colors.error}
+          textColor={theme.colors.onError}
+          onPress={() => {
+            setCancelMotivo("");
+            setCancelModalErr(null);
+            setCancelModalOpen(true);
+          }}
+          loading={cancelRental.isPending}
+          disabled={cancelRental.isPending}
+        >
+          Cancelar locação aprovada
+        </Button>
+      ) : null}
+
       {row.status === "REJECTED" && row.driverRequestBlocked ? (
         <Button
           mode="outlined"
@@ -684,6 +724,74 @@ export function OwnerRentalDetailScreen({ navigation, route }: Props) {
                 </View>
               </View>
             </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={cancelModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!cancelRental.isPending) setCancelModalOpen(false);
+        }}
+      >
+        <View style={styles.modalRoot}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={[styles.modalKeyboardRoot, { paddingBottom: insets.bottom }]}
+          >
+            <View
+              style={[
+                styles.modalCard,
+                { backgroundColor: theme.colors.surface },
+              ]}
+            >
+              <Text variant="titleLarge">Cancelar locação aprovada</Text>
+              <Text variant="bodySmall" style={styles.modalHint}>
+                O motorista será avisado. O veículo volta a ficar disponível no
+                marketplace. Informe o motivo (ex.: desistência de uma das partes).
+              </Text>
+              <TextInput
+                mode="outlined"
+                label="Motivo"
+                value={cancelMotivo}
+                onChangeText={setCancelMotivo}
+                multiline
+                numberOfLines={4}
+                style={{ marginTop: 8, minHeight: 100 }}
+              />
+              <HelperText type="error" visible={!!cancelModalErr}>
+                {cancelModalErr ?? ""}
+              </HelperText>
+              <View style={styles.modalActions}>
+                <Button
+                  mode="text"
+                  disabled={cancelRental.isPending}
+                  onPress={() => setCancelModalOpen(false)}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  mode="contained"
+                  buttonColor={theme.colors.error}
+                  textColor={theme.colors.onError}
+                  loading={cancelRental.isPending}
+                  disabled={cancelRental.isPending}
+                  onPress={() => {
+                    const t = cancelMotivo.trim();
+                    if (t.length < 3) {
+                      setCancelModalErr("Informe o motivo (mínimo 3 caracteres).");
+                      return;
+                    }
+                    setCancelModalErr(null);
+                    cancelRental.mutate({ rentalId, motivo: t });
+                  }}
+                >
+                  Confirmar cancelamento
+                </Button>
+              </View>
+            </View>
           </KeyboardAvoidingView>
         </View>
       </Modal>

@@ -12,6 +12,7 @@ export {
   ownerWelcomeWhatsApp,
   rentalApprovedWhatsApp,
   rentalRejectedWhatsApp,
+  rentalCancelledWhatsApp,
   rentalRequestedWhatsApp,
 } from "./templates.js";
 

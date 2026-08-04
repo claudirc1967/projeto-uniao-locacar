@@ -19,6 +19,7 @@ import {
   resolveBrandModelForCreate,
   resolveBrandModelForUpdate,
 } from "../vehicleCatalog/resolve.js";
+import { cancelApprovedRental } from "../rentalCancel.js";
 import type { AuthedContext } from "../context.js";
 import { loadOwnerContractTemplateText } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
@@ -1357,6 +1358,29 @@ export const ownerRouter = router({
         /* não falha a recusa por aviso admin */
       });
       return { ok: true as const };
+    }),
+
+  /** Cancela locação já aprovada (antes da ativação). Libera o veículo e notifica o motorista. */
+  cancelRental: ownerProcedure
+    .input(
+      z.object({
+        rentalId: z.string(),
+        motivo: z.string().min(3).max(2000),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const owner = (ctx as AuthedContext).user;
+      return cancelApprovedRental({
+        rentalId: input.rentalId,
+        motivo: input.motivo,
+        cancelledByAdmin: false,
+        ownerUserId: owner.id,
+        ownerForNotify: {
+          name: owner.ownerProfile?.nomeRazaoSocial,
+          phone: owner.ownerProfile?.phone,
+          email: owner.ownerProfile?.emailLocador ?? owner.email,
+        },
+      });
     }),
 
   /** Permite ao motorista voltar a solicitar aluguel deste veículo após uma recusa. */

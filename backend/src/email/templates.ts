@@ -245,6 +245,41 @@ export function rentalRejectedEmail(input: {
   };
 }
 
+export function rentalCancelledEmail(input: {
+  driver: Pick<PersonEmailData, "name">;
+  owner: PersonEmailData;
+  vehicle: VehicleEmailData;
+  cancellationReason: string;
+  cancelledByAdmin: boolean;
+}): EmailTemplate {
+  const who = input.cancelledByAdmin
+    ? "A locação aprovada foi cancelada pela plataforma."
+    : "O locador cancelou a locação aprovada.";
+
+  return {
+    subject: "Locação cancelada na União Locacar",
+    text: [
+      `Olá, ${valueOrDash(input.driver.name)}`,
+      "",
+      who,
+      "A retirada do veículo não deve mais ocorrer conforme a aprovação anterior.",
+      "",
+      ...vehicleLines(input.vehicle),
+      "",
+      `Locador: ${valueOrDash(input.owner.name)}`,
+      `Telefone/Whatsapp: ${phoneOrDash(input.owner.phone)}`,
+      `E-mail: ${valueOrDash(input.owner.email)}`,
+      "",
+      "Motivo:",
+      valueOrDash(input.cancellationReason),
+      "",
+      "Você pode solicitar este veículo ou outros disponíveis no marketplace quando quiser.",
+      "",
+      ...signatureLines(),
+    ].join("\n"),
+  };
+}
+
 export function highlightExpiringEmail(input: {
   owner: Pick<PersonEmailData, "name">;
   vehicle: VehicleEmailData;

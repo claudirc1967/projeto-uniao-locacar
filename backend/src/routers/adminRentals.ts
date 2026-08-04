@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { resolveOwnerByIdentity } from "../admin/resolveOwnerByIdentity.js";
+import { cancelApprovedRental } from "../rentalCancel.js";
 import { prisma } from "../db.js";
 import { notifyAdminWhatsAppRelay } from "../email/adminNotify.js";
 import { sendEmail } from "../email/consoleEmail.js";
@@ -371,5 +372,59 @@ export const adminRentalsRouter = router({
       });
 
       return { ok: true as const };
+    }),
+
+  /**
+   * Cancela locação aprovada (desistência). Libera o veículo; motorista pode solicitar de novo.
+   */
+  cancelRental: adminProcedure
+    .input(
+      z.object({
+        rentalId: z.string().min(1),
+        motivo: z.string().min(3).max(2000),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const r = await prisma.rental.findFirst({
+        where: { id: input.rentalId, status: "APPROVED" },
+        include: {
+          vehicle: {
+            select: {
+              owner: {
+                select: {
+                  email: true,
+                  ownerProfile: {
+                    select: {
+                      nomeRazaoSocial: true,
+                      phone: true,
+                      emailLocador: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!r) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Locação aprovada não encontrada ou já não pode ser cancelada.",
+        });
+      }
+
+      const ownerProfile = r.vehicle.owner.ownerProfile;
+
+      return cancelApprovedRental({
+        rentalId: input.rentalId,
+        motivo: input.motivo,
+        cancelledByAdmin: true,
+        ownerForNotify: {
+          name: ownerProfile?.nomeRazaoSocial,
+          phone: ownerProfile?.phone,
+          email: ownerProfile?.emailLocador ?? r.vehicle.owner.email,
+        },
+      });
     }),
 });

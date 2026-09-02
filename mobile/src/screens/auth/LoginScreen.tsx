@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +18,7 @@ import { trpc } from "../../api/trpc";
 import { SupportContactBlock } from "../../components/SupportContactBlock";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import { setPostLoginNavigation } from "../../navigation/postLoginNavigation";
 import {
   validateEmailForAuth,
   validatePasswordForAuth,
@@ -26,9 +27,10 @@ import { trpcErrorMessage } from "../../utils/trpcError";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Login">;
 
-export function LoginScreen({ navigation }: Props) {
+export function LoginScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const { loginWithToken } = useAuth();
+  const returnVehicleId = route.params?.returnVehicleId;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [secure, setSecure] = useState(true);
@@ -41,6 +43,15 @@ export function LoginScreen({ navigation }: Props) {
     },
     onError: (e) => setErr(trpcErrorMessage(e)),
   });
+
+  useEffect(() => {
+    if (returnVehicleId) {
+      setPostLoginNavigation({
+        name: "VehicleDetail",
+        params: { vehicleId: returnVehicleId },
+      });
+    }
+  }, [returnVehicleId]);
 
   return (
     <KeyboardAvoidingView
@@ -121,11 +132,24 @@ export function LoginScreen({ navigation }: Props) {
         <Button
           mode="outlined"
           icon="account-plus-outline"
-          onPress={() => navigation.navigate("Signup")}
+          onPress={() =>
+            navigation.navigate("Signup", {
+              role: "DRIVER",
+              returnVehicleId,
+            })
+          }
           style={styles.secondaryBtn}
           contentStyle={styles.btnContent}
         >
           Criar conta
+        </Button>
+        <Button
+          mode="text"
+          icon="store-outline"
+          onPress={() => navigation.navigate("Marketplace")}
+          style={styles.linkBtn}
+        >
+          Continuar vendo veículos
         </Button>
         <Button
           mode="text"

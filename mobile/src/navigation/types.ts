@@ -1,6 +1,6 @@
 export type RootStackParamList = {
-  Login: undefined;
-  Signup: undefined;
+  Login: { returnVehicleId?: string } | undefined;
+  Signup: { role?: "OWNER" | "DRIVER"; returnVehicleId?: string } | undefined;
   PrivacyPolicy: undefined;
   TermsOfUse: undefined;
   ForgotPassword: undefined;

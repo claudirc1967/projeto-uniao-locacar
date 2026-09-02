@@ -1,6 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import type { AuthedContext, Context } from "./context.js";
+import type { AuthedContext, Context, MaybeAuthedContext } from "./context.js";
 import { resolveSessionUser } from "./context.js";
 
 const t = initTRPC.context<Context>().create({ transformer: superjson });
@@ -25,6 +25,28 @@ const requireAuth = t.middleware(async ({ ctx, next }) => {
 });
 
 export const protectedProcedure = publicProcedure.use(requireAuth);
+
+const optionalAuth = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.userId) {
+    const guest: MaybeAuthedContext = { ...ctx, user: null };
+    return next({ ctx: guest });
+  }
+  const user = await resolveSessionUser(ctx.req, ctx.userId);
+  if (!user) {
+    const guest: MaybeAuthedContext = {
+      ...ctx,
+      userId: null,
+      token: null,
+      user: null,
+    };
+    return next({ ctx: guest });
+  }
+  const maybe: MaybeAuthedContext = { ...ctx, userId: ctx.userId, user };
+  return next({ ctx: maybe });
+});
+
+/** Aceita requisição com ou sem JWT (visitante ou autenticado). */
+export const optionalAuthProcedure = publicProcedure.use(optionalAuth);
 
 const requireOwner = t.middleware(async ({ ctx, next }) => {
   const c = ctx as AuthedContext;

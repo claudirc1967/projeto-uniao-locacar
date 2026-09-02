@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,6 +26,7 @@ import {
 } from "../../components/CepAddressForm";
 import { useAuth } from "../../hooks/AuthContext";
 import type { RootStackParamList } from "../../navigation/types";
+import { setPostLoginNavigation } from "../../navigation/postLoginNavigation";
 import { cpfCnpjValidationMessage } from "../../utils/cpfCnpj";
 import { cepDigits, maskCpfCnpj, maskPhone, onlyDigits } from "../../utils/masks";
 import { phoneValidationMessage } from "../../utils/phone";
@@ -47,13 +48,15 @@ const emptyAddr: CepAddressValue = {
   complemento: "",
 };
 
-export function SignupScreen({ navigation }: Props) {
+export function SignupScreen({ navigation, route }: Props) {
   const theme = useTheme();
   const { loginWithToken } = useAuth();
+  const initialRole = route.params?.role ?? "DRIVER";
+  const returnVehicleId = route.params?.returnVehicleId;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [secure, setSecure] = useState(true);
-  const [role, setRole] = useState<"OWNER" | "DRIVER">("DRIVER");
+  const [role, setRole] = useState<"OWNER" | "DRIVER">(initialRole);
   const [nomeRazaoSocial, setNomeRazaoSocial] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [phone, setPhone] = useState("");
@@ -61,6 +64,21 @@ export function SignupScreen({ navigation }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+
+  useEffect(() => {
+    setRole(route.params?.role ?? "DRIVER");
+  }, [route.params?.role]);
+
+  useEffect(() => {
+    if (returnVehicleId && role === "DRIVER") {
+      setPostLoginNavigation({
+        name: "VehicleDetail",
+        params: { vehicleId: returnVehicleId },
+      });
+    } else {
+      setPostLoginNavigation(null);
+    }
+  }, [returnVehicleId, role]);
 
   const signup = trpc.auth.signup.useMutation({
     onSuccess: async (data) => {
@@ -303,8 +321,11 @@ export function SignupScreen({ navigation }: Props) {
         >
           Cadastrar
         </Button>
-        <Button mode="text" onPress={() => navigation.navigate("Login")}>
+        <Button mode="text" onPress={() => navigation.navigate("Login", { returnVehicleId })}>
           Já tenho conta
+        </Button>
+        <Button mode="text" icon="store-outline" onPress={() => navigation.navigate("Marketplace")}>
+          Continuar vendo veículos
         </Button>
         <View style={styles.spacer} />
       </ScrollView>

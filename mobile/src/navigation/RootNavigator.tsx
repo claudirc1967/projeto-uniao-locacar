@@ -1,7 +1,9 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useRef } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useAuth } from "../hooks/AuthContext";
+import { MarketplaceHeaderActions } from "../components/MarketplaceHeaderActions";
 import { ForgotPasswordScreen } from "../screens/auth/ForgotPasswordScreen";
 import { LoginScreen } from "../screens/auth/LoginScreen";
 import { ResetPasswordScreen } from "../screens/auth/ResetPasswordScreen";
@@ -48,11 +50,17 @@ import { AdminPendingRentalsScreen } from "../screens/admin/AdminPendingRentalsS
 import { AdminRentalDetailScreen } from "../screens/admin/AdminRentalDetailScreen";
 import { AdminOwnersScreen } from "../screens/admin/AdminOwnersScreen";
 import type { RootStackParamList } from "./types";
+import { consumePostLoginNavigation } from "./postLoginNavigation";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const POST_LOGIN_UNREAD = Symbol("postLoginUnread");
+
 export function RootNavigator() {
   const { token, user, sessionLoading } = useAuth();
+  const postLoginStore = useRef<
+    ReturnType<typeof consumePostLoginNavigation> | typeof POST_LOGIN_UNREAD
+  >(POST_LOGIN_UNREAD);
 
   if (sessionLoading) {
     return (
@@ -63,21 +71,44 @@ export function RootNavigator() {
   }
 
   const authed = !!(token && user);
+  if (!authed && !token) {
+    postLoginStore.current = POST_LOGIN_UNREAD;
+  } else if (authed && postLoginStore.current === POST_LOGIN_UNREAD) {
+    postLoginStore.current = consumePostLoginNavigation();
+  }
+
+  const postLogin =
+    postLoginStore.current === POST_LOGIN_UNREAD
+      ? null
+      : postLoginStore.current;
+
   const navKey = authed ? `${user!.role}-${user!.id}` : "guest";
   const needsPrivacy =
     authed && user?.needsPrivacyPolicyAcceptance === true;
   const needsTerms = authed && user?.needsTermsOfUseAcceptance === true;
+
+  const returnToVehicleDetail =
+    authed &&
+    user!.role === "DRIVER" &&
+    !needsPrivacy &&
+    !needsTerms &&
+    postLogin?.name === "VehicleDetail"
+      ? postLogin.params
+      : undefined;
+
   const initialRouteName = !authed
-    ? "Login"
-    : user!.role === "ADMIN"
-      ? "AdminHub"
-      : needsPrivacy
-        ? "PrivacyAcceptance"
-        : needsTerms
-          ? "TermsAcceptance"
-          : user!.role === "OWNER"
-            ? "OwnerHome"
-            : "DriverHome";
+    ? "Marketplace"
+    : returnToVehicleDetail
+      ? "VehicleDetail"
+      : user!.role === "ADMIN"
+        ? "AdminHub"
+        : needsPrivacy
+          ? "PrivacyAcceptance"
+          : needsTerms
+            ? "TermsAcceptance"
+            : user!.role === "OWNER"
+              ? "OwnerHome"
+              : "DriverHome";
 
   return (
     <NavigationContainer key={navKey}>
@@ -190,8 +221,23 @@ export function RootNavigator() {
         />
         <Stack.Screen name="DriverStatus" component={DriverStatusScreen} options={{ title: "Situação motorista" }} />
         <Stack.Screen name="DriverRentals" component={DriverRentalsScreen} options={{ title: "Solicitações de locação" }} />
-        <Stack.Screen name="Marketplace" component={MarketplaceScreen} options={{ title: "Veículos disponíveis" }} />
-        <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} options={{ title: "Detalhes do veículo" }} />
+        <Stack.Screen
+          name="Marketplace"
+          component={MarketplaceScreen}
+          options={({ navigation }) => ({
+            title: "Veículos disponíveis",
+            headerBackVisible: navigation.canGoBack(),
+            headerRight: () => (
+              <MarketplaceHeaderActions navigation={navigation} />
+            ),
+          })}
+        />
+        <Stack.Screen
+          name="VehicleDetail"
+          component={VehicleDetailScreen}
+          options={{ title: "Detalhes do veículo" }}
+          initialParams={returnToVehicleDetail}
+        />
         <Stack.Screen
           name="UserReviews"
           component={UserReviewsScreen}

@@ -24,6 +24,11 @@ export type AuthedContext = Omit<Context, "userId"> & {
   user: AuthedUser;
 };
 
+/** Contexto após `optionalAuthProcedure` (visitante ou usuário autenticado). */
+export type MaybeAuthedContext = Context & {
+  user: AuthedUser | null;
+};
+
 type RequestWithSessionCache = CreateExpressContextOptions["req"] & {
   __sessionUserCache?: {
     user?: AuthedUser | null;

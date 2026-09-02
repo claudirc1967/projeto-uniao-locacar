@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import type { AuthedContext } from "../context.js";
+import type { AuthedContext, AuthedUser, MaybeAuthedContext } from "../context.js";
 import { isDriverBlockedFromVehicleRequest } from "../driverVehicleBlock.js";
 import { prisma } from "../db.js";
 import { loadVehicleExposureCounts } from "../highlights/exposure.js";
@@ -10,7 +10,7 @@ import {
   sortVehiclesForMarketplace,
 } from "../highlights/tier.js";
 import { presignGetRead } from "../storage/s3.js";
-import { protectedProcedure, router } from "../trpc.js";
+import { optionalAuthProcedure, protectedProcedure, router } from "../trpc.js";
 import { findVehicleIdsByFoldedContains } from "../utils/textSearch.js";
 import { vehicleTypeSchema } from "../vehicleCapacity.js";
 
@@ -114,8 +114,23 @@ function buildVehicleWhere(
   return { AND: and };
 }
 
+function resolveListFilters(
+  input: z.infer<typeof listFiltersSchema>,
+  user: AuthedUser | null
+): z.infer<typeof listFiltersSchema> {
+  if (user?.role === "OWNER") {
+    const { ownerMinAverageStars: _stars, ...rest } = input;
+    return { ...rest, ownerUserId: user.id };
+  }
+  if (!user && input.ownerUserId) {
+    const { ownerUserId: _id, ...rest } = input;
+    return rest;
+  }
+  return input;
+}
+
 export const marketplaceRouter = router({
-  listVehicleBrands: protectedProcedure.query(async () => {
+  listVehicleBrands: optionalAuthProcedure.query(async () => {
     const rows = await prisma.vehicleBrand.findMany({
       where: { active: true },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -124,7 +139,7 @@ export const marketplaceRouter = router({
     return rows;
   }),
 
-  listVehicleModels: protectedProcedure
+  listVehicleModels: optionalAuthProcedure
     .input(
       z.object({
         brandName: z.string().min(1).max(120),
@@ -148,10 +163,11 @@ export const marketplaceRouter = router({
       });
     }),
 
-  listAvailableVehicles: protectedProcedure
+  listAvailableVehicles: optionalAuthProcedure
     .input(listFiltersSchema)
     .query(async ({ ctx, input }) => {
-      const f = input;
+      const user = (ctx as MaybeAuthedContext).user;
+      const f = resolveListFilters(input, user);
       if (
         f.yearMin != null &&
         f.yearMax != null &&
@@ -210,12 +226,12 @@ export const marketplaceRouter = router({
             const coverUrl = thumb
               ? await safePresignGetRead(thumb.key)
               : null;
-            const u = ctx as AuthedContext;
+            const isDriver = user?.role === "DRIVER";
             let driverRequestBlocked: boolean | undefined;
-            if (u.user.role === "DRIVER") {
+            if (isDriver) {
               driverRequestBlocked = await isDriverBlockedFromVehicleRequest(
                 v.id,
-                u.user.id
+                user!.id
               );
             }
             return {
@@ -236,7 +252,9 @@ export const marketplaceRouter = router({
               pickupUf: v.pickupUf,
               ownerUserId: v.owner.id,
               ownerName: v.owner.ownerProfile?.nomeRazaoSocial || null,
-              ownerPhone: v.owner.ownerProfile?.phone || null,
+              ownerPhone: isDriver
+                ? v.owner.ownerProfile?.phone || null
+                : null,
               ownerCity: v.owner.ownerProfile?.cidade || null,
               ownerUf: v.owner.ownerProfile?.uf || null,
               ownerAverageRating: v.owner.ownerProfile?.averageRating ?? null,
@@ -296,9 +314,10 @@ export const marketplaceRouter = router({
       return { ok: true as const, duplicate: false as const };
     }),
 
-  getVehiclePublic: protectedProcedure
+  getVehiclePublic: optionalAuthProcedure
     .input(z.object({ vehicleId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const user = (ctx as MaybeAuthedContext).user;
       const v = await prisma.vehicle.findFirst({
         where: { id: input.vehicleId, available: true },
         include: {
@@ -337,12 +356,12 @@ export const marketplaceRouter = router({
         const photos = photosWithMaybeUrls.filter(
           (p): p is typeof p & { photoUrl: string } => Boolean(p.photoUrl)
         );
-        const u = ctx as AuthedContext;
+        const isDriver = user?.role === "DRIVER";
         let driverRequestBlocked: boolean | undefined;
-        if (u.user.role === "DRIVER") {
+        if (isDriver) {
           driverRequestBlocked = await isDriverBlockedFromVehicleRequest(
             v.id,
-            u.user.id
+            user!.id
           );
         }
         return {
@@ -362,16 +381,16 @@ export const marketplaceRouter = router({
           requirementsJson: v.requirementsJson,
           paymentNotes: v.paymentNotes,
           caucao: v.caucao,
-          pickupCep: v.pickupCep,
-          pickupLogradouro: v.pickupLogradouro,
-          pickupNumero: v.pickupNumero,
-          pickupComplemento: v.pickupComplemento,
-          pickupBairro: v.pickupBairro,
+          pickupCep: isDriver ? v.pickupCep : null,
+          pickupLogradouro: isDriver ? v.pickupLogradouro : null,
+          pickupNumero: isDriver ? v.pickupNumero : null,
+          pickupComplemento: isDriver ? v.pickupComplemento : null,
+          pickupBairro: isDriver ? v.pickupBairro : null,
           pickupCity: v.pickupCity,
           pickupUf: v.pickupUf,
           ownerUserId: v.owner.id,
           ownerName: v.owner.ownerProfile?.nomeRazaoSocial || null,
-          ownerEmail: v.owner.email,
+          ownerEmail: isDriver ? v.owner.email : null,
           ownerAverageRating: v.owner.ownerProfile?.averageRating ?? null,
           ownerRatingCount: v.owner.ownerProfile?.ratingCount ?? 0,
           photos,
@@ -386,7 +405,7 @@ export const marketplaceRouter = router({
       }
     }),
 
-  listOwnerReviews: protectedProcedure
+  listOwnerReviews: optionalAuthProcedure
     .input(z.object({ ownerUserId: z.string().min(1) }))
     .query(async ({ input }) => {
       const profile = await prisma.ownerProfile.findUnique({

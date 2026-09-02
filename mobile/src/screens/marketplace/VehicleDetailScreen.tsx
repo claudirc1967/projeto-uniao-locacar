@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Button, Text, useTheme } from "react-native-paper";
 import VehicleImageViewer from "../../components/VehicleImageViewer";
+import { GuestAuthPrompt } from "../../components/GuestAuthPrompt";
 import { VehicleLocationActions } from "../../components/VehicleLocationActions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "../../api/trpc";
@@ -80,7 +81,12 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
   }
 
   const v = q.data!;
-  const ownerName = v.ownerName?.trim() || v.ownerEmail || "—";
+  const isGuest = !user;
+  const isDriver = user?.role === "DRIVER";
+  const ownerName =
+    v.ownerName?.trim() || (isDriver ? v.ownerEmail?.trim() : null) || "—";
+  const isOwnVehicle = user?.role === "OWNER" && v.ownerUserId === user.id;
+  const showOwnerPublicInfo = isDriver || isGuest;
   const descriptionText = v.description?.trim() || "";
   const brandModel = [v.brand?.trim(), v.model?.trim()].filter(Boolean).join(" ");
   const showDescription =
@@ -104,6 +110,35 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
     driverEligibility?.requestRentalBlockReason
       ? driverEligibility.requestRentalBlockReason
       : null;
+
+  const goBack = () => {
+    const prevRoute =
+      navigation.getState().routes[navigation.getState().index - 1]?.name;
+
+    if (user?.role === "DRIVER") {
+      if (prevRoute === "Marketplace") {
+        navigation.goBack();
+      } else {
+        navigation.replace("Marketplace");
+      }
+      return;
+    }
+
+    if (user?.role === "OWNER") {
+      if (prevRoute === "Marketplace") {
+        navigation.goBack();
+      } else {
+        navigation.replace("OwnerHome");
+      }
+      return;
+    }
+
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("Marketplace");
+    }
+  };
 
   return (
     <>
@@ -193,13 +228,19 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
             Caução: {v.caucao.trim()}
           </Text>
         ) : null}
+        {v.pickupCity ? (
+          <Text variant="bodyMedium" style={styles.meta}>
+            Local de retirada: {v.pickupCity}
+            {v.pickupUf ? `/${v.pickupUf}` : ""}
+          </Text>
+        ) : null}
         {request.isError &&
         !isDuplicateRentalRequestError(request.error) ? (
           <Text style={{ color: theme.colors.error, marginVertical: 8 }}>
             {trpcErrorMessage(request.error)}
           </Text>
         ) : null}
-        {user?.role === "DRIVER" ? (
+        {showOwnerPublicInfo ? (
           <>
             <Text variant="titleSmall" style={styles.ownerLabel}>
               Locador: {ownerName}
@@ -207,7 +248,7 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
             {ownerHasReviews ? (
               <>
                 <Text variant="bodySmall" style={styles.ownerRating}>
-                  ★ {v.ownerAverageRating.toFixed(1).replace(".", ",")} ({v.ownerRatingCount})
+                  ★ {v.ownerAverageRating!.toFixed(1).replace(".", ",")} ({v.ownerRatingCount})
                 </Text>
                 <Button
                   mode="text"
@@ -226,10 +267,25 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
                 </Button>
               </>
             ) : null}
-            <VehicleLocationActions vehicle={v} />
+            {isDriver ? <VehicleLocationActions vehicle={v} /> : null}
           </>
         ) : null}
-        {user?.role === "DRIVER" ? (
+        {isOwnVehicle ? (
+          <>
+            <Text variant="bodyMedium" style={styles.hint}>
+              Este é um dos seus veículos. Veja como o anúncio aparece para os
+              motoristas ou gerencie cadastro e fotos.
+            </Text>
+            <Button
+              mode="contained"
+              icon="car-outline"
+              style={styles.requestBtn}
+              onPress={() => navigation.navigate("OwnerVehicles")}
+            >
+              Gerenciar meus veículos
+            </Button>
+          </>
+        ) : isDriver ? (
           v.driverRequestBlocked ? (
             <>
               <Text variant="bodySmall" style={styles.blockedHint}>
@@ -272,6 +328,12 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
               Solicitar locação
             </Button>
           )
+        ) : isGuest ? (
+          <GuestAuthPrompt
+            navigation={navigation}
+            returnVehicleId={vehicleId}
+            message="Entre ou crie sua conta de motorista para solicitar locação deste veículo e ver o endereço completo de retirada."
+          />
         ) : (
           <Text variant="bodyMedium" style={styles.hint}>
             Entre como motorista para solicitar locação.
@@ -279,7 +341,7 @@ export function VehicleDetailScreen({ navigation, route }: Props) {
         )}
         </ScrollView>
         <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
-          <Button mode="outlined" icon="arrow-left" onPress={() => navigation.goBack()}>
+          <Button mode="outlined" icon="arrow-left" onPress={goBack}>
             Voltar
           </Button>
         </View>

@@ -22,6 +22,7 @@ import {
 } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AdSlot } from "../../components/ads/AdSlot";
+import { GuestAuthPrompt } from "../../components/GuestAuthPrompt";
 import { HighlightTierBadge } from "../../components/HighlightTierBadge";
 import { AD_PLACEMENTS, MARKETPLACE_AD_EVERY_N } from "../../constants/adPlacements";
 import type { VehicleHighlightTier } from "../../constants/highlightTier";
@@ -374,6 +375,7 @@ export function MarketplaceScreen({ navigation }: Props) {
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      if (!user) return;
       for (const token of viewableItems) {
         if (!token.isViewable || token.item == null) continue;
         const row = token.item as { id?: string };
@@ -473,6 +475,9 @@ export function MarketplaceScreen({ navigation }: Props) {
           onViewableItemsChanged={onViewableItemsChanged}
         ListHeaderComponent={
           <View style={styles.headerBlock}>
+            {!user ? (
+              <GuestAuthPrompt navigation={navigation} variant="compact" />
+            ) : null}
             <View style={styles.headerRow}>
               <Button
                 mode="outlined"
@@ -558,12 +563,12 @@ export function MarketplaceScreen({ navigation }: Props) {
                       {item.pickupUf ? `/${item.pickupUf}` : ""}
                     </Text>
                   ) : null}
-                  {user?.role === "DRIVER" ? (
+                  {user?.role !== "OWNER" ? (
                     <Text variant="bodySmall" style={styles.locadorBold}>
                       Locador: {item.ownerName ?? "—"}
                     </Text>
                   ) : null}
-                  {user?.role === "DRIVER" ? (
+                  {user?.role !== "OWNER" ? (
                     <Text variant="bodySmall" style={styles.ownerRatingLine}>
                       {item.ownerRatingCount > 0 && item.ownerAverageRating != null
                         ? `★ ${item.ownerAverageRating.toFixed(1).replace(".", ",")} (${item.ownerRatingCount})`
@@ -1108,7 +1113,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
   list: { padding: 16, paddingBottom: 12 },
   footer: { paddingHorizontal: 16, paddingTop: 8 },
-  headerBlock: { marginBottom: 16 },
+  headerBlock: { marginBottom: 16, gap: 12 },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",

@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { AuthedContext } from "../context.js";
+import type { MaybeAuthedContext } from "../context.js";
+import { impressionAudienceId } from "../ads/audience.js";
 import { pickEligibleCampaign } from "../ads/eligibility.js";
 import { loadUserImpressionCounts } from "../ads/impressionCounts.js";
 import { prisma } from "../db.js";
-import { protectedProcedure, router } from "../trpc.js";
+import { optionalAuthProcedure, router } from "../trpc.js";
 import { adsAdminRouter } from "./adsAdmin.js";
 
 const placementSchema = z.enum(["DRIVER_HOME", "MARKETPLACE_LIST"]);
@@ -16,7 +17,10 @@ const eventTypeSchema = z.enum([
   "FILL_ERROR",
 ]);
 
-function geoFromUser(user: AuthedContext["user"]) {
+function geoFromUser(user: MaybeAuthedContext["user"]) {
+  if (!user) {
+    return { uf: null as string | null, cidade: null as string | null };
+  }
   if (user.role === "DRIVER" && user.driverProfile) {
     return {
       uf: user.driverProfile.uf,
@@ -33,7 +37,7 @@ function geoFromUser(user: AuthedContext["user"]) {
 }
 
 export const adsRouter = router({
-  decision: protectedProcedure
+  decision: optionalAuthProcedure
     .input(
       z.object({
         placement: placementSchema,
@@ -42,27 +46,41 @@ export const adsRouter = router({
         cidade: z.string().max(120).optional(),
         /** Índice do slot (ex.: marketplace) para rodízio entre campanhas do mesmo tier. */
         rotationSeed: z.number().int().min(0).max(9999).optional(),
+        /** Id estável do aparelho quando não há sessão. Ignorado se houver usuário. */
+        visitorId: z.string().max(48).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
-      const user = (ctx as AuthedContext).user;
+      const user = (ctx as MaybeAuthedContext).user;
+      const publicList = input.placement === "MARKETPLACE_LIST";
+      if (!publicList && user?.role !== "DRIVER") {
+        return {
+          kind: "none" as const,
+          admobEnabled: false,
+        };
+      }
+
       const profileGeo = geoFromUser(user);
       const uf = input.uf?.trim() || profileGeo.uf;
       const cidade = input.cidade?.trim() || profileGeo.cidade;
+      const audienceId = impressionAudienceId(user?.id, input.visitorId);
 
       const [campaigns, impressionCounts] = await Promise.all([
         prisma.adCampaign.findMany({
           where: { status: "ACTIVE" },
         }),
-        loadUserImpressionCounts(user.id),
+        audienceId
+          ? loadUserImpressionCounts(audienceId)
+          : Promise.resolve(new Map<string, number>()),
       ]);
 
       const picked = pickEligibleCampaign(campaigns, {
         placement: input.placement,
-        role: user.role,
+        role: user?.role ?? null,
+        ignoreRole: publicList,
         uf,
         cidade,
-        userId: user.id,
+        userId: audienceId,
         rotationSeed: input.rotationSeed,
         impressionCounts,
       });
@@ -88,7 +106,7 @@ export const adsRouter = router({
       };
     }),
 
-  track: protectedProcedure
+  track: optionalAuthProcedure
     .input(
       z.object({
         eventId: z.string().min(8).max(64),
@@ -96,10 +114,15 @@ export const adsRouter = router({
         eventType: eventTypeSchema,
         campaignId: z.string().optional(),
         platform: platformSchema.optional(),
+        /** Id estável do aparelho quando não há sessão. Ignorado se houver usuário. */
+        visitorId: z.string().max(48).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = (ctx as AuthedContext).user.id;
+      const userId = impressionAudienceId(
+        (ctx as MaybeAuthedContext).user?.id,
+        input.visitorId
+      );
 
       const existing = await prisma.adEvent.findUnique({
         where: { eventId: input.eventId },

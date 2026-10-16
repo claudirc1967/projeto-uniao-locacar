@@ -599,11 +599,12 @@ export function MarketplaceScreen({ navigation }: Props) {
               </View>
             </Card>
           </Pressable>
-            {user?.role === "DRIVER" &&
-            (index + 1) % MARKETPLACE_AD_EVERY_N === 0 ? (
+            {(index + 1) % MARKETPLACE_AD_EVERY_N === 0 ? (
               <AdSlot
                 placement={AD_PLACEMENTS.MARKETPLACE_LIST}
-                rotationSeed={index + 1}
+                rotationSeed={Math.floor(index / MARKETPLACE_AD_EVERY_N)}
+                uf={applied.pickupUf}
+                cidade={applied.pickupCityContains}
               />
             ) : null}
           </>

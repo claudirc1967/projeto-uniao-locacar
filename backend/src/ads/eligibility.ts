@@ -36,9 +36,12 @@ export function campaignMatchesPlacement(
 
 export function campaignMatchesRole(
   campaign: Pick<AdCampaign, "targetRoles">,
-  role: Role
+  role: Role | null,
+  ignoreRole = false
 ): boolean {
+  if (ignoreRole) return true;
   if (campaign.targetRoles.length === 0) return true;
+  if (!role) return false;
   return campaign.targetRoles.includes(role);
 }
 
@@ -73,7 +76,9 @@ export function filterEligibleCampaigns(
   campaigns: AdCampaign[],
   input: {
     placement: AdPlacementKey;
-    role: Role;
+    role: Role | null;
+    /** Lista pública: o placement já é o público; targetRoles não restringe. */
+    ignoreRole?: boolean;
     uf?: string | null;
     cidade?: string | null;
     now?: Date;
@@ -84,7 +89,7 @@ export function filterEligibleCampaigns(
     .filter((c) => c.status === "ACTIVE")
     .filter((c) => isCampaignWithinSchedule(c, now))
     .filter((c) => campaignMatchesPlacement(c, input.placement))
-    .filter((c) => campaignMatchesRole(c, input.role))
+    .filter((c) => campaignMatchesRole(c, input.role, input.ignoreRole))
     .filter((c) => campaignMatchesGeo(c, input.uf, input.cidade));
 }
 
@@ -133,10 +138,12 @@ export function pickEligibleCampaign(
   campaigns: AdCampaign[],
   input: {
     placement: AdPlacementKey;
-    role: Role;
+    role: Role | null;
+    /** Lista pública: o placement já é o público; targetRoles não restringe. */
+    ignoreRole?: boolean;
     uf?: string | null;
     cidade?: string | null;
-    userId: string;
+    userId?: string | null;
     rotationSeed?: number;
     impressionCounts?: ReadonlyMap<string, number>;
     now?: Date;

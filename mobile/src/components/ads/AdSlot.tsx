@@ -1,9 +1,10 @@
 import { Platform } from "react-native";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { useTheme } from "react-native-paper";
-import type { AdPlacementKey } from "../../constants/adPlacements";
+import { AD_PLACEMENTS, type AdPlacementKey } from "../../constants/adPlacements";
 import { trpc } from "../../api/trpc";
 import { useAuth } from "../../hooks/AuthContext";
+import { useAdVisitorId } from "../../utils/adVisitorId";
 import { HouseAdCard, type HouseAdVariant } from "./HouseAdCard";
 
 const DECISION_STALE_MS = 30 * 1000;
@@ -20,33 +21,56 @@ type Props = {
   variant?: HouseAdVariant;
   /** Diferencia slots no mesmo placement (rodízio no marketplace). */
   rotationSeed?: number;
+  /** Filtro da lista. Sem filtro, o servidor usa a cidade do perfil de quem está logado. */
+  uf?: string;
+  cidade?: string;
 };
 
 /**
  * Reserva espaço na tela e exibe house ad conforme ads.decision no servidor.
- * Fase 1: só motorista; AdMob fica para fase 3.
+ * A lista do marketplace vale para qualquer visitante. A home continua só para motorista.
  */
-export function AdSlot({ placement, variant = "default", rotationSeed }: Props) {
+export function AdSlot({
+  placement,
+  variant = "default",
+  rotationSeed,
+  uf,
+  cidade,
+}: Props) {
   const theme = useTheme();
   const { user } = useAuth();
   const platform = adPlatform();
   const compact = variant === "compact";
+  const publicList = placement === AD_PLACEMENTS.MARKETPLACE_LIST;
+  const enabled = publicList || user?.role === "DRIVER";
+  const visitorId = useAdVisitorId(enabled && !user);
+  const ufTrim = uf?.trim();
+  const cidadeTrim = cidade?.trim();
 
   const decisionQ = trpc.ads.decision.useQuery(
-    { placement, platform, rotationSeed: rotationSeed ?? 0 },
     {
-      enabled: user?.role === "DRIVER",
+      placement,
+      platform,
+      rotationSeed: rotationSeed ?? 0,
+      ...(ufTrim ? { uf: ufTrim } : {}),
+      ...(cidadeTrim ? { cidade: cidadeTrim } : {}),
+      ...(visitorId ? { visitorId } : {}),
+    },
+    {
+      enabled: enabled && (!!user || !!visitorId),
       staleTime: DECISION_STALE_MS,
       refetchOnMount: "always",
       retry: false,
     }
   );
 
-  if (user?.role !== "DRIVER") {
+  const waitingVisitor = enabled && !user && !visitorId;
+
+  if (!enabled) {
     return null;
   }
 
-  if (decisionQ.isLoading) {
+  if (waitingVisitor || decisionQ.isLoading) {
     if (compact) return null;
     return (
       <View style={styles.slot}>
@@ -69,6 +93,7 @@ export function AdSlot({ placement, variant = "default", rotationSeed }: Props) 
           platform={platform}
           house={decisionQ.data.house}
           variant={variant}
+          visitorId={visitorId ?? undefined}
         />
       </View>
     );

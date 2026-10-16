@@ -30,6 +30,8 @@ type Props = {
   variant?: HouseAdVariant;
   /** Pré-visualização no admin: sem tracking de impressão/clique. */
   preview?: boolean;
+  /** Id do aparelho para o teto de impressões de quem não está logado. */
+  visitorId?: string;
 };
 
 export function HouseAdCard({
@@ -38,6 +40,7 @@ export function HouseAdCard({
   house,
   variant = "default",
   preview = false,
+  visitorId,
 }: Props) {
   const theme = useTheme();
   const impressionSent = useRef(false);
@@ -53,8 +56,9 @@ export function HouseAdCard({
       eventType: "IMPRESSION",
       campaignId: house.campaignId,
       platform,
+      ...(visitorId ? { visitorId } : {}),
     });
-  }, [house.campaignId, placement, platform, preview, track]);
+  }, [house.campaignId, placement, platform, preview, track, visitorId]);
 
   const onPress = () => {
     const url = house.clickUrl.trim();
@@ -75,6 +79,7 @@ export function HouseAdCard({
       eventType: "CLICK",
       campaignId: house.campaignId,
       platform,
+      ...(visitorId ? { visitorId } : {}),
     });
     void Linking.openURL(url);
   };

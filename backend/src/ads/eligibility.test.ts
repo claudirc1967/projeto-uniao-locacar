@@ -140,6 +140,75 @@ describe("pickRoundRobinFromTier", () => {
   });
 });
 
+describe("audiência da lista pública", () => {
+  function listed(
+    id: string,
+    overrides: Partial<AdCampaign> = {}
+  ): AdCampaign {
+    return {
+      ...campaign(id, id, 10),
+      placements: ["MARKETPLACE_LIST"],
+      targetRoles: ["DRIVER"],
+      nationwide: true,
+      targetUfs: [],
+      targetCidades: [],
+      ...overrides,
+    };
+  }
+
+  it("mostra campanha de motorista para visitante e locador na lista", () => {
+    const pool = [listed("parceiro")];
+    const guest = pickEligibleCampaign(pool, {
+      placement: "MARKETPLACE_LIST",
+      role: null,
+      ignoreRole: true,
+    });
+    const owner = pickEligibleCampaign(pool, {
+      placement: "MARKETPLACE_LIST",
+      role: "OWNER",
+      ignoreRole: true,
+    });
+    assert.equal(guest?.id, "parceiro");
+    assert.equal(owner?.id, "parceiro");
+  });
+
+  it("mantém o filtro de papel na home do motorista", () => {
+    const pool = [campaign("home", "Home", 10)];
+    const guest = pickEligibleCampaign(pool, {
+      placement: "DRIVER_HOME",
+      role: null,
+    });
+    const owner = pickEligibleCampaign(pool, {
+      placement: "DRIVER_HOME",
+      role: "OWNER",
+    });
+    assert.equal(guest, null);
+    assert.equal(owner, null);
+  });
+
+  it("exige UF do filtro quando a campanha não é nacional", () => {
+    const pool = [
+      listed("regional", {
+        nationwide: false,
+        targetUfs: ["SP"],
+      }),
+    ];
+    const withoutUf = pickEligibleCampaign(pool, {
+      placement: "MARKETPLACE_LIST",
+      role: null,
+      ignoreRole: true,
+    });
+    const withUf = pickEligibleCampaign(pool, {
+      placement: "MARKETPLACE_LIST",
+      role: null,
+      ignoreRole: true,
+      uf: "sp",
+    });
+    assert.equal(withoutUf, null);
+    assert.equal(withUf?.id, "regional");
+  });
+});
+
 describe("filterByImpressionCap", () => {
   it("respeita cap por placement", () => {
     const counts = new Map<string, number>([
